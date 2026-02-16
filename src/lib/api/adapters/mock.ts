@@ -318,8 +318,8 @@ export class MockApiClient implements ApiClient {
     return { success: true, message: `Successfully connected to ${data.host}:${data.port}/${data.database}` };
   }
 
-  async saveConnection(_data: ConnectionSettings): Promise<void> {
+  async saveConnection(data: ConnectionSettings): Promise<void> {
     await delay();
-    // Mock: no-op
+    localStorage.setItem('taskflow_connection', JSON.stringify(data));
   }
 }
