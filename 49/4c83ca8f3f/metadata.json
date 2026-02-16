@@ -3,9 +3,10 @@
   "checkpoint_id": "494c83ca8f3f",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 69,
+  "checkpoints_count": 80,
   "files_touched": [
     ".claude/settings.local.json",
+    "_bmad-output/planning-artifacts/architecture.md",
     "_bmad-output/planning-artifacts/epics.md",
     "_bmad-output/planning-artifacts/implementation-readiness-report-2026-02-16.md",
     "_bmad-output/planning-artifacts/prd.md",
@@ -42,13 +43,20 @@
       "context": "/49/4c83ca8f3f/3/context.md",
       "content_hash": "/49/4c83ca8f3f/3/content_hash.txt",
       "prompt": "/49/4c83ca8f3f/3/prompt.txt"
+    },
+    {
+      "metadata": "/49/4c83ca8f3f/4/metadata.json",
+      "transcript": "/49/4c83ca8f3f/4/full.jsonl",
+      "context": "/49/4c83ca8f3f/4/context.md",
+      "content_hash": "/49/4c83ca8f3f/4/content_hash.txt",
+      "prompt": "/49/4c83ca8f3f/4/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 3237,
-    "cache_creation_tokens": 1315120,
-    "cache_read_tokens": 35025538,
-    "output_tokens": 55280,
-    "api_call_count": 329
+    "input_tokens": 3314,
+    "cache_creation_tokens": 1526759,
+    "cache_read_tokens": 40558743,
+    "output_tokens": 59179,
+    "api_call_count": 384
   }
 }

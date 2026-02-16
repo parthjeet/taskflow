@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "494c83ca8f3f",
+  "session_id": "c58456d9-709a-4a41-b50b-241f0e065cee",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-16T05:42:38.486957133Z",
+  "branch": "master",
+  "checkpoints_count": 11,
+  "files_touched": [
+    "_bmad-output/planning-artifacts/architecture.md",
+    "task_flow_master_doc.md"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "7ac30b57-b753-4131-becb-edbc37ded7b5",
+  "token_usage": {
+    "input_tokens": 77,
+    "cache_creation_tokens": 211639,
+    "cache_read_tokens": 5533205,
+    "output_tokens": 3899,
+    "api_call_count": 55
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-16T05:42:37.483392213Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 427,
+    "human_removed": 710,
+    "total_committed": 416,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/c58456d9-709a-4a41-b50b-241f0e065cee.jsonl"
+}
