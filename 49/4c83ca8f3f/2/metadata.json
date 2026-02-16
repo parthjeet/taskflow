@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "494c83ca8f3f",
+  "session_id": "8c39362c-ffc7-43ea-95dd-9f5c0fb3c235",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-16T05:42:37.403253271Z",
+  "branch": "master",
+  "checkpoints_count": 27,
+  "files_touched": [
+    "_bmad-output/planning-artifacts/ux-design-specification.md",
+    "task_flow_master_doc.md"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "99cd4a6d-8d5e-4f6e-b197-905cdab00427",
+  "token_usage": {
+    "input_tokens": 146,
+    "cache_creation_tokens": 317653,
+    "cache_read_tokens": 9673067,
+    "output_tokens": 13910,
+    "api_call_count": 94
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-16T05:42:35.690691341Z",
+    "agent_lines": 0,
+    "human_added": 0,
+    "human_modified": 427,
+    "human_removed": 920,
+    "total_committed": 423,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/8c39362c-ffc7-43ea-95dd-9f5c0fb3c235.jsonl"
+}
