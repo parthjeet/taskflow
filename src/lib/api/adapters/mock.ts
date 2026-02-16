@@ -3,6 +3,8 @@ import type { Task, SubTask, DailyUpdate, TeamMember, TaskFilters, ConnectionSet
 
 const TASKS_KEY = 'taskflow_tasks';
 const MEMBERS_KEY = 'taskflow_members';
+const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 
 function generateId(): string {
   return Math.random().toString(36).substring(2, 10);
@@ -25,7 +27,7 @@ function seedData() {
   ];
 
   const now = new Date();
-  const h = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * 3600000).toISOString();
+  const h = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * ONE_HOUR_MS).toISOString();
 
   const tasks: Task[] = [
     {
@@ -254,7 +256,7 @@ export class MockApiClient implements ApiClient {
     const upd = task.dailyUpdates.find(u => u.id === updateId);
     if (!upd) throw new Error('Update not found');
     const age = Date.now() - new Date(upd.createdAt).getTime();
-    if (age > 24 * 3600000) throw new Error('Updates can only be edited within 24 hours.');
+    if (age > ONE_DAY_MS) throw new Error('Updates can only be edited within 24 hours.');
     upd.content = data.content;
     upd.updatedAt = new Date().toISOString();
     upd.edited = true;
@@ -269,7 +271,7 @@ export class MockApiClient implements ApiClient {
     const upd = task.dailyUpdates.find(u => u.id === updateId);
     if (!upd) throw new Error('Update not found');
     const age = Date.now() - new Date(upd.createdAt).getTime();
-    if (age > 24 * 3600000) throw new Error('Updates can only be deleted within 24 hours.');
+    if (age > ONE_DAY_MS) throw new Error('Updates can only be deleted within 24 hours.');
     task.dailyUpdates = task.dailyUpdates.filter(u => u.id !== updateId);
     saveTasks(tasks);
   }
