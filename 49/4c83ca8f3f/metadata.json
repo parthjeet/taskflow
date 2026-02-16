@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "494c83ca8f3f",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 26,
+  "files_touched": [
+    ".claude/settings.local.json",
+    "_bmad-output/planning-artifacts/prd.md",
+    "_bmad-output/planning-artifacts/research/domain-electron-fastapi-react-desktop-bundling-research-2026-02-16.md",
+    "task_flow_master_doc.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/49/4c83ca8f3f/0/metadata.json",
+      "transcript": "/49/4c83ca8f3f/0/full.jsonl",
+      "context": "/49/4c83ca8f3f/0/context.md",
+      "content_hash": "/49/4c83ca8f3f/0/content_hash.txt",
+      "prompt": "/49/4c83ca8f3f/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 2915,
+    "cache_creation_tokens": 515921,
+    "cache_read_tokens": 9610951,
+    "output_tokens": 10979,
+    "api_call_count": 92
+  }
+}
