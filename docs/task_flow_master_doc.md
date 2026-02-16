@@ -1,7 +1,7 @@
 # TaskFlow - Comprehensive Project Documentation
 
-**Version:** 1.1
-**Date:** February 15, 2026
+**Version:** 1.2
+**Date:** February 16, 2026
 **Document Type:** BRD, PRD, TDD
 **Author:** Parth (Lead DevOps Engineer, AIG)
 
@@ -127,8 +127,10 @@ The system shall provide clear visual indicators for blocked tasks:
 #### FR-006: Database Configuration
 The system shall allow secure storage of PostgreSQL database credentials:
 - Settings page for DB connection configuration
-- Credentials stored locally and encrypted
-- Connection validation before saving
+- Credentials encrypted using Fernet symmetric encryption and stored in a user-writable config directory
+- Connection validation before saving (test-connection endpoint)
+- Separate save-connection endpoint to persist credentials
+- Auto-connect on startup using saved credentials
 
 ### 2.2 Non-Functional Requirements
 
@@ -148,9 +150,9 @@ The system shall allow secure storage of PostgreSQL database credentials:
 - Database connection retry logic
 
 #### NFR-004: Security
-- Database credentials encrypted at rest
-- No sensitive data stored in logs
-- SQL injection prevention (parameterized queries)
+- Database credentials encrypted at rest using Fernet symmetric encryption (no admin privileges required)
+- No sensitive data stored in logs, temp files, or error messages
+- SQL injection prevention (parameterized queries via SQLAlchemy ORM)
 
 #### NFR-005: Maintainability
 - Clean code architecture with separation of concerns
@@ -158,9 +160,11 @@ The system shall allow secure storage of PostgreSQL database credentials:
 - Version information displayed in UI
 
 #### NFR-006: Portability
-- Single executable Windows installer (.exe)
+- Portable Windows executable — no installer, no admin privileges required
 - No external dependencies required for end users
-- Installer size < 150MB
+- Portable executable total size < 200MB
+- No registry modifications, file associations, or system-level side effects
+- Runs on Windows 10 and Windows 11 (x64)
 
 ---
 
@@ -345,9 +349,11 @@ DailyUpdate {
   id: UUID
   task_id: UUID (foreign key)
   author_id: UUID (team member)
-  update_text: String (max 1000 chars)
+  author_name: String (server-resolved)
+  content: String (max 1000 chars)
   created_at: Timestamp
   updated_at: Timestamp
+  edited: Boolean (default false)
 }
 ```
 
@@ -444,9 +450,10 @@ DailyUpdate {
 - Error handling for connection failures with retry option
 
 **Security Requirements:**
-- Credentials encrypted using industry-standard encryption (AES-256)
-- Encryption key derived from machine-specific identifier
-- No credentials stored in logs or temp files
+- Credentials encrypted using Fernet symmetric encryption (`cryptography.fernet.Fernet`)
+- Encryption key generated once and stored in user-writable config directory (e.g., `config_dir/fernet.key`)
+- No admin privileges required for any file operations
+- No credentials stored in logs, temp files, or error messages
 - Password field masked with option to reveal
 
 ---
@@ -542,37 +549,39 @@ DailyUpdate {
 **Task**
 - id (UUID, PK)
 - title (VARCHAR 200, NOT NULL)
-- description (TEXT)
-- assigned_to (UUID, FK to TeamMember, NULLABLE)
-- status (ENUM, NOT NULL, default 'To Do')
-- priority (ENUM, default 'Medium')
+- description (VARCHAR 2000, NULLABLE)
+- assignee_id (UUID, FK to Member, NULLABLE)
+- assignee_name (VARCHAR 100, NULLABLE, server-resolved from assignee_id)
+- status (ENUM: "To Do", "In Progress", "Blocked", "Done", NOT NULL, default 'To Do')
+- priority (ENUM: "High", "Medium", "Low", NOT NULL, default 'Medium')
 - gear_id (VARCHAR 4, NULLABLE)
-- blocking_reason (TEXT, NULLABLE)
+- blocking_reason (VARCHAR, NOT NULL, default "")
 - created_at (TIMESTAMP, NOT NULL)
 - updated_at (TIMESTAMP, NOT NULL)
 
 **SubTask**
 - id (UUID, PK)
-- task_id (UUID, FK to Task, NOT NULL)
+- task_id (UUID, FK to Task, NOT NULL, ON DELETE CASCADE)
 - title (VARCHAR 200, NOT NULL)
-- completed (BOOLEAN, default FALSE)
-- position (INTEGER, for ordering)
+- completed (BOOLEAN, NOT NULL, default FALSE)
+- position (INTEGER, NOT NULL, for ordering)
 - created_at (TIMESTAMP, NOT NULL)
 
 **DailyUpdate**
 - id (UUID, PK)
-- task_id (UUID, FK to Task, NOT NULL)
-- author_id (UUID, FK to TeamMember, NOT NULL)
-- update_text (VARCHAR 1000, NOT NULL)
+- task_id (UUID, FK to Task, NOT NULL, ON DELETE CASCADE)
+- author_id (UUID, FK to Member, NOT NULL)
+- author_name (VARCHAR 100, NOT NULL, server-resolved from author_id)
+- content (VARCHAR 1000, NOT NULL)
 - created_at (TIMESTAMP, NOT NULL)
 - updated_at (TIMESTAMP, NOT NULL)
+- edited (BOOLEAN, NOT NULL, default FALSE)
 
-**TeamMember**
+**TeamMember (table name: `members`)**
 - id (UUID, PK)
 - name (VARCHAR 100, NOT NULL)
-- email (VARCHAR 255, NULLABLE)
-- is_active (BOOLEAN, default TRUE)
-- created_at (TIMESTAMP, NOT NULL)
+- email (VARCHAR 255, NOT NULL, UNIQUE)
+- active (BOOLEAN, NOT NULL, default TRUE)
 
 **AppConfig** (local storage only, not in Postgres)
 - db_host (ENCRYPTED)
@@ -653,10 +662,12 @@ taskflow/                          # Main repo (github.com/<GITHUB_USERNAME>/tas
 ├── electron/                      # Electron desktop wrapper
 │   ├── main.js
 │   └── preload.js
+├── pyinstaller_entrypoint.py       # Root-level entrypoint for PyInstaller (calls freeze_support())
 ├── .gitignore
 ├── package.json                   # Root package.json (Electron + build scripts)
 ├── README.md
-└── task_flow_master_doc.md      # This document
+└── docs/
+    └── task_flow_master_doc.md    # This document
 ```
 
 ### 1.2 Git Subtree Setup
@@ -914,10 +925,12 @@ taskflow-ui/
 │   │   └── Layout.tsx             # App shell with nav
 │   ├── lib/
 │   │   └── api/
-│   │       ├── mockClient.ts      # Mock API (localStorage-backed)
-│   │       ├── realClient.ts      # Real API (HTTP to FastAPI)
-│   │       ├── index.ts           # Exports active client (toggle mock/real)
-│   │       └── types.ts           # TypeScript interfaces
+│   │       ├── types.ts           # TypeScript interfaces (matches API_CONTRACT.md)
+│   │       ├── client.ts          # ApiClient interface definition
+│   │       ├── adapters/
+│   │       │   ├── mock.ts        # Mock adapter (localStorage-backed)
+│   │       │   └── real.ts        # Real adapter (HTTP to FastAPI, Backend-owned)
+│   │       └── index.ts           # Exports active apiClient singleton
 │   ├── pages/
 │   │   ├── Dashboard.tsx          # Task list (route: /)
 │   │   ├── TaskDetail.tsx         # Task detail view (route: /tasks/:id)
@@ -941,98 +954,105 @@ taskflow-ui/
 The frontend has a **swappable API client** pattern. Both `mockClient.ts` and `realClient.ts` implement the **exact same interface**. The active client is exported from `index.ts`.
 
 **API Client Interface (types.ts):**
+
+> **NOTE:** The canonical API contract is `taskflow-ui/API_CONTRACT.md`. The interfaces below use camelCase (frontend convention); the backend uses snake_case. The adapter layer handles the transformation.
+
 ```typescript
 // These are the TypeScript interfaces the backend MUST match
+// Field names use camelCase per frontend convention; backend uses snake_case
 
 interface Task {
-  id: string;            // UUID
-  title: string;         // 1-200 chars, required
-  description: string | null;
-  assigned_to: string | null;  // UUID of team member
+  id: string;                     // UUID
+  title: string;                  // 1-200 chars, required
+  description: string | null;     // Max 2000 chars
   status: 'To Do' | 'In Progress' | 'Blocked' | 'Done';
   priority: 'High' | 'Medium' | 'Low';
-  gear_id: string | null;      // 4 digits
-  blocking_reason: string | null;
-  created_at: string;    // ISO timestamp
-  updated_at: string;    // ISO timestamp
-  subtasks?: SubTask[];
-  daily_updates?: DailyUpdate[];
+  assigneeId: string | null;     // UUID of team member (backend: assignee_id)
+  assigneeName: string | null;   // Server-resolved from assigneeId (backend: assignee_name)
+  gearId: string | null;         // 4 digits (backend: gear_id)
+  blockingReason: string;        // Required when Blocked, "" otherwise (backend: blocking_reason)
+  subTasks: SubTask[];           // Embedded array (backend: sub_tasks)
+  dailyUpdates: DailyUpdate[];   // Embedded array, newest first (backend: daily_updates)
+  createdAt: string;             // ISO timestamp (backend: created_at)
+  updatedAt: string;             // ISO timestamp (backend: updated_at)
 }
 
 interface SubTask {
   id: string;
-  task_id: string;
   title: string;
   completed: boolean;
-  position: number;
-  created_at: string;
+  createdAt: string;             // backend: created_at
 }
 
 interface DailyUpdate {
   id: string;
-  task_id: string;
-  author_id: string;
-  author_name?: string;  // Enriched by client
-  update_text: string;
-  created_at: string;
-  updated_at: string;
+  taskId: string;                // backend: task_id
+  authorId: string;              // backend: author_id
+  authorName: string;            // Server-resolved from authorId (backend: author_name)
+  content: string;               // 1-1000 chars (NOT update_text)
+  createdAt: string;             // backend: created_at
+  updatedAt: string;             // backend: updated_at
+  edited: boolean;               // true if content was modified after creation
 }
 
 interface TeamMember {
   id: string;
   name: string;
-  email: string | null;
-  is_active: boolean;
-  created_at: string;
+  email: string;
+  active: boolean;               // NOT is_active
 }
 
-interface APIClient {
+interface ApiClient {
   // Tasks
-  getTasks(filters?: Record<string, string>): Promise<Task[]>;
+  getTasks(filters?: { status?: string; priority?: string; assignee?: string; search?: string; sort?: string }): Promise<Task[]>;
   getTask(id: string): Promise<Task>;
   createTask(data: Partial<Task>): Promise<Task>;
-  updateTask(id: string, data: Partial<Task>): Promise<Task>;
+  updateTask(id: string, data: Partial<Task>): Promise<Task>;  // PATCH, not PUT
   deleteTask(id: string): Promise<void>;
 
-  // Subtasks
-  createSubTask(taskId: string, data: Partial<SubTask>): Promise<SubTask>;
-  updateSubTask(taskId: string, subTaskId: string, data: Partial<SubTask>): Promise<SubTask>;
+  // Sub-tasks
+  addSubTask(taskId: string, data: { title: string }): Promise<SubTask>;
+  toggleSubTask(taskId: string, subTaskId: string): Promise<SubTask>;  // PATCH .../toggle
   deleteSubTask(taskId: string, subTaskId: string): Promise<void>;
 
   // Daily Updates
-  getDailyUpdates(taskId: string): Promise<DailyUpdate[]>;
-  createDailyUpdate(taskId: string, data: { author_id: string; update_text: string }): Promise<DailyUpdate>;
-  updateDailyUpdate(taskId: string, updateId: string, data: { update_text: string }): Promise<DailyUpdate>;
+  addDailyUpdate(taskId: string, data: { authorId: string; content: string }): Promise<DailyUpdate>;
+  editDailyUpdate(taskId: string, updateId: string, data: { content: string }): Promise<DailyUpdate>;  // PATCH
   deleteDailyUpdate(taskId: string, updateId: string): Promise<void>;
 
-  // Team Members
-  getTeamMembers(activeOnly?: boolean): Promise<TeamMember[]>;
-  createTeamMember(data: Partial<TeamMember>): Promise<TeamMember>;
-  updateTeamMember(id: string, data: Partial<TeamMember>): Promise<TeamMember>;
-  deleteTeamMember(id: string): Promise<void>;
+  // Team Members — endpoint is /members (NOT /team-members)
+  getMembers(): Promise<TeamMember[]>;
+  createMember(data: Partial<TeamMember>): Promise<TeamMember>;
+  updateMember(id: string, data: Partial<TeamMember>): Promise<TeamMember>;  // PATCH
+  deleteMember(id: string): Promise<void>;
 
   // Settings
-  testConnection?(config: DBConfig): Promise<{ status: string; message: string }>;
+  testConnection(config: DBConfig): Promise<{ status: string }>;
+  saveConnection(config: DBConfig): Promise<{ status: string }>;
 }
 ```
 
 **Switching from mock to real (index.ts):**
 ```typescript
-import { mockClient } from './mockClient';
-// import { realClient } from './realClient';
+import { MockApiClient } from './adapters/mock';
+// import { RealApiClient } from './adapters/real';
 
-// TOGGLE: Change this one line to switch between mock and real backend
-export const apiClient = mockClient;
-// export const apiClient = realClient;
+// Switch to real adapter when backend is available
+// Toggle via VITE_API_MODE=real env variable or runtime detection
+export const apiClient = new MockApiClient();
+// export const apiClient = new RealApiClient();
 ```
 
-**Real Client (realClient.ts) — to be implemented:**
-```typescript
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+**Real Client (adapters/real.ts) — to be implemented:**
 
-class RealAPIClient implements APIClient {
+> **NOTE:** The real adapter is owned by the Backend/CLI AI tools team because it requires a running FastAPI server to test against. Lovable AI cannot test real HTTP calls. It handles camelCase ↔ snake_case transformation at the adapter boundary.
+
+```typescript
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api/v1';
+
+class RealApiClient implements ApiClient {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint}`;
+    const url = `${API_BASE}${endpoint}`;
     const config: RequestInit = {
       headers: { 'Content-Type': 'application/json', ...options.headers },
       ...options,
@@ -1040,79 +1060,79 @@ class RealAPIClient implements APIClient {
 
     const response = await fetch(url, config);
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Request failed' }));
-      throw new Error(error.detail || 'Request failed');
+      // Backend always returns {"error": "message"} — NOT {"detail": ...}
+      const err = await response.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(err.error || 'Request failed');
     }
 
     if (response.status === 204) return undefined as T;
     return response.json();
   }
 
-  // Tasks
-  async getTasks(filters: Record<string, string> = {}) {
-    const params = new URLSearchParams(filters);
-    return this.request<Task[]>(`/tasks?${params}`);
+  // Tasks — all use PATCH for partial updates (NOT PUT)
+  async getTasks(filters = {}) {
+    const params = new URLSearchParams(toSnakeCase(filters));
+    return this.request<Task[]>(`/tasks?${params}`).then(tasks => tasks.map(toCamelCase));
   }
-  async getTask(id: string) { return this.request<Task>(`/tasks/${id}`); }
+  async getTask(id: string) { return this.request(`/tasks/${id}`).then(toCamelCase); }
   async createTask(data: Partial<Task>) {
-    return this.request<Task>('/tasks', { method: 'POST', body: JSON.stringify(data) });
+    return this.request('/tasks', { method: 'POST', body: JSON.stringify(toSnakeCase(data)) }).then(toCamelCase);
   }
   async updateTask(id: string, data: Partial<Task>) {
-    return this.request<Task>(`/tasks/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+    return this.request(`/tasks/${id}`, { method: 'PATCH', body: JSON.stringify(toSnakeCase(data)) }).then(toCamelCase);
   }
   async deleteTask(id: string) {
     return this.request<void>(`/tasks/${id}`, { method: 'DELETE' });
   }
 
-  // Subtasks
-  async createSubTask(taskId: string, data: Partial<SubTask>) {
-    return this.request<SubTask>(`/tasks/${taskId}/subtasks`, { method: 'POST', body: JSON.stringify(data) });
+  // Sub-tasks — toggle via dedicated PATCH endpoint
+  async addSubTask(taskId: string, data: { title: string }) {
+    return this.request(`/tasks/${taskId}/subtasks`, { method: 'POST', body: JSON.stringify(data) }).then(toCamelCase);
   }
-  async updateSubTask(taskId: string, subTaskId: string, data: Partial<SubTask>) {
-    return this.request<SubTask>(`/tasks/${taskId}/subtasks/${subTaskId}`, { method: 'PUT', body: JSON.stringify(data) });
+  async toggleSubTask(taskId: string, subTaskId: string) {
+    return this.request(`/tasks/${taskId}/subtasks/${subTaskId}/toggle`, { method: 'PATCH' }).then(toCamelCase);
   }
   async deleteSubTask(taskId: string, subTaskId: string) {
     return this.request<void>(`/tasks/${taskId}/subtasks/${subTaskId}`, { method: 'DELETE' });
   }
 
-  // Daily Updates
-  async getDailyUpdates(taskId: string) {
-    return this.request<DailyUpdate[]>(`/tasks/${taskId}/updates`);
+  // Daily Updates — uses 'content' field (NOT 'update_text')
+  async addDailyUpdate(taskId: string, data: { authorId: string; content: string }) {
+    return this.request(`/tasks/${taskId}/updates`, {
+      method: 'POST', body: JSON.stringify({ author_id: data.authorId, content: data.content }),
+    }).then(toCamelCase);
   }
-  async createDailyUpdate(taskId: string, data: { author_id: string; update_text: string }) {
-    return this.request<DailyUpdate>(`/tasks/${taskId}/updates`, { method: 'POST', body: JSON.stringify(data) });
-  }
-  async updateDailyUpdate(taskId: string, updateId: string, data: { update_text: string }) {
-    return this.request<DailyUpdate>(`/tasks/${taskId}/updates/${updateId}`, { method: 'PUT', body: JSON.stringify(data) });
+  async editDailyUpdate(taskId: string, updateId: string, data: { content: string }) {
+    return this.request(`/tasks/${taskId}/updates/${updateId}`, {
+      method: 'PATCH', body: JSON.stringify(data),
+    }).then(toCamelCase);
   }
   async deleteDailyUpdate(taskId: string, updateId: string) {
     return this.request<void>(`/tasks/${taskId}/updates/${updateId}`, { method: 'DELETE' });
   }
 
-  // Team Members
-  async getTeamMembers(activeOnly = false) {
-    const params = activeOnly ? '?active_only=true' : '';
-    return this.request<TeamMember[]>(`/team-members${params}`);
+  // Members — endpoint is /members (NOT /team-members)
+  async getMembers() { return this.request<TeamMember[]>('/members').then(ms => ms.map(toCamelCase)); }
+  async createMember(data: Partial<TeamMember>) {
+    return this.request('/members', { method: 'POST', body: JSON.stringify(toSnakeCase(data)) }).then(toCamelCase);
   }
-  async createTeamMember(data: Partial<TeamMember>) {
-    return this.request<TeamMember>('/team-members', { method: 'POST', body: JSON.stringify(data) });
+  async updateMember(id: string, data: Partial<TeamMember>) {
+    return this.request(`/members/${id}`, { method: 'PATCH', body: JSON.stringify(toSnakeCase(data)) }).then(toCamelCase);
   }
-  async updateTeamMember(id: string, data: Partial<TeamMember>) {
-    return this.request<TeamMember>(`/team-members/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-  }
-  async deleteTeamMember(id: string) {
-    return this.request<void>(`/team-members/${id}`, { method: 'DELETE' });
+  async deleteMember(id: string) {
+    return this.request<void>(`/members/${id}`, { method: 'DELETE' });
   }
 
   // Settings
   async testConnection(config: DBConfig) {
-    return this.request<{ status: string; message: string }>('/settings/test-connection', {
-      method: 'POST', body: JSON.stringify(config),
-    });
+    return this.request('/settings/test-connection', { method: 'POST', body: JSON.stringify(config) });
+  }
+  async saveConnection(config: DBConfig) {
+    return this.request('/settings/save-connection', { method: 'POST', body: JSON.stringify(config) });
   }
 }
 
-export const realClient = new RealAPIClient();
+export const realClient = new RealApiClient();
 ```
 
 ### 3.4 Key Frontend Behaviors
@@ -1128,9 +1148,11 @@ The mock client pre-populates localStorage with sample data including 6 tasks, 3
 **Validation Rules (client-side):**
 - Title: required, 1-200 characters
 - Status: required, defaults to "To Do"
-- Blocking reason: required ONLY when status is "Blocked"
+- Blocking reason: required ONLY when status is "Blocked"; auto-cleared when status changes away from "Blocked"
 - GEAR ID: must match `/^\d{4}$/` if provided
-- Clear blocking_reason when status changes away from "Blocked"
+- Daily update content: 1-1000 characters (field is `content`, NOT `update_text`)
+- Sub-tasks: maximum 20 per task
+- Forms must preserve user input if an API call fails (do NOT clear on error)
 
 ---
 
@@ -1182,8 +1204,8 @@ dependencies = [
     "sqlalchemy>=2.0.0",
     "psycopg2-binary>=2.9.9",
     "pydantic[email]>=2.5.0",
+    "pydantic-settings>=2.1.0",
     "alembic>=1.13.0",
-    "python-dotenv>=1.0.0",
     "cryptography>=42.0.0",
 ]
 
@@ -1215,10 +1237,10 @@ backend/
 │   │   ├── v1/
 │   │   │   ├── __init__.py
 │   │   │   ├── tasks.py          # Task CRUD endpoints
-│   │   │   ├── subtasks.py       # Sub-task endpoints
+│   │   │   ├── subtasks.py       # Sub-task endpoints (including toggle)
 │   │   │   ├── daily_updates.py  # Daily update endpoints
-│   │   │   ├── team_members.py   # Team member endpoints
-│   │   │   └── settings.py       # Settings/config endpoints
+│   │   │   ├── members.py        # Member endpoints (NOT team_members.py)
+│   │   │   └── settings.py       # Settings endpoints (test-connection, save-connection)
 │   │   └── deps.py               # Dependency injection (get_db)
 │   ├── core/
 │   │   ├── __init__.py
@@ -1233,19 +1255,19 @@ backend/
 │   │   ├── task.py               # Task ORM model
 │   │   ├── subtask.py            # SubTask ORM model
 │   │   ├── daily_update.py       # DailyUpdate ORM model
-│   │   └── team_member.py        # TeamMember ORM model
+│   │   └── member.py             # Member ORM model (NOT team_member.py)
 │   ├── schemas/
 │   │   ├── __init__.py
 │   │   ├── task.py               # Task Pydantic schemas
 │   │   ├── subtask.py            # SubTask Pydantic schemas
 │   │   ├── daily_update.py       # DailyUpdate Pydantic schemas
-│   │   └── team_member.py        # TeamMember Pydantic schemas
+│   │   └── member.py             # Member Pydantic schemas
 │   ├── crud/
 │   │   ├── __init__.py
 │   │   ├── task.py               # Task CRUD operations
 │   │   ├── subtask.py            # SubTask CRUD operations
 │   │   ├── daily_update.py       # DailyUpdate CRUD operations
-│   │   └── team_member.py        # TeamMember CRUD operations
+│   │   └── member.py             # Member CRUD operations
 │   ├── __init__.py
 │   └── main.py                   # FastAPI app initialization
 ├── alembic/                      # Database migrations
@@ -1269,7 +1291,7 @@ backend/
 
 **models/task.py**
 ```python
-from sqlalchemy import Column, String, Text, Enum, ForeignKey, DateTime
+from sqlalchemy import Column, String, Enum, ForeignKey, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -1282,8 +1304,9 @@ class Task(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title = Column(String(200), nullable=False)
-    description = Column(Text, nullable=True)
-    assigned_to = Column(UUID(as_uuid=True), ForeignKey("team_members.id", ondelete="SET NULL"), nullable=True)
+    description = Column(String(2000), nullable=True)
+    assignee_id = Column(UUID(as_uuid=True), ForeignKey("members.id", ondelete="SET NULL"), nullable=True)
+    assignee_name = Column(String(100), nullable=True)  # Server-resolved from assignee_id
     status = Column(
         Enum("To Do", "In Progress", "Blocked", "Done", name="task_status"),
         nullable=False,
@@ -1295,7 +1318,7 @@ class Task(Base):
         default="Medium",
     )
     gear_id = Column(String(4), nullable=True)
-    blocking_reason = Column(Text, nullable=True)
+    blocking_reason = Column(String, nullable=False, default="")  # NOT NULL, empty when not blocked
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),
@@ -1304,15 +1327,21 @@ class Task(Base):
         onupdate=lambda: datetime.now(timezone.utc),
     )
 
+    # Indexes
+    __table_args__ = (
+        Index("idx_tasks_status", "status"),
+        Index("idx_tasks_assignee_id", "assignee_id"),
+    )
+
     # Relationships
-    assignee = relationship("TeamMember", back_populates="tasks")
-    subtasks = relationship("SubTask", back_populates="task", cascade="all, delete-orphan", order_by="SubTask.position")
+    assignee = relationship("Member", back_populates="tasks")
+    sub_tasks = relationship("SubTask", back_populates="task", cascade="all, delete-orphan", order_by="SubTask.position")
     daily_updates = relationship("DailyUpdate", back_populates="task", cascade="all, delete-orphan", order_by="DailyUpdate.created_at.desc()")
 ```
 
 **models/subtask.py**
 ```python
-from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, DateTime
+from sqlalchemy import Column, String, Boolean, Integer, ForeignKey, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -1321,7 +1350,7 @@ from app.db.base import Base
 
 
 class SubTask(Base):
-    __tablename__ = "subtasks"
+    __tablename__ = "sub_tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
@@ -1330,13 +1359,15 @@ class SubTask(Base):
     position = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
 
+    __table_args__ = (Index("idx_sub_tasks_task_id", "task_id"),)
+
     # Relationships
-    task = relationship("Task", back_populates="subtasks")
+    task = relationship("Task", back_populates="sub_tasks")
 ```
 
 **models/daily_update.py**
 ```python
-from sqlalchemy import Column, String, Text, ForeignKey, DateTime
+from sqlalchemy import Column, String, Boolean, ForeignKey, DateTime, Index
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
@@ -1349,8 +1380,9 @@ class DailyUpdate(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False)
-    author_id = Column(UUID(as_uuid=True), ForeignKey("team_members.id", ondelete="CASCADE"), nullable=False)
-    update_text = Column(String(1000), nullable=False)
+    author_id = Column(UUID(as_uuid=True), ForeignKey("members.id"), nullable=False)
+    author_name = Column(String(100), nullable=False)  # Server-resolved from author_id
+    content = Column(String(1000), nullable=False)  # NOT update_text
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime(timezone=True),
@@ -1358,30 +1390,31 @@ class DailyUpdate(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+    edited = Column(Boolean, default=False, nullable=False)  # true if content modified after creation
+
+    __table_args__ = (Index("idx_daily_updates_task_id", "task_id"),)
 
     # Relationships
     task = relationship("Task", back_populates="daily_updates")
-    author = relationship("TeamMember", back_populates="daily_updates")
+    author = relationship("Member", back_populates="daily_updates")
 ```
 
-**models/team_member.py**
+**models/member.py**
 ```python
-from sqlalchemy import Column, String, Boolean, DateTime
+from sqlalchemy import Column, String, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
-from datetime import datetime, timezone
 import uuid
 from app.db.base import Base
 
 
-class TeamMember(Base):
-    __tablename__ = "team_members"
+class Member(Base):
+    __tablename__ = "members"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
-    email = Column(String(255), nullable=True)
-    is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc))
+    email = Column(String(255), nullable=False, unique=True)
+    active = Column(Boolean, default=True, nullable=False)  # NOT is_active
 
     # Relationships
     tasks = relationship("Task", back_populates="assignee")
@@ -1415,11 +1448,11 @@ class TaskPriority(str, Enum):
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
-    assigned_to: Optional[UUID] = None
+    assignee_id: Optional[UUID] = None  # NOT assigned_to
     status: TaskStatus = TaskStatus.TO_DO
     priority: TaskPriority = TaskPriority.MEDIUM
     gear_id: Optional[str] = Field(None, pattern=r"^\d{4}$")
-    blocking_reason: Optional[str] = Field(None, max_length=2000)
+    blocking_reason: str = Field("", max_length=2000)  # NOT NULL, default ""
 
     @field_validator("blocking_reason", mode="after")
     @classmethod
@@ -1436,7 +1469,7 @@ class TaskCreate(TaskBase):
 class TaskUpdate(BaseModel):
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=2000)
-    assigned_to: Optional[UUID] = None
+    assignee_id: Optional[UUID] = None
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     gear_id: Optional[str] = Field(None, pattern=r"^\d{4}$")
@@ -1445,13 +1478,14 @@ class TaskUpdate(BaseModel):
 
 class TaskInDB(TaskBase):
     id: UUID
+    assignee_name: Optional[str] = None  # Server-resolved
     created_at: datetime
     updated_at: datetime
     model_config = {"from_attributes": True}
 
 
 class TaskResponse(TaskInDB):
-    subtasks: List["SubTaskResponse"] = []
+    sub_tasks: List["SubTaskResponse"] = []
     daily_updates: List["DailyUpdateResponse"] = []
     model_config = {"from_attributes": True}
 ```
@@ -1496,7 +1530,7 @@ from uuid import UUID
 
 
 class DailyUpdateBase(BaseModel):
-    update_text: str = Field(..., min_length=1, max_length=1000)
+    content: str = Field(..., min_length=1, max_length=1000)  # NOT update_text
 
 
 class DailyUpdateCreate(DailyUpdateBase):
@@ -1504,45 +1538,45 @@ class DailyUpdateCreate(DailyUpdateBase):
 
 
 class DailyUpdateUpdate(BaseModel):
-    update_text: Optional[str] = Field(None, min_length=1, max_length=1000)
+    content: Optional[str] = Field(None, min_length=1, max_length=1000)
 
 
 class DailyUpdateResponse(DailyUpdateBase):
     id: UUID
     task_id: UUID
     author_id: UUID
+    author_name: str  # Server-resolved from author_id
     created_at: datetime
     updated_at: datetime
+    edited: bool = False  # true if content was modified after creation
     model_config = {"from_attributes": True}
 ```
 
-**schemas/team_member.py**
+**schemas/member.py**
 ```python
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional
-from datetime import datetime
 from uuid import UUID
 
 
-class TeamMemberBase(BaseModel):
+class MemberBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
-    email: Optional[EmailStr] = None
-    is_active: bool = True
+    email: EmailStr  # Required, NOT optional
+    active: bool = True  # NOT is_active
 
 
-class TeamMemberCreate(TeamMemberBase):
+class MemberCreate(MemberBase):
     pass
 
 
-class TeamMemberUpdate(BaseModel):
+class MemberUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=100)
     email: Optional[EmailStr] = None
-    is_active: Optional[bool] = None
+    active: Optional[bool] = None
 
 
-class TeamMemberResponse(TeamMemberBase):
+class MemberResponse(MemberBase):
     id: UUID
-    created_at: datetime
     model_config = {"from_attributes": True}
 ```
 
@@ -1551,24 +1585,25 @@ class TeamMemberResponse(TeamMemberBase):
 All endpoint implementations follow the same patterns from v1.0 (see Appendix A for full endpoint table). Key implementation notes:
 
 **Business Rules enforced by the API:**
-- `blocking_reason` is required when `status` is `"Blocked"` — return 422 if missing
-- `blocking_reason` is cleared (set to null) when status changes away from `"Blocked"`
-- Daily updates can only be edited/deleted within 24 hours of creation — return 403 if older
-- Team members with assigned tasks cannot be deleted — return 400 with message
-- Sub-tasks are limited to 20 per task
-- `gear_id` must match `^\d{4}$` regex if provided
+- `blocking_reason` is required when `status` is `"Blocked"` — return 400 with `{"error": "Blocking reason is required when status is Blocked"}`
+- `blocking_reason` is cleared (set to `""`) when status changes away from `"Blocked"`
+- Daily updates can only be edited/deleted within 24 hours of creation — return 403 with `{"error": "Updates can only be edited/deleted within 24 hours."}`
+- Members with assigned tasks cannot be deleted — return 409 with `{"error": "Cannot delete member with N assigned task(s). Reassign or complete them first."}`
+- Sub-tasks are limited to 20 per task — return 400 with `{"error": "Maximum of 20 sub-tasks per task"}`
+- `gear_id` must match `^\d{4}$` regex if provided — return 400 with `{"error": "GEAR ID must be exactly 4 digits"}`
+- `assignee_name` is server-resolved from `assignee_id` on create/update
+- `author_name` is server-resolved from `author_id` on daily update creation
+- All errors use normalized format: `{"error": "message"}` (NOT FastAPI's default `{"detail": ...}`)
 
 **Main Application (main.py):**
 
 ```python
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import tasks, subtasks, daily_updates, team_members, settings
-from app.db.session import engine
-from app.db.base import Base
-
-# Create database tables (use Alembic in production)
-Base.metadata.create_all(bind=engine)
+from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.api.v1 import tasks, subtasks, daily_updates, members, settings
 
 app = FastAPI(
     title="TaskFlow API",
@@ -1576,35 +1611,45 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS middleware
+# --- Normalized error responses: {"error": "message"} for ALL errors ---
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = "; ".join([f"{e['loc'][-1]}: {e['msg']}" for e in exc.errors()])
+    return JSONResponse(status_code=400, content={"error": errors})
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"error": str(exc.detail)})
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"error": "Internal server error"})
+
+# CORS middleware — allow Electron renderer origin
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",   # Vite dev server
-        "http://localhost:8080",   # Alternative dev port
-    ],
+    allow_origins=["http://localhost:*"],  # Electron renderer
+    allow_origin_regex=r"http://localhost:\d+",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include routers
+# Include routers — NOTE: /members (NOT /team-members)
 app.include_router(tasks.router, prefix="/api/v1/tasks", tags=["tasks"])
 app.include_router(subtasks.router, prefix="/api/v1", tags=["subtasks"])
 app.include_router(daily_updates.router, prefix="/api/v1", tags=["daily_updates"])
-app.include_router(team_members.router, prefix="/api/v1/team-members", tags=["team_members"])
+app.include_router(members.router, prefix="/api/v1/members", tags=["members"])
 app.include_router(settings.router, prefix="/api/v1/settings", tags=["settings"])
 
 
-@app.get("/")
-def root():
-    return {"message": "TaskFlow API is running"}
-
-
+# Health endpoint at root level (NOT under /api/v1)
 @app.get("/health")
 def health_check():
     return {"status": "healthy"}
 ```
+
+> **NOTE:** Database tables are created via Alembic migrations (programmatic runner on startup), NOT via `Base.metadata.create_all()`. The app binds to `127.0.0.1` only (not `0.0.0.0`).
 
 **Database Session (db/session.py):**
 
@@ -1642,13 +1687,12 @@ def get_db():
 
 ```python
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
-
-load_dotenv()
+import os
 
 
 class Settings(BaseSettings):
-    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/taskflow_db"
+    # Config directory path (set by Electron via TASKFLOW_CONFIG_DIR env var)
+    CONFIG_DIR: str = os.path.expanduser("~/.taskflow")
     LOG_LEVEL: str = "INFO"
 
     model_config = {"env_file": ".env"}
@@ -1657,7 +1701,7 @@ class Settings(BaseSettings):
 settings = Settings()
 ```
 
-> **Note for AI assistants:** If `pydantic-settings` is not yet in pyproject.toml, add it with `uv add pydantic-settings`.
+> **NOTE:** Database credentials are NOT stored in environment variables. They are encrypted with Fernet and stored in `config_dir/db_credentials.enc`. The `app/core/security.py` module handles encryption/decryption. The `DATABASE_URL` is constructed at runtime from decrypted credentials.
 
 ---
 
@@ -1707,25 +1751,25 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TYPE task_status AS ENUM ('To Do', 'In Progress', 'Blocked', 'Done');
 CREATE TYPE task_priority AS ENUM ('High', 'Medium', 'Low');
 
--- Team Members table
-CREATE TABLE team_members (
+-- Members table (NOT team_members)
+CREATE TABLE members (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
-    email VARCHAR(255),
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    email VARCHAR(255) NOT NULL UNIQUE,
+    active BOOLEAN NOT NULL DEFAULT TRUE  -- NOT is_active
 );
 
 -- Tasks table
 CREATE TABLE tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(200) NOT NULL,
-    description TEXT,
-    assigned_to UUID REFERENCES team_members(id) ON DELETE SET NULL,
+    description VARCHAR(2000),
+    assignee_id UUID REFERENCES members(id) ON DELETE SET NULL,  -- NOT assigned_to
+    assignee_name VARCHAR(100),  -- Server-resolved from assignee_id
     status task_status NOT NULL DEFAULT 'To Do',
     priority task_priority NOT NULL DEFAULT 'Medium',
     gear_id VARCHAR(4),
-    blocking_reason TEXT,
+    blocking_reason VARCHAR NOT NULL DEFAULT '',  -- NOT NULL, empty when not blocked
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -1742,8 +1786,8 @@ $$ language 'plpgsql';
 CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
--- SubTasks table
-CREATE TABLE subtasks (
+-- Sub-Tasks table (NOT subtasks)
+CREATE TABLE sub_tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
     title VARCHAR(200) NOT NULL,
@@ -1756,10 +1800,12 @@ CREATE TABLE subtasks (
 CREATE TABLE daily_updates (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
-    author_id UUID NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
-    update_text VARCHAR(1000) NOT NULL,
+    author_id UUID NOT NULL REFERENCES members(id),
+    author_name VARCHAR(100) NOT NULL,  -- Server-resolved from author_id
+    content VARCHAR(1000) NOT NULL,  -- NOT update_text
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    edited BOOLEAN NOT NULL DEFAULT FALSE  -- true if content modified after creation
 );
 
 CREATE TRIGGER update_daily_updates_updated_at BEFORE UPDATE ON daily_updates
@@ -1767,12 +1813,9 @@ CREATE TRIGGER update_daily_updates_updated_at BEFORE UPDATE ON daily_updates
 
 -- Indexes for performance
 CREATE INDEX idx_tasks_status ON tasks(status);
-CREATE INDEX idx_tasks_priority ON tasks(priority);
-CREATE INDEX idx_tasks_assigned_to ON tasks(assigned_to);
-CREATE INDEX idx_tasks_gear_id ON tasks(gear_id);
-CREATE INDEX idx_subtasks_task_id ON subtasks(task_id);
+CREATE INDEX idx_tasks_assignee_id ON tasks(assignee_id);
+CREATE INDEX idx_sub_tasks_task_id ON sub_tasks(task_id);
 CREATE INDEX idx_daily_updates_task_id ON daily_updates(task_id);
-CREATE INDEX idx_daily_updates_author_id ON daily_updates(author_id);
 ```
 
 ### 5.3 Database Migrations (Alembic)
@@ -1799,19 +1842,29 @@ uv run alembic downgrade -1
 ### 6.1 electron/main.js
 
 ```javascript
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, dialog } = require('electron');
 const path = require('path');
 const { spawn } = require('child_process');
+const http = require('http');
 
 let mainWindow;
 let fastApiProcess;
 
 const isDev = process.env.NODE_ENV === 'development';
+const HEALTH_URL = 'http://127.0.0.1:8000/health';
+const HEALTH_INTERVAL_MS = 200;
+const HEALTH_MAX_RETRIES = 30;  // 6 seconds maximum
+
+const getConfigDir = () => {
+  // User-writable config directory — no admin privileges required
+  return path.join(process.env.LOCALAPPDATA || app.getPath('userData'), 'TaskFlow');
+};
 
 const getFastApiPath = () => {
   if (isDev) {
     return { command: 'python', args: [path.join(__dirname, '../backend/app/main.py')] };
   } else {
+    // PyInstaller --onedir output
     return { command: path.join(process.resourcesPath, 'backend', 'api.exe'), args: [] };
   }
 };
@@ -1821,7 +1874,11 @@ const startFastApi = () => {
   console.log('Starting FastAPI server:', command, args);
 
   fastApiProcess = spawn(command, args, {
-    env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    env: {
+      ...process.env,
+      PYTHONUNBUFFERED: '1',
+      TASKFLOW_CONFIG_DIR: getConfigDir(),  // Pass config dir to backend
+    },
   });
   fastApiProcess.stdout.on('data', (data) => console.log(`FastAPI: ${data}`));
   fastApiProcess.stderr.on('data', (data) => console.error(`FastAPI Error: ${data}`));
@@ -1829,7 +1886,31 @@ const startFastApi = () => {
 };
 
 const stopFastApi = () => {
-  if (fastApiProcess) { fastApiProcess.kill(); fastApiProcess = null; }
+  if (fastApiProcess) {
+    fastApiProcess.kill();
+    // Force-kill after 5 seconds if graceful shutdown fails
+    setTimeout(() => {
+      if (fastApiProcess) { fastApiProcess.kill('SIGKILL'); fastApiProcess = null; }
+    }, 5000);
+    fastApiProcess = null;
+  }
+};
+
+// Health-check polling instead of setTimeout
+const waitForHealth = (retries = 0) => {
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      http.get(HEALTH_URL, (res) => {
+        if (res.statusCode === 200) resolve();
+        else if (retries < HEALTH_MAX_RETRIES) setTimeout(() => { check(); retries++; }, HEALTH_INTERVAL_MS);
+        else reject(new Error('Health check failed'));
+      }).on('error', () => {
+        if (retries < HEALTH_MAX_RETRIES) setTimeout(() => { check(); retries++; }, HEALTH_INTERVAL_MS);
+        else reject(new Error('Backend unreachable'));
+      });
+    };
+    check();
+  });
 };
 
 const createWindow = () => {
@@ -1852,12 +1933,25 @@ const createWindow = () => {
   mainWindow.on('closed', () => { mainWindow = null; });
 };
 
-app.on('ready', () => {
+app.on('ready', async () => {
   startFastApi();
-  setTimeout(() => createWindow(), 2000);
+  try {
+    await waitForHealth();
+    createWindow();
+  } catch {
+    dialog.showErrorBox('Startup Error',
+      'Backend failed to start. Please check if port 8000 is already in use, ' +
+      'or if your database credentials are configured correctly in Settings.');
+    app.quit();
+  }
 });
+
+// Clean shutdown — no orphan processes (NFR11)
 app.on('window-all-closed', () => { stopFastApi(); if (process.platform !== 'darwin') app.quit(); });
 app.on('before-quit', () => stopFastApi());
+process.on('SIGINT', () => { stopFastApi(); process.exit(); });
+process.on('SIGTERM', () => { stopFastApi(); process.exit(); });
+process.on('uncaughtException', () => { stopFastApi(); process.exit(1); });
 ```
 
 ### 6.2 electron/preload.js
@@ -1877,7 +1971,12 @@ contextBridge.exposeInMainWorld('electron', {
 
 ### 7.1 Credential Storage
 
-Database credentials (for the desktop app's settings page) are encrypted locally using AES-256 via the `cryptography` library, with a machine-specific key derived from the hardware UUID. See `backend/app/core/security.py` for implementation.
+Database credentials are encrypted locally using **Fernet symmetric encryption** via the `cryptography` library:
+- An encryption key is generated once and stored in `config_dir/fernet.key`
+- Encrypted credentials are stored in `config_dir/db_credentials.enc`
+- The config directory path is passed from Electron via the `TASKFLOW_CONFIG_DIR` environment variable
+- No admin privileges are required — all files stored in user-writable directory (e.g., `%LOCALAPPDATA%/TaskFlow/`)
+- No machine-specific key derivation — Fernet key is portable
 
 ### 7.2 SQL Injection Prevention
 
@@ -1893,16 +1992,32 @@ In development, CORS allows `http://localhost:5173` (Vite dev server). In produc
 
 ### 8.1 Backend Compilation (PyInstaller)
 
+> **NOTE:** Uses `--onedir` mode (NOT `--onefile`) with a root-level entrypoint that calls `freeze_support()`.
+
+**Root-level entrypoint (pyinstaller_entrypoint.py):**
+```python
+from multiprocessing import freeze_support
+
+if __name__ == "__main__":
+    freeze_support()
+    import uvicorn
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000)
+```
+
+**Build command:**
 ```bash
-cd backend
-uv run pyinstaller --onefile --name api app/main.py \
+uv run pyinstaller --onedir --name api pyinstaller_entrypoint.py \
+  --hidden-import uvicorn \
   --hidden-import uvicorn.logging \
-  --hidden-import uvicorn.loops.auto \
-  --hidden-import uvicorn.protocols.http.auto \
-  --hidden-import uvicorn.protocols.websockets.auto \
-  --hidden-import uvicorn.lifespan.on \
-  --hidden-import sqlalchemy.sql.default_comparator
-# Output: dist/api.exe
+  --hidden-import uvicorn.protocols \
+  --hidden-import pydantic \
+  --hidden-import sqlalchemy \
+  --hidden-import alembic \
+  --hidden-import psycopg2 \
+  --hidden-import cryptography \
+  --add-data "alembic/:alembic/" \
+  --add-data "alembic.ini:."
+# Output: dist/api/ (directory, NOT single file)
 ```
 
 ### 8.2 Frontend Build
@@ -1918,7 +2033,7 @@ npm run build
 ```bash
 # From root taskflow/
 npm run package:win
-# Output: release/TaskFlow Setup 1.0.0.exe
+# Output: release/TaskFlow.exe (portable — no installer)
 ```
 
 ### 8.4 Root package.json
@@ -1933,7 +2048,7 @@ npm run package:win
     "dev:frontend": "cd taskflow-ui && npm run dev",
     "dev:backend": "cd backend && uv run uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
     "build:frontend": "cd taskflow-ui && npm run build",
-    "build:backend": "cd backend && uv run pyinstaller --onefile --name api app/main.py",
+    "build:backend": "cd backend && uv run pyinstaller --onedir --name api pyinstaller_entrypoint.py",
     "package:win": "electron-builder --win --x64"
   },
   "build": {
@@ -1945,15 +2060,9 @@ npm run package:win
       "taskflow-ui/dist/**/*"
     ],
     "extraResources": [
-      { "from": "backend/dist/api.exe", "to": "backend/api.exe" }
+      { "from": "backend/dist/api/", "to": "backend/" }
     ],
-    "win": { "target": "nsis" },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
-    }
+    "win": { "target": "portable" }
   },
   "devDependencies": {
     "electron": "^28.0.0",
@@ -1961,6 +2070,8 @@ npm run package:win
   }
 }
 ```
+
+> **NOTE:** Uses `portable` target (NOT NSIS installer). No installer, no admin privileges required. Output is a single portable `.exe` that runs directly.
 
 ---
 
@@ -2045,9 +2156,9 @@ npx playwright test
 ### 10.2 User Onboarding
 
 **Day 1 — Installation:**
-1. Download `TaskFlow Setup 1.0.0.exe`
-2. Run installer
-3. Launch TaskFlow
+1. Download `TaskFlow.exe` (portable executable — no installer needed)
+2. Double-click to launch (no admin privileges required)
+3. Application starts automatically
 4. Configure database connection in Settings
 5. Click "Test Connection" → Success → "Save"
 
@@ -2107,44 +2218,49 @@ npx playwright test
 
 ### Appendix A: API Endpoints Summary
 
+> **Canonical source:** `taskflow-ui/API_CONTRACT.md`. This table is a summary — see API_CONTRACT for full request/response shapes.
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/v1/tasks` | List all tasks (with filters: status, priority, assigned_to, gear_id) |
-| GET | `/api/v1/tasks/{id}` | Get task by ID (includes subtasks + daily_updates) |
+| GET | `/api/v1/tasks` | List all tasks (filters: status, priority, assignee, search, sort) |
+| GET | `/api/v1/tasks/{id}` | Get task by ID (includes sub_tasks + daily_updates) |
 | POST | `/api/v1/tasks` | Create new task |
-| PUT | `/api/v1/tasks/{id}` | Update task |
-| DELETE | `/api/v1/tasks/{id}` | Delete task (cascades subtasks + updates) |
+| PATCH | `/api/v1/tasks/{id}` | Update task (partial update, NOT PUT) |
+| DELETE | `/api/v1/tasks/{id}` | Delete task (cascades sub-tasks + updates) |
 | POST | `/api/v1/tasks/{id}/subtasks` | Create sub-task |
-| PUT | `/api/v1/tasks/{id}/subtasks/{sid}` | Update sub-task |
+| PATCH | `/api/v1/tasks/{id}/subtasks/{sid}` | Update sub-task title |
+| PATCH | `/api/v1/tasks/{id}/subtasks/{sid}/toggle` | Toggle sub-task completed |
+| PUT | `/api/v1/tasks/{id}/subtasks/reorder` | Reorder sub-tasks |
 | DELETE | `/api/v1/tasks/{id}/subtasks/{sid}` | Delete sub-task |
-| GET | `/api/v1/tasks/{id}/updates` | Get daily updates (reverse chronological) |
 | POST | `/api/v1/tasks/{id}/updates` | Create daily update |
-| PUT | `/api/v1/tasks/{id}/updates/{uid}` | Update daily update (within 24h only) |
+| PATCH | `/api/v1/tasks/{id}/updates/{uid}` | Edit daily update (within 24h only) |
 | DELETE | `/api/v1/tasks/{id}/updates/{uid}` | Delete daily update (within 24h only) |
-| GET | `/api/v1/team-members` | List team members (optional: ?active_only=true) |
-| POST | `/api/v1/team-members` | Create team member |
-| PUT | `/api/v1/team-members/{id}` | Update team member |
-| DELETE | `/api/v1/team-members/{id}` | Delete team member (fails if tasks assigned) |
+| GET | `/api/v1/members` | List all members (NOT /team-members) |
+| POST | `/api/v1/members` | Create member |
+| PATCH | `/api/v1/members/{id}` | Update member (partial update) |
+| DELETE | `/api/v1/members/{id}` | Delete member (409 if tasks assigned) |
 | POST | `/api/v1/settings/test-connection` | Test DB connection |
-| GET | `/health` | Health check |
+| POST | `/api/v1/settings/save-connection` | Save encrypted DB credentials |
+| GET | `/health` | Health check (root level, NOT under /api/v1) |
 
 ### Appendix B: Environment Variables
 
-**Backend (.env) — NOT committed to git:**
+**Backend (.env) — for local development only, NOT committed to git:**
 ```
-DATABASE_URL=postgresql://postgres:postgres@localhost:5432/taskflow_db
 LOG_LEVEL=INFO
 ```
 
-**Backend (.env.example) — committed to git:**
+> **NOTE:** `DATABASE_URL` is no longer stored in `.env`. In production, credentials are encrypted with Fernet and stored in the config directory. For development, use the Settings page or create `config_dir/db_credentials.enc` manually.
+
+**Electron → Backend (set by Electron when spawning backend):**
 ```
-DATABASE_URL=postgresql://user:password@host:5432/taskflow_db
-LOG_LEVEL=INFO
+TASKFLOW_CONFIG_DIR=%LOCALAPPDATA%/TaskFlow/   # Path to config directory
 ```
 
 **Frontend (.env) — optional:**
 ```
-VITE_API_BASE_URL=http://localhost:8000/api/v1
+VITE_API_BASE_URL=http://127.0.0.1:8000/api/v1
+VITE_API_MODE=mock    # Set to "real" to use real backend adapter
 ```
 
 ### Appendix C: Common Development Commands
@@ -2173,7 +2289,7 @@ git subtree pull --prefix=taskflow-ui taskflow-ui main --squash -m "Pull latest 
 git subtree push --prefix=taskflow-ui taskflow-ui main   # Push local changes back (if needed)
 
 # === ELECTRON (from root taskflow/ directory) ===
-npm run package:win                        # Build Windows installer
+npm run package:win                        # Build portable Windows executable
 
 # === DATABASE ===
 createdb taskflow_db                       # Create database
@@ -2215,6 +2331,61 @@ psql -U postgres -d taskflow_db            # Connect to database
 |---------|------|--------|---------|
 | 1.0 | 2026-02-15 | Parth | Initial comprehensive documentation (BRD, PRD, TDD) |
 | 1.1 | 2026-02-16 | Parth | Updated: React frontend (from Svelte), uv package manager (from pip), local PostgreSQL for dev, Git subtree structure (not submodule), CLI-optimized instructions, Pydantic v2 validators |
+| 1.2 | 2026-02-16 | Parth | BMAD planning alignment — synchronized with API_CONTRACT.md, Architecture, and Epics. See change log below. |
+
+---
+
+### v1.2 Change Log — BMAD Planning Alignment
+
+The following changes were made to align this master doc with decisions from the BMAD planning process (PRD, Architecture, UX Design, Epics & Stories, and API_CONTRACT.md):
+
+**Field Naming (API_CONTRACT.md is canonical):**
+- `assigned_to` → `assignee_id` (Task entity, all code references)
+- Added `assignee_name` field to Task (server-resolved from assignee_id)
+- `is_active` → `active` (Member entity)
+- `update_text` → `content` (DailyUpdate entity)
+- Added `author_name` field to DailyUpdate (server-resolved from author_id)
+- Added `edited` field to DailyUpdate (boolean, tracks post-creation edits)
+- `blocking_reason` changed from nullable TEXT to NOT NULL VARCHAR default `""`
+- `team_members` table → `members` table
+- `subtasks` table → `sub_tasks` table
+
+**API Endpoints:**
+- All update endpoints changed from `PUT` to `PATCH` (partial updates per API_CONTRACT)
+- `/api/v1/team-members` → `/api/v1/members`
+- Added `PATCH /tasks/{id}/subtasks/{sid}/toggle` (dedicated toggle endpoint)
+- Added `PUT /tasks/{id}/subtasks/reorder` (reorder sub-tasks)
+- Added `POST /api/v1/settings/save-connection` (save encrypted credentials)
+- All errors now return `{"error": "message"}` (not FastAPI's default `{"detail": ...}`)
+- Custom exception handlers for RequestValidationError, HTTPException, and generic Exception
+
+**Security & Encryption:**
+- AES-256 with machine-specific key → Fernet symmetric encryption with generated key file
+- No admin privileges required for any file operations
+- Config directory passed via `TASKFLOW_CONFIG_DIR` environment variable
+- Credentials stored in `config_dir/fernet.key` + `config_dir/db_credentials.enc`
+- DATABASE_URL no longer stored in `.env` — constructed at runtime from decrypted credentials
+
+**Packaging & Distribution:**
+- NSIS installer → `portable` target (no installer, no admin privileges)
+- PyInstaller `--onefile` → `--onedir` mode
+- Added root-level `pyinstaller_entrypoint.py` with `multiprocessing.freeze_support()`
+- Size limit updated from 150MB to 200MB
+- Added explicit hidden imports and Alembic data bundling in .spec config
+
+**Electron:**
+- `setTimeout(2000)` startup → health-check polling (200ms interval, 30 retries max)
+- Added `TASKFLOW_CONFIG_DIR` env variable passed to backend child process
+- Added signal handlers (SIGINT, SIGTERM, uncaughtException) for clean shutdown
+- Added force-kill timeout for unresponsive backend process
+- Added error dialog for startup failures with actionable guidance
+
+**Backend Structure:**
+- `team_member.py` → `member.py` (models, schemas, crud, api)
+- Database migrations via Alembic programmatic runner on startup (not `create_all()`)
+- `pydantic-settings` added to dependencies, `python-dotenv` removed
+- Frontend API layer restructured: `mockClient.ts` / `realClient.ts` → `adapters/mock.ts` / `adapters/real.ts` with `client.ts` interface and `types.ts`
+- Email field on Member changed from optional to required + unique
 
 ---
 
