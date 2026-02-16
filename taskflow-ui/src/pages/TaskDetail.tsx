@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { TaskFormDialog } from '@/components/TaskFormDialog';
@@ -40,19 +40,20 @@ export default function TaskDetail() {
   const [editingContent, setEditingContent] = useState('');
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
+    if (!id) return;
     setLoading(true);
     try {
-      const [t, m] = await Promise.all([apiClient.getTask(id!), apiClient.getMembers()]);
+      const [t, m] = await Promise.all([apiClient.getTask(id), apiClient.getMembers()]);
       if (!t) { navigate('/'); return; }
       setTask(t);
       setMembers(m);
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, navigate]);
 
-  useEffect(() => { load(); }, [id]);
+  useEffect(() => { load(); }, [load]);
 
   if (loading || !task) {
     return (
