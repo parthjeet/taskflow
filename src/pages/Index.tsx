@@ -5,7 +5,7 @@ import { TaskFormDialog } from '@/components/TaskFormDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchTasks, createTask, fetchMembers } from '@/lib/mock-api';
+import { apiClient } from '@/lib/api';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Loader2 } from 'lucide-react';
@@ -25,7 +25,7 @@ export default function Dashboard() {
   async function load() {
     setLoading(true);
     try {
-      const [t, m] = await Promise.all([fetchTasks(), fetchMembers()]);
+      const [t, m] = await Promise.all([apiClient.getTasks(), apiClient.getMembers()]);
       setTasks(t);
       setMembers(m);
     } finally {
@@ -139,7 +139,7 @@ export default function Dashboard() {
         onOpenChange={setDialogOpen}
         members={members}
         onSubmit={async data => {
-          await createTask(data);
+          await apiClient.createTask(data);
           toast({ title: 'Task created' });
           load();
         }}
