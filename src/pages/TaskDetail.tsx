@@ -15,10 +15,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  fetchTask, updateTask, deleteTask, addSubTask, toggleSubTask, deleteSubTask,
-  addDailyUpdate, editDailyUpdate, deleteDailyUpdate, fetchMembers,
-} from '@/lib/mock-api';
+import { apiClient } from '@/lib/api';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatRelativeDate, isWithin24Hours } from '@/lib/date-utils';
@@ -46,7 +43,7 @@ export default function TaskDetail() {
   async function load() {
     setLoading(true);
     try {
-      const [t, m] = await Promise.all([fetchTask(id!), fetchMembers()]);
+      const [t, m] = await Promise.all([apiClient.getTask(id!), apiClient.getMembers()]);
       if (!t) { navigate('/'); return; }
       setTask(t);
       setMembers(m);
@@ -139,13 +136,13 @@ export default function TaskDetail() {
                 <Checkbox
                   checked={sub.completed}
                   onCheckedChange={async () => {
-                    await toggleSubTask(task.id, sub.id);
+                    await apiClient.toggleSubTask(task.id, sub.id);
                     load();
                   }}
                 />
                 <span className={cn('text-sm flex-1', sub.completed && 'line-through text-muted-foreground')}>{sub.title}</span>
                 <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  onClick={async () => { await deleteSubTask(task.id, sub.id); toast({ title: 'Sub-task removed' }); load(); }}>
+                  onClick={async () => { await apiClient.deleteSubTask(task.id, sub.id); toast({ title: 'Sub-task removed' }); load(); }}>
                   <X className="h-3 w-3" />
                 </Button>
               </div>
@@ -155,14 +152,14 @@ export default function TaskDetail() {
             <Input placeholder="Add sub-task..." value={newSub} onChange={e => setNewSub(e.target.value)}
               onKeyDown={async e => {
                 if (e.key === 'Enter' && newSub.trim()) {
-                  await addSubTask(task.id, newSub.trim());
+                  await apiClient.addSubTask(task.id, { title: newSub.trim() });
                   setNewSub('');
                   load();
                 }
               }}
               className="text-sm" />
             <Button size="sm" variant="outline" disabled={!newSub.trim()} onClick={async () => {
-              await addSubTask(task.id, newSub.trim());
+              await apiClient.addSubTask(task.id, { title: newSub.trim() });
               setNewSub('');
               load();
             }}>
@@ -192,7 +189,7 @@ export default function TaskDetail() {
                       <Button size="sm" variant="outline" onClick={() => setEditingUpdateId(null)}>Cancel</Button>
                       <Button size="sm" onClick={async () => {
                         try {
-                          await editDailyUpdate(task.id, upd.id, editingContent);
+                          await apiClient.editDailyUpdate(task.id, upd.id, { content: editingContent });
                           toast({ title: 'Update edited' });
                           setEditingUpdateId(null);
                           load();
@@ -257,7 +254,7 @@ export default function TaskDetail() {
             <Button disabled={!updateContent.trim() || !updateAuthor || updateLoading} onClick={async () => {
               setUpdateLoading(true);
               try {
-                await addDailyUpdate(task.id, updateAuthor, updateContent.trim());
+                await apiClient.addDailyUpdate(task.id, { authorId: updateAuthor, content: updateContent.trim() });
                 toast({ title: 'Update added' });
                 setAddingUpdate(false);
                 load();
@@ -272,7 +269,7 @@ export default function TaskDetail() {
 
       {/* Edit Task Dialog */}
       <TaskFormDialog open={editOpen} onOpenChange={setEditOpen} members={members} task={task}
-        onSubmit={async data => { await updateTask(task.id, data); toast({ title: 'Task updated' }); load(); }} />
+        onSubmit={async data => { await apiClient.updateTask(task.id, data); toast({ title: 'Task updated' }); load(); }} />
 
       {/* Delete Task Confirm */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -284,7 +281,7 @@ export default function TaskDetail() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={async () => {
-              await deleteTask(task.id);
+              await apiClient.deleteTask(task.id);
               toast({ title: 'Task deleted' });
               navigate('/');
             }}>Delete</AlertDialogAction>
@@ -303,7 +300,7 @@ export default function TaskDetail() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={async () => {
               try {
-                await deleteDailyUpdate(task.id, deleteUpdateId!);
+                await apiClient.deleteDailyUpdate(task.id, deleteUpdateId!);
                 toast({ title: 'Update deleted' });
                 setDeleteUpdateId(null);
                 load();
