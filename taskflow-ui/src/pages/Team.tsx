@@ -63,8 +63,8 @@ export default function Team() {
       }
       setDialogOpen(false);
       load();
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -165,8 +165,8 @@ export default function Team() {
                 toast({ title: 'Member deleted' });
                 setDeleteId(null);
                 load();
-              } catch (err: any) {
-                toast({ title: 'Error', description: err.message, variant: 'destructive' });
+              } catch (err) {
+                toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
                 setDeleteId(null);
               }
             }}>Delete</AlertDialogAction>

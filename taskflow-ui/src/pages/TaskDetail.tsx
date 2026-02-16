@@ -193,7 +193,7 @@ export default function TaskDetail() {
                           toast({ title: 'Update edited' });
                           setEditingUpdateId(null);
                           load();
-                        } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+                      } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
                       }}>Save</Button>
                     </div>
                   </div>
@@ -258,7 +258,7 @@ export default function TaskDetail() {
                 toast({ title: 'Update added' });
                 setAddingUpdate(false);
                 load();
-              } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+              } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
               finally { setUpdateLoading(false); }
             }}>
               {updateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Add
@@ -304,7 +304,7 @@ export default function TaskDetail() {
                 toast({ title: 'Update deleted' });
                 setDeleteUpdateId(null);
                 load();
-              } catch (err: any) { toast({ title: 'Error', description: err.message, variant: 'destructive' }); }
+              } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
             }}>Delete</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
