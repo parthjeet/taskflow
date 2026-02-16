@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "494c83ca8f3f",
+  "session_id": "9c020e0c-00ac-4b4d-9e32-36255d37f203",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-16T05:42:37.430281775Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "task_flow_master_doc.md"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "e166bc47-f28b-41f8-9daf-19c11c41faf8",
+  "token_usage": {
+    "input_tokens": 6,
+    "cache_creation_tokens": 9251,
+    "cache_read_tokens": 149621,
+    "output_tokens": 152,
+    "api_call_count": 5
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-16T05:42:37.416704283Z",
+    "agent_lines": 0,
+    "human_added": 426,
+    "human_modified": 1,
+    "human_removed": 0,
+    "total_committed": 426,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/9c020e0c-00ac-4b4d-9e32-36255d37f203.jsonl"
+}
