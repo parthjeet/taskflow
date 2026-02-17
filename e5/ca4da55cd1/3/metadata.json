@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "e5ca4da55cd1",
+  "session_id": "b7b53ae7-a384-4b70-ac8f-d592dd32e65e",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-17T22:53:27.487499362Z",
+  "branch": "master",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".github/agents/bmad-agent-bmad-master.md",
+    ".github/agents/bmad-agent-bmb-agent-builder.md",
+    ".github/agents/bmad-agent-bmb-module-builder.md",
+    ".github/agents/bmad-agent-bmb-workflow-builder.md",
+    ".github/agents/bmad-agent-bmm-analyst.md",
+    ".github/agents/bmad-agent-bmm-architect.md",
+    ".github/agents/bmad-agent-bmm-dev.md",
+    ".github/agents/bmad-agent-bmm-pm.md",
+    ".github/agents/bmad-agent-bmm-qa.md",
+    ".github/agents/bmad-agent-bmm-quick-flow-solo-dev.md",
+    ".github/agents/bmad-agent-bmm-sm.md",
+    ".github/agents/bmad-agent-bmm-tech-writer.md",
+    ".github/agents/bmad-agent-bmm-ux-designer.md",
+    ".github/agents/bmad-agent-cis-brainstorming-coach.md",
+    ".github/agents/bmad-agent-cis-creative-problem-solver.md",
+    ".github/agents/bmad-agent-cis-design-thinking-coach.md",
+    ".github/agents/bmad-agent-cis-innovation-strategist.md",
+    ".github/agents/bmad-agent-cis-presentation-master.md",
+    ".github/agents/bmad-agent-cis-storyteller.md",
+    ".github/agents/bmad-agent-tea-tea.md",
+    "taskflow-ui/src/test/settings.test.ts"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "76ea86fc-cfe1-4092-ac33-92107abcf0b7",
+  "token_usage": {
+    "input_tokens": 21,
+    "cache_creation_tokens": 27752,
+    "cache_read_tokens": 529801,
+    "output_tokens": 332,
+    "api_call_count": 13
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-17T22:53:27.422328739Z",
+    "agent_lines": 0,
+    "human_added": 4069,
+    "human_modified": 724,
+    "human_removed": 0,
+    "total_committed": 4069,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/b7b53ae7-a384-4b70-ac8f-d592dd32e65e.jsonl"
+}

@@ -1,0 +1,68 @@
+I'm upable to install the created bmb agent
+
+---
+
+[Request interrupted by user for tool use]
+
+---
+
+# help
+
+Read the entire task file at: {project-root}/_bmad/core/tasks/help.md
+
+Follow all instructions in the task file exactly as written.
+
+
+ARGUMENTS: I'm upable to install the created bmb agent
+
+Installation directory:
+│  /home/parth/ws/taskflow
+│
+●  Resolved installation path: /home/parth/ws/taskflow
+│
+│  Directory exists and contains 13 item(s) including existing BMAD installation (_bmad)
+│
+◇  Install to this directory?
+│  Yes
+│
+◇  How would you like to proceed?
+│  Modify BMAD Installation
+│
+│  Found existing modules: core, bmm, bmb, tea, cis
+│
+◇  Select modules to install:
+│  5 items selected
+│
+│  Selected modules:
+│    • BMad Method Agile-AI Driven-Development
+│    • BMad Builder
+│    • BMad Creative Intelligence Suite
+│    • Test Architect
+│
+◇  Modify custom modules, agents, or workflows?
+│  Yes
+│
+●  Custom Modules
+│
+│  No custom modules currently installed.
+│
+◇  Add custom modules?
+│  Add new custom modules
+▲  Path to custom module folder (press Enter to skip):
+│  _bmad-output/bmb-creations/█
+│  Directory must contain a module.yaml file in the root
+
+---
+
+will i be able to call this with / command right? if i use the option1
+
+---
+
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @{project-root}/_bmad/bmb/workflows/module/workflow-create-module.md, READ its entire contents and follow its directions exactly!
+
+
+ARGUMENTS: lovable-prompt-engineer
+
+---
+
+Unknown skill: bmad_bmb_create_module_brief
