@@ -1,0 +1,16 @@
+code: lpe
+name: "LPE: Lovable Prompt Engineer"
+header: "Precision prompt generation for Lovable AI"
+subheader: "Single-agent module — no custom configuration, uses Core settings only"
+default_selected: false
+
+# Variables from Core Config inserted:
+## user_name
+## communication_language
+## document_output_language
+## output_folder
+
+lovable_prompts_folder:
+  prompt: "Where should generated Lovable prompts be saved?"
+  default: "{output_folder}/lovable-prompts"
+  result: "{project-root}/{value}"

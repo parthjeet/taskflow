@@ -8,8 +8,6 @@ import type { ConnectionSettings } from '@/lib/api/types';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Eye, EyeOff } from 'lucide-react';
 
-const STORAGE_KEY = 'taskflow_connection';
-
 const defaultSettings: ConnectionSettings = {
   host: 'localhost',
   port: 5432,
@@ -18,36 +16,94 @@ const defaultSettings: ConnectionSettings = {
   password: '',
 };
 
+type ConnectionFormState = Omit<ConnectionSettings, 'port'> & {
+  port: string;
+};
+
 export default function SettingsPage() {
   const { toast } = useToast();
-  const [form, setForm] = useState<ConnectionSettings>(defaultSettings);
+  const [form, setForm] = useState<ConnectionFormState>({
+    ...defaultSettings,
+    port: String(defaultSettings.port),
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored) as ConnectionSettings;
-        setForm(parsed);
+    let active = true;
+
+    async function loadSettings() {
+      try {
+        const parsed = await apiClient.getConnectionSettings();
+        if (!parsed || !active) return;
+
+        setForm({
+          host: parsed.host ?? defaultSettings.host,
+          port: String(parsed.port ?? defaultSettings.port),
+          database: parsed.database ?? defaultSettings.database,
+          username: parsed.username ?? defaultSettings.username,
+          password: parsed.password ?? defaultSettings.password,
+        });
+      } catch {
+        // ignore load errors
       }
-    } catch {
-      // ignore malformed data
     }
+
+    void loadSettings();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  function update(field: keyof ConnectionSettings, value: string) {
+  function update(field: keyof ConnectionFormState, value: string) {
     setForm(prev => ({
       ...prev,
-      [field]: field === 'port' ? (value === '' ? '' : Number(value)) : value,
-    } as ConnectionSettings));
+      [field]: value,
+    }));
+  }
+
+  function buildPayload(): ConnectionSettings | null {
+    const port = Number(form.port);
+    if (!Number.isInteger(port) || port < 1 || port > 65535) {
+      toast({
+        title: 'Invalid port',
+        description: 'Port must be an integer between 1 and 65535.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    const host = form.host.trim();
+    const database = form.database.trim();
+    const username = form.username.trim();
+    const password = form.password;
+
+    if (!host || !database || !username) {
+      toast({
+        title: 'Missing required fields',
+        description: 'Host, Database Name, and Username are required.',
+        variant: 'destructive',
+      });
+      return null;
+    }
+
+    return {
+      host,
+      port,
+      database,
+      username,
+      password,
+    };
   }
 
   async function handleTest() {
+    const payload = buildPayload();
+    if (!payload) return;
+
     setTesting(true);
     try {
-      const result = await apiClient.testConnection(form);
+      const result = await apiClient.testConnection(payload);
       toast({
         title: result.success ? 'Connection successful' : 'Connection failed',
         description: result.message,
@@ -65,9 +121,12 @@ export default function SettingsPage() {
   }
 
   async function handleSave() {
+    const payload = buildPayload();
+    if (!payload) return;
+
     setSaving(true);
     try {
-      await apiClient.saveConnection(form);
+      await apiClient.saveConnection(payload);
       toast({ title: 'Settings saved' });
     } catch (err) {
       toast({
@@ -105,7 +164,7 @@ export default function SettingsPage() {
                 id={f.field}
                 type={f.type || 'text'}
                 placeholder={f.placeholder}
-                value={String(form[f.field])}
+                value={form[f.field]}
                 onChange={e => update(f.field, e.target.value)}
                 disabled={busy}
               />
@@ -131,7 +190,7 @@ export default function SettingsPage() {
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10 text-muted-foreground hover:text-foreground"
                 onClick={() => setShowPassword(prev => !prev)}
-                tabIndex={-1}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -142,11 +201,11 @@ export default function SettingsPage() {
         <div className="flex gap-3">
           <Button variant="outline" onClick={handleTest} disabled={busy}>
             {testing && <Loader2 className="h-4 w-4 animate-spin" />}
-            Test Connection
+            {testing ? 'Testing...' : 'Test Connection'}
           </Button>
           <Button onClick={handleSave} disabled={busy}>
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Save
+            {saving ? 'Saving...' : 'Save'}
           </Button>
         </div>
 

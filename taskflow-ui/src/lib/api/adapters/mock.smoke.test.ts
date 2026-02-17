@@ -112,4 +112,34 @@ describe("MockApiClient smoke", () => {
     });
     await expect(client.deleteMember(member.id)).resolves.toBeUndefined();
   });
+
+  it("handles connection settings test and save", async () => {
+    const settings = {
+      host: "smoke-db",
+      port: 5432,
+      database: "smoke_db",
+      username: "smoke_user",
+      password: "smoke_password",
+    };
+
+    const testResult = await client.testConnection(settings);
+    expect(testResult.success).toBe(true);
+    expect(testResult.message).toContain("smoke-db");
+
+    await expect(client.saveConnection(settings)).resolves.toBeUndefined();
+    
+    // Verify persistence (mock adapter uses localStorage)
+    const stored = localStorage.getItem("taskflow_connection");
+    expect(stored).toBeTruthy();
+    const parsed = JSON.parse(stored || "{}");
+    expect(parsed.host).toBe("smoke-db");
+
+    const loaded = await client.getConnectionSettings();
+    expect(loaded).toEqual(settings);
+  });
+
+  it("returns null when no saved connection settings exist", async () => {
+    const loaded = await client.getConnectionSettings();
+    expect(loaded).toBeNull();
+  });
 });

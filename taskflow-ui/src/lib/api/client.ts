@@ -42,6 +42,7 @@ export interface ApiClient {
   deleteMember(id: string): Promise<void>;
 
   // Settings
+  getConnectionSettings(): Promise<ConnectionSettings | null>;
   testConnection(data: ConnectionSettings): Promise<ConnectionTestResult>;
   saveConnection(data: ConnectionSettings): Promise<void>;
 }

@@ -3,6 +3,7 @@ import type { Task, SubTask, DailyUpdate, TeamMember, TaskFilters, ConnectionSet
 
 const TASKS_KEY = 'taskflow_tasks';
 const MEMBERS_KEY = 'taskflow_members';
+const CONNECTION_KEY = 'taskflow_connection';
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_DAY_MS = 24 * ONE_HOUR_MS;
 
@@ -124,6 +125,33 @@ function getMembers(): TeamMember[] {
 }
 function saveMembers(members: TeamMember[]) {
   localStorage.setItem(MEMBERS_KEY, JSON.stringify(members));
+}
+
+function parseConnectionSettings(raw: string): ConnectionSettings | null {
+  try {
+    const parsed = JSON.parse(raw) as Partial<ConnectionSettings>;
+    const port = typeof parsed.port === 'number' ? parsed.port : Number(parsed.port);
+
+    if (
+      typeof parsed.host !== 'string' ||
+      !Number.isInteger(port) ||
+      typeof parsed.database !== 'string' ||
+      typeof parsed.username !== 'string' ||
+      typeof parsed.password !== 'string'
+    ) {
+      return null;
+    }
+
+    return {
+      host: parsed.host,
+      port,
+      database: parsed.database,
+      username: parsed.username,
+      password: parsed.password,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export class MockApiClient implements ApiClient {
@@ -314,6 +342,13 @@ export class MockApiClient implements ApiClient {
 
   // ---- Settings ----
 
+  async getConnectionSettings(): Promise<ConnectionSettings | null> {
+    await delay();
+    const raw = localStorage.getItem(CONNECTION_KEY);
+    if (!raw) return null;
+    return parseConnectionSettings(raw);
+  }
+
   async testConnection(data: ConnectionSettings): Promise<ConnectionTestResult> {
     await delay();
     // Mock: always succeeds
@@ -322,6 +357,6 @@ export class MockApiClient implements ApiClient {
 
   async saveConnection(data: ConnectionSettings): Promise<void> {
     await delay();
-    localStorage.setItem('taskflow_connection', JSON.stringify(data));
+    localStorage.setItem(CONNECTION_KEY, JSON.stringify(data));
   }
 }

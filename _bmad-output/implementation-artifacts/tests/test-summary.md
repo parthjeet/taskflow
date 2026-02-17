@@ -2,24 +2,17 @@
 
 ## Generated Tests
 
-### API/Adapter Smoke Tests
-- [x] taskflow-ui/src/lib/api/adapters/mock.smoke.test.ts - Story 1.4 no-regression smoke coverage
+### E2E / Component Tests
+- [x] taskflow-ui/src/test/settings-page.test.tsx - Settings Page UI and interactions
+- [x] taskflow-ui/src/test/connection-error-banner.test.tsx - Connection Banner visibility
 
-### E2E Tests
-- [ ] None generated in this run (UI smoke covered via adapter-level workflow tests)
+### Integration / Smoke Tests
+- [x] taskflow-ui/src/lib/api/adapters/mock.smoke.test.ts - Extended with settings API smoke tests
 
 ## Coverage
-- Story 1.4 key flows: 4/4 covered
-  - Task create/update/delete
-  - Subtask add/toggle/delete
-  - Daily update add/edit/delete window rules (including >24h rejection)
-  - Member create/update/delete guard with assigned-task protection
-- Frontend test suite: 5/5 tests passing
-
-## Verification Run
-- `cd taskflow-ui && npm test -- src/lib/api/adapters/mock.smoke.test.ts` ✅
-- `cd taskflow-ui && npm test` ✅
-- `cd taskflow-ui && npm run build` ✅
+- Settings Page: Covered (Fields, Password Toggle, Test Connection, Save, Validation, Error Handling)
+- Connection Banner: Covered (Visibility, Content)
+- Mock Adapter: Covered (Test Connection, Save Connection persistence)
 
 ## Next Steps
-- If you want browser-level verification of UI interactions (dialogs/forms/navigation), add Playwright smoke tests for dashboard/task-detail/team paths.
+- Run tests in CI

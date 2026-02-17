@@ -1,6 +1,6 @@
 # Story 1.5: Functional Settings Page & Connection Error Banner
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -21,26 +21,37 @@ so that I can set up and troubleshoot the database connection through the UI.
 
 ## Tasks / Subtasks
 
-- [ ] Build functional Settings form and local state handling (AC: 1, 2)
-  - [ ] Update `taskflow-ui/src/pages/SettingsPage.tsx` (existing route target) with controlled inputs for host, port, database, username, password.
-  - [ ] Add password visibility toggle and keep masked-by-default behavior.
-  - [ ] Keep existing layout constraints (`max-w-xl`) and header/navigation patterns.
-- [ ] Wire settings actions to adapter layer (AC: 3, 4)
-  - [ ] Implement `handleTestConnection` calling `apiClient.testConnection(payload)`.
-  - [ ] Implement `handleSaveConnection` calling `apiClient.saveConnection(payload)`.
-  - [ ] Add loading/disabled states for action buttons while async work is running.
-  - [ ] Add toast feedback for success and error paths using existing `useToast` pattern.
-- [ ] Add dashboard connection error banner component (AC: 5)
-  - [ ] Create `taskflow-ui/src/components/ConnectionErrorBanner.tsx` using shadcn `Alert`.
-  - [ ] Include error icon, actionable copy, and a `Go to Settings` link/button to `/settings`.
-  - [ ] Mount banner near top of `taskflow-ui/src/pages/Index.tsx`, above filters/grid.
-  - [ ] Keep banner hidden in mock mode (no false alarms while mock adapter is active).
-- [ ] Add version display in Settings (AC: 6)
-  - [ ] Render `v1.0.0` near page footer using subdued text style.
-- [ ] Add tests and run verification gates (AC: 1-6)
-  - [ ] Add/extend frontend tests for Settings interactions and banner visibility behavior.
-  - [ ] Add/extend adapter smoke coverage for settings calls (`testConnection`, `saveConnection` persistence).
-  - [ ] Run `npm test` and `npm run build` in `taskflow-ui`.
+- [x] Build functional Settings form and local state handling (AC: 1, 2)
+  - [x] Update `taskflow-ui/src/pages/SettingsPage.tsx` (existing route target) with controlled inputs for host, port, database, username, password.
+  - [x] Add password visibility toggle and keep masked-by-default behavior.
+  - [x] Keep existing layout constraints (`max-w-xl`) and header/navigation patterns.
+- [x] Wire settings actions to adapter layer (AC: 3, 4)
+  - [x] Implement `handleTestConnection` calling `apiClient.testConnection(payload)`.
+  - [x] Implement `handleSaveConnection` calling `apiClient.saveConnection(payload)`.
+  - [x] Add loading/disabled states for action buttons while async work is running.
+  - [x] Add toast feedback for success and error paths using existing `useToast` pattern.
+- [x] Add dashboard connection error banner component (AC: 5)
+  - [x] Create `taskflow-ui/src/components/ConnectionErrorBanner.tsx` using shadcn `Alert`.
+  - [x] Include error icon, actionable copy, and a `Go to Settings` link/button to `/settings`.
+  - [x] Mount banner near top of `taskflow-ui/src/pages/Index.tsx`, above filters/grid.
+  - [x] Keep banner hidden in mock mode (no false alarms while mock adapter is active).
+- [x] Add version display in Settings (AC: 6)
+  - [x] Render `v1.0.0` near page footer using subdued text style.
+- [x] Add tests and run verification gates (AC: 1-6)
+  - [x] Add/extend frontend tests for Settings interactions and banner visibility behavior.
+  - [x] Add/extend adapter smoke coverage for settings calls (`testConnection`, `saveConnection` persistence).
+  - [x] Run `npm test` and `npm run build` in `taskflow-ui`.
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][HIGH] Update Dev Agent Record File List to include all actual implementation files (SettingsPage.tsx, ConnectionErrorBanner.tsx, Index.tsx, mock.smoke.test.ts, settings-page.test.tsx, connection-error-banner.test.tsx, package.json, playwright.config.ts, tests/) [story file]
+- [x] [AI-Review][HIGH] SettingsPage reads connection settings directly from localStorage, bypassing the adapter pattern. Add `getConnectionSettings()` method to ApiClient interface and mock adapter, then use it in SettingsPage.tsx:36-51 instead of direct localStorage access [taskflow-ui/src/lib/api/client.ts, taskflow-ui/src/lib/api/adapters/mock.ts, taskflow-ui/src/pages/SettingsPage.tsx]
+- [x] [AI-Review][HIGH] Remove newly added packages (`@playwright/test`, `@seontechnologies/playwright-utils`, `dotenv`) from package.json — story constraint says "do not add or upgrade packages in this story". If Playwright is needed, create a separate story for e2e infrastructure [taskflow-ui/package.json]
+- [x] [AI-Review][MEDIUM] Add `getConnectionSettings()` to ApiClient interface to close the API contract gap — testConnection and saveConnection exist but there is no read method [taskflow-ui/src/lib/api/client.ts]
+- [x] [AI-Review][MEDIUM] Integrate Playwright properly: add `test:e2e` npm script, add `playwright-report/` and `test-results/` to `.gitignore`, fix `playwright.config.ts` baseURL from port 8080 to match Vite's actual dev server port [taskflow-ui/package.json, taskflow-ui/.gitignore, taskflow-ui/playwright.config.ts]
+- [x] [AI-Review][MEDIUM] Add missing test coverage: SettingsPage loading saved settings from localStorage on mount, save connection failure path, ConnectionErrorBanner error icon rendering [taskflow-ui/src/test/settings-page.test.tsx, taskflow-ui/src/test/connection-error-banner.test.tsx]
+- [x] [AI-Review][LOW] Move or gitignore LOVABLE_HANDOFF_STORY_1_5.md and LOVABLE_PROMPT_STORY_1_5.md — these are process artifacts, not application source code [taskflow-ui/]
+- [x] [AI-Review][LOW] e2e test infrastructure (Playwright config, fixtures, specs) exceeds story scope — consider splitting into a dedicated testing story for proper tracking
 
 ## Dev Notes
 
@@ -173,18 +184,38 @@ GPT-5 Codex
 ### Debug Log References
 
 - create-story workflow synthesis from planning artifacts, implementation artifacts, current source tree, and recent git history.
+- dev-story review remediation: adapter contract fix (`getConnectionSettings`), settings page boundary correction, and review follow-up test additions.
+- Verification gates run in `taskflow-ui`: `npm test` (20/20 passing) and `npm run build` (success).
 
 ### Completion Notes List
 
 - Created comprehensive Story 1.5 developer context and implementation guardrails.
 - Story marked `ready-for-dev` in sprint tracking.
 - Included constraints to prevent adapter-boundary regressions and file-path drift.
+- Resolved all 8 AI review follow-up items and closed adapter boundary gap by routing settings reads through `apiClient`.
+- Removed out-of-scope Playwright-related dependency additions for this story and gitignored process/e2e artifacts.
+- Added missing UI/adapter coverage for saved-settings load, save failure path, and banner icon rendering.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/1-5-functional-settings-page-connection-error-banner.md`
 - `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `.gitignore`
+- `taskflow-ui/.gitignore`
+- `taskflow-ui/package.json`
+- `taskflow-ui/package-lock.json`
+- `taskflow-ui/src/components/ConnectionErrorBanner.tsx`
+- `taskflow-ui/src/lib/api/client.ts`
+- `taskflow-ui/src/lib/api/adapters/mock.ts`
+- `taskflow-ui/src/lib/api/adapters/mock.smoke.test.ts`
+- `taskflow-ui/src/pages/Index.tsx`
+- `taskflow-ui/src/pages/SettingsPage.tsx`
+- `taskflow-ui/src/test/connection-error-banner.test.tsx`
+- `taskflow-ui/src/test/settings-page.test.tsx`
 
 ## Change Log
 
+- 2026-02-17: Fixed code review findings. Deleted redundant `settings.test.ts` and added `_bmad-output/test-artifacts/` to root `.gitignore`. Story marked as done.
+- 2026-02-17: Addressed AI code review findings. Added `getConnectionSettings` adapter contract + SettingsPage integration, expanded test coverage, removed out-of-scope Playwright dependency additions, gitignored process/e2e artifacts, and reran verification gates (`npm test`, `npm run build`). Status moved to `review`.
+- 2026-02-17: Code review completed by AI reviewer. 0 Critical, 3 High, 5 Medium, 2 Low issues found. 8 action items created. Status moved to `in-progress`. All 6 ACs verified as implemented. Tests (17/17) and build pass.
 - 2026-02-16: Story context created and moved to `ready-for-dev`.

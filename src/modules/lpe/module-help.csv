@@ -1,0 +1,3 @@
+module,phase,name,code,sequence,workflow-file,command,required,agent,options,description,output-location,outputs,
+lpe,anytime,Generate Prompt,GP,,,lpe_generate_prompt,false,lovable-prompt-engineer,Generate,"Generate a Lovable AI prompt from a story identifier - auto-detects initial vs remediation mode",lovable-prompts,prompt,
+lpe,anytime,Show Constraints,SC,,,lpe_show_constraints,false,lovable-prompt-engineer,Display,"Display the standard architectural constraint block injected into every Lovable prompt",,constraints,
