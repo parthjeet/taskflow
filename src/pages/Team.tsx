@@ -11,7 +11,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { fetchMembers, fetchTasks, createMember, updateMember, deleteMember } from '@/lib/mock-api';
+import { apiClient } from '@/lib/api';
 import { TeamMember, Task } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2, Users } from 'lucide-react';
@@ -32,7 +32,7 @@ export default function Team() {
   async function load() {
     setLoading(true);
     try {
-      const [m, t] = await Promise.all([fetchMembers(), fetchTasks()]);
+      const [m, t] = await Promise.all([apiClient.getMembers(), apiClient.getTasks()]);
       setMembers(m);
       setTasks(t);
     } finally {
@@ -55,16 +55,16 @@ export default function Team() {
     setSaving(true);
     try {
       if (editing) {
-        await updateMember(editing.id, { name: name.trim(), email: email.trim(), active });
+        await apiClient.updateMember(editing.id, { name: name.trim(), email: email.trim(), active });
         toast({ title: 'Member updated' });
       } else {
-        await createMember({ name: name.trim(), email: email.trim(), active });
+        await apiClient.createMember({ name: name.trim(), email: email.trim(), active });
         toast({ title: 'Member added' });
       }
       setDialogOpen(false);
       load();
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -161,12 +161,12 @@ export default function Team() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={async () => {
               try {
-                await deleteMember(deleteId!);
+                await apiClient.deleteMember(deleteId!);
                 toast({ title: 'Member deleted' });
                 setDeleteId(null);
                 load();
-              } catch (err: any) {
-                toast({ title: 'Error', description: err.message, variant: 'destructive' });
+              } catch (err) {
+                toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
                 setDeleteId(null);
               }
             }}>Delete</AlertDialogAction>

@@ -509,12 +509,64 @@ The current frontend uses camelCase. The backend may use snake_case. The API cli
 
 ---
 
+## Settings API
+
+### Test Connection
+
+```
+POST /settings/test-connection
+```
+
+**Request Body:**
+```json
+{
+  "host": "localhost",
+  "port": 5432,
+  "database": "taskflow_db",
+  "username": "admin",
+  "password": "secret"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Successfully connected to localhost:5432/taskflow_db"
+}
+```
+
+**Error:** `200 OK` (with `success: false`)
+```json
+{
+  "success": false,
+  "message": "Connection refused: host unreachable"
+}
+```
+
+---
+
+### Save Connection
+
+```
+POST /settings/connection
+```
+
+**Request Body:** Same as Test Connection.
+
+**Response:** `200 OK`
+```json
+{ "message": "Connection settings saved" }
+```
+
+---
+
 ## Migration Notes
 
 To swap from mock to real backend:
 
-1. Create a `realClient.ts` implementing the same function signatures as `mock-api.ts`
-2. Replace the import in consuming components: `import { ... } from '@/lib/api'`
-3. Add camelCase ↔ snake_case transformation in the client layer
+1. Create `src/lib/api/adapters/real.ts` implementing the `ApiClient` interface from `src/lib/api/client.ts`
+2. Update `src/lib/api/index.ts` to import and export the real adapter
+3. Add camelCase ↔ snake_case transformation in `real.ts` only
 4. Remove `localStorage` seed data and artificial delays
 5. Add proper error handling for network failures and HTTP error codes

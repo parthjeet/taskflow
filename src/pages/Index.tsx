@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo } from 'react';
 import { Header } from '@/components/Header';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskFormDialog } from '@/components/TaskFormDialog';
+import { ConnectionErrorBanner } from '@/components/ConnectionErrorBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { fetchTasks, createTask, fetchMembers } from '@/lib/mock-api';
+import { apiClient } from '@/lib/api';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Loader2 } from 'lucide-react';
@@ -14,6 +15,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectionError, setConnectionError] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
@@ -25,9 +27,12 @@ export default function Dashboard() {
   async function load() {
     setLoading(true);
     try {
-      const [t, m] = await Promise.all([fetchTasks(), fetchMembers()]);
+      const [t, m] = await Promise.all([apiClient.getTasks(), apiClient.getMembers()]);
       setTasks(t);
       setMembers(m);
+      setConnectionError(false);
+    } catch {
+      setConnectionError(true);
     } finally {
       setLoading(false);
     }
@@ -66,6 +71,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background">
       <Header />
       <main className="container py-6 space-y-6">
+        <ConnectionErrorBanner visible={connectionError} />
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
           <Button onClick={() => setDialogOpen(true)}>
@@ -139,7 +145,7 @@ export default function Dashboard() {
         onOpenChange={setDialogOpen}
         members={members}
         onSubmit={async data => {
-          await createTask(data);
+          await apiClient.createTask(data);
           toast({ title: 'Task created' });
           load();
         }}

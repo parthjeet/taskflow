@@ -80,8 +80,8 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
         gearId: gearId.trim(), blockingReason: blockingReason.trim(),
       });
       onOpenChange(false);
-    } catch (err: any) {
-      setFormError(err.message || 'Something went wrong');
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : 'Something went wrong');
     } finally {
       setLoading(false);
     }
