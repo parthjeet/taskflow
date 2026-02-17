@@ -1,0 +1,639 @@
+IT IS CRITICAL THAT YOU FOLLOW THESE STEPS - while staying in character as the current agent persona you may have loaded:
+
+<steps CRITICAL="TRUE">
+1. Always LOAD the FULL @{project-root}/_bmad/core/tasks/workflow.xml
+2. READ its entire contents - this is the CORE OS for EXECUTING the specific workflow-config @{project-root}/_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml
+3. Pass the yaml path @{project-root}/_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml as 'workflow-config' parameter to the workflow.xml instructions
+4. Follow workflow.xml instructions EXACTLY as written to process and follow the specific workflow config and its instructions
+5. Save outputs after EACH section when generating any documents from templates
+</steps>
+
+---
+
+yes
+
+---
+
+Yeah, one thing. The front-end development is done by Lovable AI. Lovable AI is a website and is completely out of context of what we are doing here. We have a @taskflow-ui/ folder which is added as a git subtree. Expectation is that if there is a UI task(static only, using mocks), the user story(or some other place) should have a detailed prompt. That prompt will be copied to Lovable UI website to change the code. The code is changed by lovable and is then commited to github. I then pull that into the subtree folder and is reviewed by the reviewing agent here. The reviewing agent should mark the US for completion if it finds that task/subtask satisfactry, or create another set of prompts that can be passed to Lovable AI to makes the chagnes, and it repeats.
+
+---
+
+All worked well, I'm satisfied.
+
+---
+
+2 things:
+1. We maintain the @docs/task_flow_master_doc.md file. This file will always be added to the lovable prompt. This file should not every talk about our BMAD related processes or epics or US or anything. It should be a generic doc for the application. 
+2. The prompt should have everything that let's say you will tell a new joinee UI developer to complete the task.
+
+---
+
+If mainting the master doc is too much, lovable will always have the context of the actual UI code. If the prompt is solid, it should handle the changes
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the entire conversation:
+
+1. **Initial trigger**: User invoked `/bmad-bmm-retrospective` which triggered a workflow execution for a retrospective review.
+
+2. **Workflow loading phase**: I loaded:
+   - `_bmad/core/tasks/workflow.xml` - the workflow execution engine
+   - `_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml` - the specific retrospective workflow config
+   - `_bmad/bmm/config.yaml` - project configuration
+   - `_bmad/bmm/workflows/4-implementation/retrospective/instructions.md` - detailed retrospective instructions
+   - `_bmad/_config/agent-manifest.csv` - agent roster
+
+3. **Variable resolution**:
+   - project_name: taskflow
+   - user_name: parth
+   - planning_artifacts: /home/parth/ws/taskflow/_bmad-output/planning-artifacts
+   - implementation_artifacts: /home/parth/ws/taskflow/_bmad-output/implementation-artifacts
+   - sprint_status_file: /home/parth/ws/taskflow/_bmad-output/implementation-artifacts/sprint-status.yaml
+   - template: false (action-workflow)
+   - date: 2026-02-17
+
+4. **Step 1 - Epic Discovery**: Read sprint-status.yaml, found Epic 1 with all 5 stories done. User confirmed "yes" to reviewing Epic 1.
+
+5. **Step 0.5 - Document Discovery**: Found and loaded:
+   - epics.md (SELECTIVE_LOAD for epic 1)
+   - architecture.md (FULL_LOAD)
+   - prd.md (FULL_LOAD)
+   - No previous retrospective (Epic 1, first retro)
+   - 5 story files for Epic 1
+
+6. **Step 2 - Deep Story Analysis**: Read all 5 story files:
+   - 1-1: Backend foundation, 5 tests, GPT-5 Codex
+   - 1-2: Member API, 22 tests, 7 review findings
+   - 1-3: Credential encryption, 34 tests, clean execution
+   - 1-4: Adapter pattern refactor, Lovable AI, 5 review findings
+   - 1-5: Settings page, Lovable AI, 8 review findings
+
+7. **Steps 3-5**: No previous retro (Epic 1), previewed Epic 2, initialized retrospective with team context.
+
+8. **User message 1**: "yes" - confirmed Epic 1 for review.
+
+9. **User message 2**: Critical process clarification about Lovable AI workflow:
+   - Lovable AI is a website, completely out of context
+   - taskflow-ui/ is a git subtree
+   - UI stories need detailed prompts copied to Lovable
+   - Code committed by Lovable to GitHub, pulled into subtree
+   - Reviewing agent reviews and either marks done or creates new prompts
+   - Iterative feedback loop
+
+10. **User message 3**: "All worked well, I'm satisfied." - regarding what went well.
+
+11. **User message 4**: Two additional insights:
+    - `docs/task_flow_master_doc.md` is always added to Lovable prompts. Should be generic app doc, not BMAD-related.
+    - Prompts should be comprehensive enough for a brand new UI developer to complete the task.
+
+12. **User message 5**: "If maintaining the master doc is too much, lovable will always have the context of the actual UI code. If the prompt is solid, it should handle the changes" - then requested a detailed summary.
+
+The retrospective workflow was in Step 6 (Epic Review Discussion) when the summary was requested. We had covered:
+- What went well (user satisfied)
+- Challenges identified (review-heavy UI stories, adapter boundary violations, prompt quality gaps)
+- Lovable AI workflow clarification
+- Master doc maintenance discussion
+
+Still remaining in the workflow:
+- Step 7: Next Epic Preparation Discussion
+- Step 8: Action Items synthesis
+- Step 9: Critical Readiness Exploration
+- Step 10: Retrospective Closure
+- Step 11: Save Retrospective document & update sprint-status
+- Step 12: Final Summary and Handoff
+
+Summary:
+1. Primary Request and Intent:
+   The user invoked `/bmad-bmm-retrospective` to run a structured team retrospective workflow for Epic 1 of the TaskFlow project. The workflow follows `_bmad/core/tasks/workflow.xml` as the execution engine with `_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml` as the specific config. This is an **action-workflow** (template: false) that facilitates an interactive retrospective discussion using party-mode format (agents speaking in "Name (Role): dialogue" format), culminating in a saved retrospective document and sprint-status update.
+
+   The retrospective covers: (1) Epic Review - successes, challenges, lessons learned, (2) Next Epic Preparation - readiness for Epic 2, and (3) Action Items - concrete improvements with owners.
+
+2. Key Technical Concepts:
+   - **BMAD Workflow Engine**: XML-driven workflow execution with steps, checks, actions, asks, and template-output tags
+   - **Party Mode Protocol**: All agent dialogue uses "Name (Role): dialogue" format with authentic team dynamics
+   - **Lovable AI Workflow**: External website-based AI that generates frontend code from prompts, committed to GitHub, pulled via git subtree into `taskflow-ui/`
+   - **Git Subtree Pattern**: `taskflow-ui/` is a git subtree from a separate Lovable-managed GitHub repo
+   - **Adapter Pattern**: Frontend API layer using `ApiClient` interface with `MockApiClient` implementation, accessed via `apiClient` singleton from `@/lib/api`
+   - **Two-Team Development Model**: Backend (CLI AI tools - GPT-5 Codex) vs Frontend (Lovable AI website), coordinated via API_CONTRACT.md
+   - **Fernet Encryption**: Credential storage using `cryptography.fernet.Fernet` for DB credentials
+   - **Health-Check Startup Sequencing**: Electron polls `/health` every 200ms, max 30 retries
+   - **Normalized Error Responses**: All API errors return `{"error": "message"}` format
+   - **Sprint Status Tracking**: YAML-based development_status tracking in sprint-status.yaml
+
+3. Files and Code Sections:
+   - **`_bmad/core/tasks/workflow.xml`** - The core workflow execution engine. Defines step processing, template-output handling, YOLO mode, and the discover_inputs protocol. Critical for understanding how the retrospective workflow is orchestrated.
+   
+   - **`_bmad/bmm/workflows/4-implementation/retrospective/workflow.yaml`** - Retrospective workflow config defining inputs, file patterns, and variable resolution. Key config:
+     - `config_source: "{project-root}/_bmad/bmm/config.yaml"`
+     - `template: false` (action-workflow)
+     - `instructions: "{installed_path}/instructions.md"`
+     - Input file patterns with SELECTIVE_LOAD for epics, FULL_LOAD for architecture/prd
+
+   - **`_bmad/bmm/workflows/4-implementation/retrospective/instructions.md`** - 12-step retrospective instructions defining the full facilitation flow from epic discovery through document save. Steps: 1 (Epic Discovery), 0.5 (Document Discovery), 2 (Deep Story Analysis), 3 (Previous Retro), 4 (Next Epic Preview), 5 (Initialize Retro), 6 (Epic Review Discussion), 7 (Next Epic Prep), 8 (Action Items), 9 (Readiness Check), 10 (Closure), 11 (Save & Update), 12 (Final Summary).
+
+   - **`_bmad/bmm/config.yaml`** - Project configuration:
+     ```yaml
+     project_name: taskflow
+     user_skill_level: intermediate
+     planning_artifacts: "{project-root}/_bmad-output/planning-artifacts"
+     implementation_artifacts: "{project-root}/_bmad-output/implementation-artifacts"
+     user_name: parth
+     communication_language: English
+     document_output_language: English
+     ```
+
+   - **`_bmad-output/implementation-artifacts/sprint-status.yaml`** - Sprint tracking showing Epic 1 with 5/5 stories done but epic-1 still marked `in-progress`. Epic 1 retrospective was `optional`. Epics 2-5 all in `backlog`.
+
+   - **`_bmad-output/implementation-artifacts/1-1-initialize-backend-project-health-endpoint.md`** - Story 1.1: Backend foundation. GPT-5 Codex. 5 tests passed. Clean execution establishing FastAPI app, health endpoint, error normalization, CORS, Alembic config, PyInstaller entrypoint.
+
+   - **`_bmad-output/implementation-artifacts/1-2-member-management-api.md`** - Story 1.2: Member API. GPT-5 Codex. 22 tests. **Most review findings of backend stories**: 7 items including DB-generated UUID enforcement, email conflict test coverage, redundant uniqueness, inefficient delete guard, PATCH null rejection, missing GET-by-id endpoint. Forward-compatibility challenge with tasks table not yet existing.
+
+   - **`_bmad-output/implementation-artifacts/1-3-credential-encryption-settings-api.md`** - Story 1.3: Credential encryption. GPT-5 Codex. 34 tests. Clean execution. Fernet encryption, settings endpoints, startup readiness with health gating, programmatic Alembic migrations.
+
+   - **`_bmad-output/implementation-artifacts/1-4-frontend-api-layer-refactor-to-adapter-pattern.md`** - Story 1.4: Adapter pattern refactor. Lovable AI implementation validated by CLI tools. 5 review findings: untracked test file, documentation gaps, useEffect dependency, magic number, uncommitted changes. Key tech debt noted: Dashboard performs duplicate client-side filtering. React Router security advisory (6.30.3).
+
+   - **`_bmad-output/implementation-artifacts/1-5-functional-settings-page-connection-error-banner.md`** - Story 1.5: Settings page & banner. **Most review findings overall**: 8 items (3 High) including SettingsPage bypassing adapter pattern with direct localStorage access, out-of-scope Playwright packages added, missing getConnectionSettings() in ApiClient. All resolved. 20/20 tests passing.
+
+   - **`_bmad-output/planning-artifacts/epics.md`** - Complete epic breakdown with 5 epics, 15 stories. Epic 1 has 5 stories (3 Backend, 2 UI-Lovable). Epic 2 has 2 stories (Task CRUD API + Task Detail UI).
+
+   - **`_bmad-output/planning-artifacts/architecture.md`** - Full architecture document. Key decisions: API_CONTRACT.md is canonical, consistent field naming, Fernet encryption, normalized errors, adapter pattern, health-check polling, PyInstaller --onedir, portable exe.
+
+   - **`_bmad-output/planning-artifacts/prd.md`** - Product requirements. 47 FRs, 23 NFRs. TaskFlow replaces Excel-based tracking for 6-person DevOps team at AIG.
+
+   - **`_bmad/_config/agent-manifest.csv`** - Agent roster with 22 agents across core, bmm, bmb, tea, cis modules. Key agents for retro: Bob (SM), Alice (PO equivalent from PM), Charlie (Dev), Dana (QA), Elena (Junior Dev).
+
+   - **`docs/task_flow_master_doc.md`** - The comprehensive project documentation (BRD + PRD + TDD) that gets attached to every Lovable AI prompt. User noted this should remain generic (no BMAD process info). Contains stale references: ER diagram uses `assigned_to` and `is_active` instead of `assignee_id` and `active`, and `update_text` instead of `content`.
+
+4. Errors and Fixes:
+   - No runtime errors encountered during the retrospective workflow execution.
+   - Key **process issues identified during analysis**:
+     - Lovable AI prompts lacked architectural constraints, causing adapter boundary violations (Story 1.5 HIGH finding)
+     - Master doc (`task_flow_master_doc.md`) has stale field names in ER diagram section that conflict with API_CONTRACT.md
+     - Out-of-scope packages (Playwright) added by Lovable due to missing constraints in prompt
+     - Dev agent records had incomplete file lists across multiple stories
+
+5. Problem Solving:
+   - **Epic Discovery**: Successfully identified Epic 1 as completed (5/5 stories done) despite epic status still showing "in-progress" in sprint-status.yaml
+   - **Document Discovery**: Used the discover_inputs protocol to locate and load all relevant planning and implementation artifacts
+   - **Deep Story Analysis**: Synthesized patterns across 5 stories identifying 3 key themes: review-heavy UI stories (~7 findings avg vs ~3 for backend), adapter boundary violations, and prompt quality gaps for Lovable AI
+   - **Lovable AI Workflow Understanding**: User clarified the exact workflow (prompt → Lovable website → GitHub commit → subtree pull → review agent → iterate), which reframed review findings as prompt gaps rather than developer mistakes
+
+6. All User Messages:
+   - **Message 1**: "yes" - Confirming Epic 1 as the epic to review for the retrospective
+   - **Message 2**: "Yeah, one thing. The front-end development is done by Lovable AI. Lovable AI is a website and is completely out of context of what we are doing here. We have a @taskflow-ui/ folder which is added as a git subtree. Expectation is that if there is a UI task(static only, using mocks), the user story(or some other place) should have a detailed prompt. That prompt will be copied to Lovable UI website to change the code. The code is changed by lovable and is then commited to github. I then pull that into the subtree folder and is reviewed by the reviewing agent here. The reviewing agent should mark the US for completion if it finds that task/subtask satisfactry, or create another set of prompts that can be passed to Lovable AI to makes the chagnes, and it repeats."
+   - **Message 3**: "All worked well, I'm satisfied." - Response to what went well in Epic 1
+   - **Message 4**: "2 things: 1. We maintain the @docs/task_flow_master_doc.md file. This file will always be added to the lovable prompt. This file should not every talk about our BMAD related processes or epics or US or anything. It should be a generic doc for the application. 2. The prompt should have everything that let's say you will tell a new joinee UI developer to complete the task."
+   - **Message 5**: "If mainting the master doc is too much, lovable will always have the context of the actual UI code. If the prompt is solid, it should handle the changes" + summary request
+
+7. Pending Tasks:
+   - **Complete Retrospective Steps 7-12**: The workflow was in Step 6 (Epic Review Discussion) when interrupted for summary. Remaining:
+     - Step 7: Next Epic Preparation Discussion (Epic 2 readiness)
+     - Step 8: Synthesize Action Items with owners/timelines
+     - Step 9: Critical Readiness Exploration (testing, deployment, stability)
+     - Step 10: Retrospective Closure with celebration
+     - Step 11: Save retrospective document to `_bmad-output/implementation-artifacts/epic-1-retro-2026-02-17.md` and update sprint-status.yaml (mark `epic-1-retrospective: done`)
+     - Step 12: Final Summary and Handoff
+
+8. Current Work:
+   The retrospective workflow was executing **Step 6: Epic Review Discussion** in the instructions.md. We had completed:
+   - Successes discussion (user said "All worked well, I'm satisfied")
+   - Challenges discussion (review-heavy UI stories, adapter boundary violations, prompt quality)
+   - Pattern analysis from story records (3 patterns surfaced)
+   - User clarified Lovable AI workflow and prompt expectations
+   
+   The discussion was at the point where Bob (Scrum Master) asked parth to confirm the challenge summary, and parth provided the additional insight about master doc maintenance and prompt quality. The team was about to synthesize the challenge themes before transitioning to Step 7 (Next Epic Preparation).
+
+   Key retrospective findings so far:
+   - **Successes**: 100% story completion, progressive test growth (5→22→34), clean backend architecture, adapter pattern established
+   - **Challenges**: Lovable prompt quality causing review churn (avg 7 findings on UI stories vs 3 on backend), adapter boundary violations, stale master doc
+   - **Process Insight**: Lovable has no context beyond the master doc + UI codebase + the prompt. Prompts must be self-contained for a "new joinee UI developer"
+   - **User's preference**: Don't over-invest in master doc maintenance; focus on making each prompt solid since Lovable has the actual UI code context
+
+9. Optional Next Step:
+   Resume the retrospective workflow at Step 6 completion / Step 7 transition. The last assistant message was in Step 6 where Bob asked "parth, does this summary match your thinking?" and parth responded with the master doc / prompt quality insights. The next action should be to acknowledge parth's latest input (that maintaining master doc is less important if prompts are solid), summarize the challenge themes, and transition to Step 7 (Next Epic Preparation Discussion for Epic 2).
+
+   Direct quote from recent context showing where we left off:
+   - User: "If mainting the master doc is too much, lovable will always have the context of the actual UI code. If the prompt is solid, it should handle the changes"
+   - This was the last substantive retrospective input before the summary request was triggered.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/parth/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+IT IS CRITICAL THAT YOU FOLLOW THIS COMMAND: LOAD the FULL @{project-root}/_bmad/bmb/workflows/agent/workflow-create-agent.md, READ its entire contents and follow its directions exactly!
+
+---
+
+n
+
+---
+
+c
+
+---
+
+I need a prompt engineer expert to help write prompts that will be passed to Lovable to complete my UI tasks
+
+---
+
+1. I should just pass US name and it should take all the revelevent info from there. 
+2. Single prompt and it should just refer the master doc. The doc will be attabled in the Lovable website.
+3. Yes, the agent automatically inject the architectural constraints and also the agent automatically inject the architectural constext needed to complete the prompt. 
+4. only for TaskFlow's Lovable workflow
+
+---
+
+Yes, also for review
+
+---
+
+P
+
+---
+
+auto please
+
+---
+
+both
+
+---
+
+c
+
+---
+
+Call it Viper. and hasSidecar: false is correct
+
+---
+
+c
+
+---
+
+looks good
+
+---
+
+c
+
+---
+
+yes, looks good
+
+---
+
+c
+
+---
+
+c
+
+---
+
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+Analysis:
+Let me chronologically analyze the entire conversation:
+
+1. **Session Start / Context Recovery**: The conversation began with a context recovery from a previous session. The previous session had completed an Epic 1 retrospective for the TaskFlow project using the BMAD workflow system.
+
+2. **Retrospective Completion (Steps 6-12)**: I resumed and completed the Epic 1 retrospective:
+   - Wrapped up Step 6 (Epic Review Discussion) with successes, challenges, key insights
+   - Completed Step 7 (Next Epic Preparation) for Epic 2
+   - Completed Step 8 (Action Items synthesis)
+   - Completed Step 9 (Readiness Assessment)
+   - Completed Step 10 (Closure)
+   - Step 11: Saved retrospective document to `_bmad-output/implementation-artifacts/epic-1-retro-2026-02-17.md`
+   - Step 11: Updated sprint-status.yaml: `epic-1: in-progress → done`, `epic-1-retrospective: optional → done`
+   - Step 12: Final summary
+
+3. **Agent Creation Workflow Started**: User invoked `/bmad-bmb-create-agent` command.
+
+4. **Workflow Loading**: Loaded `_bmad/bmb/workflows/agent/workflow-create-agent.md` and `_bmad/bmb/config.yaml`
+
+5. **Step 1 - Brainstorming**: User chose "n" (skip brainstorming), then "c" to continue.
+
+6. **Step 2 - Discovery**: 
+   - User described the agent: "I need a prompt engineer expert to help write prompts that will be passed to Lovable to complete my UI tasks"
+   - Follow-up questions revealed:
+     - Input: Just pass US name, agent gathers all context
+     - Output: Single prompt, reference master doc (attached separately in Lovable)
+     - Auto-inject architectural constraints and context
+     - Scope: Only for TaskFlow's Lovable workflow
+     - Also handles review remediation prompts
+   - Agent plan saved to `_bmad-output/bmb-creations/agent-plan-lovable-prompt-engineer.md`
+   - User chose "P" for Party Mode
+
+7. **Party Mode**: 
+   - Loaded agent manifest, selected Bond, Bob, Amelia, Winston as participants
+   - Key refinements surfaced:
+     1. Auto-detection of initial vs. remediation mode
+     2. Deterministic context gathering
+     3. Standard prompt structure (Objective, Context, Implementation, Constraints, Verification)
+     4. Source file reading for remediation
+     5. Dual output (save to file + display)
+     6. Remediation targets only unchecked items
+     7. Verification section in every prompt
+     8. Explicit import paths
+   - User confirmed "auto" for mode detection
+   - User confirmed "both" for output (save + display)
+   - Agent plan updated with party mode refinements
+   - User chose "C" to continue
+
+8. **Step 3 - Sidecar & Metadata**:
+   - Loaded understanding-agent-types.md and agent-metadata.md
+   - Recommended hasSidecar: false (stateless, each prompt generation independent)
+   - User confirmed "Call it Viper. and hasSidecar: false is correct"
+   - Metadata saved:
+     - id: `_bmad/agents/lovable-prompt-engineer/lovable-prompt-engineer.md`
+     - name: Viper
+     - title: Lovable AI Prompt Engineer
+     - icon: ✍️
+     - module: stand-alone
+     - hasSidecar: false
+   - User chose "C" to continue
+
+9. **Step 4 - Persona**:
+   - Loaded persona-properties.md, principles-crafting.md, communication-presets.csv
+   - Developed four-field persona:
+     - Role: Prompt engineering specialist for Lovable AI
+     - Identity: Precision-obsessed prompt architect
+     - Communication Style: Sharp and surgical
+     - Principles: 5 principles with expert activator first
+   - User confirmed "looks good"
+   - Persona saved to plan
+   - User chose "C" to continue
+
+10. **Step 5 - Commands & Menu**:
+    - Loaded agent-menu-patterns.md
+    - Defined two commands:
+      - GP (Generate Prompt) - main command
+      - SC (Show Constraints) - utility command
+    - User confirmed "yes, looks good"
+    - Commands saved to plan
+    - User chose "C" to continue
+
+11. **Step 6 - Activation**:
+    - Loaded critical-actions.md and agent plan
+    - Confirmed hasSidecar: false, no critical_actions needed
+    - Saved activation & routing metadata
+    - User chose "C" to continue
+
+12. **Step 7 - Build Agent**:
+    - Loaded agent-template.md, agent-architecture.md, agent-compilation.md
+    - Was about to build the actual agent YAML file
+    - This is where the summary was requested
+
+Key files modified:
+- `_bmad-output/implementation-artifacts/epic-1-retro-2026-02-17.md` (created)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (updated epic-1 to done, retrospective to done)
+- `_bmad-output/bmb-creations/agent-plan-lovable-prompt-engineer.md` (created and iteratively updated)
+
+No errors encountered. User was consistently concise with responses and approved all proposals without modifications except for naming the agent "Viper".
+
+The immediate next step is to build the agent YAML file based on the complete plan, following the template and architecture specs loaded in Step 7.
+
+Summary:
+1. Primary Request and Intent:
+   The conversation had two major phases:
+   
+   **Phase 1 - Epic 1 Retrospective Completion**: Continued from a previous session that ran out of context. Completed the BMAD retrospective workflow (Steps 6-12) for Epic 1 of the TaskFlow project. Key deliverables: retrospective document saved, sprint-status.yaml updated.
+   
+   **Phase 2 - Agent Creation (`/bmad-bmb-create-agent`)**: User invoked the BMAD agent creation workflow to build a new agent called "Viper" - a Lovable AI Prompt Engineer that automatically generates self-contained prompts for Lovable AI from User Story identifiers. The agent auto-detects initial vs. remediation mode, gathers all architectural context, injects constraints, and produces dual output (saved file + display for copy-paste). The workflow progressed through Steps 1-6 (Brainstorm → Discovery → Sidecar/Metadata → Persona → Commands → Activation) and was in the middle of **Step 7 (Build Agent)** when the summary was requested.
+
+2. Key Technical Concepts:
+   - **BMAD Workflow Engine**: Step-file architecture with sequential execution, just-in-time loading, and state tracking
+   - **BMAD Agent Creation Workflow**: 8-step process: Brainstorm → Discovery → Sidecar/Metadata → Persona → Commands → Activation → Build → Celebrate
+   - **Agent YAML Schema**: metadata, persona (role/identity/communication_style/principles), critical_actions, prompts, menu structure
+   - **hasSidecar Pattern**: false = single YAML file (~250 lines), true = YAML + sidecar folder with persistent memory
+   - **Four-Field Persona System**: Role (WHAT), Identity (WHO), Communication Style (HOW), Principles (WHY) - strict field purity required
+   - **Menu Pattern**: `trigger: XX or fuzzy match on command-name`, `action: '#prompt-id'`, `description: '[XX] Description'`
+   - **Compiler Auto-Injection**: Frontmatter, activation XML, handlers, rules, MH/CH/PM/DA menu items are NOT included in YAML (compiler adds them)
+   - **Lovable AI Workflow**: Prompts → Lovable website → GitHub commit → git subtree pull → review agent → iterate
+   - **TaskFlow Adapter Pattern**: `ApiClient` interface, `MockApiClient`, singleton `apiClient` from `@/lib/api`
+   - **Prompt Structure**: Objective, Context, Implementation, Constraints, Verification (adapted for remediation mode)
+   - **Auto Mode Detection**: Story status + unchecked review follow-ups (`- [ ]` vs `- [x]`) determines initial vs. remediation
+
+3. Files and Code Sections:
+
+   - **`_bmad-output/implementation-artifacts/epic-1-retro-2026-02-17.md`** (CREATED)
+     - Epic 1 retrospective document with full analysis: successes, challenges, key insights, action items, next epic prep
+     - Important for project continuity and tracking team learnings
+
+   - **`_bmad-output/implementation-artifacts/sprint-status.yaml`** (MODIFIED)
+     - Updated `epic-1: in-progress` → `epic-1: done`
+     - Updated `epic-1-retrospective: optional` → `epic-1-retrospective: done`
+
+   - **`_bmad-output/bmb-creations/agent-plan-lovable-prompt-engineer.md`** (CREATED, iteratively updated through Steps 2-6)
+     - Complete agent plan including: Purpose, Goals, Capabilities, Context, Users, Sidecar Decision & Metadata, Persona, Commands & Menu, Activation & Routing, Party Mode Refinements
+     - This is the source of truth for the Build step
+     - Key sections include:
+
+     **Metadata:**
+     ```yaml
+     metadata:
+       id: _bmad/agents/lovable-prompt-engineer/lovable-prompt-engineer.md
+       name: Viper
+       title: Lovable AI Prompt Engineer
+       icon: '✍️'
+       module: stand-alone
+       hasSidecar: false
+     ```
+
+     **Persona:**
+     ```yaml
+     role: >
+       Prompt engineering specialist for Lovable AI. Assembles self-contained UI
+       development prompts by extracting story requirements, gathering architectural
+       context from source files, and injecting constraint guardrails - producing
+       prompts that a context-free developer can execute without ambiguity.
+
+     identity: >
+       Precision-obsessed prompt architect who treats every word as load-bearing.
+       Learned from watching AI code generators fail repeatedly on vague instructions
+       and now approaches prompt writing like building a contract - nothing implicit,
+       nothing assumed, every boundary spelled out.
+
+     communication_style: >
+       Sharp and surgical. Short declarative sentences. States what will be done,
+       does it, confirms completion. No filler, no hedging.
+
+     principles:
+       - "Channel expert prompt engineering for AI code generators: draw upon deep
+         knowledge of how LLM-based tools interpret instructions, where they drift
+         without constraints, and what makes the difference between a one-shot prompt
+         and a three-revision loop"
+       - "What Lovable doesn't know, it guesses wrong - every architectural boundary,
+         import path, and type definition must be explicit in the prompt"
+       - "Constraints prevent chaos - always inject the standard guardrails regardless
+         of whether the story mentions them"
+       - "One prompt, one clean outcome - ambiguity in the prompt becomes bugs in the
+         code and findings in the review"
+       - "Read the actual source files before writing the prompt - stale assumptions
+         produce stale instructions"
+     ```
+
+     **Commands & Menu:**
+     ```yaml
+     prompts:
+       - id: generate-prompt
+         content: |
+           <instructions>
+           Generate a Lovable AI prompt for the given story identifier.
+           1. Resolve story file from _bmad-output/implementation-artifacts/
+           2. Auto-detect mode: if story has unchecked review follow-ups (- [ ]),
+              generate remediation prompt; otherwise generate initial prompt
+           3. Load context: story file, epics.md Lovable prompt section,
+              API_CONTRACT.md, architecture.md, referenced source files
+           4. For remediation: also read current source files that need fixing
+           5. Assemble prompt using standard structure
+              (Objective, Context, Implementation/Issues, Constraints, Verification)
+           6. Save to _bmad-output/lovable-prompts/ and display for copy-paste
+           </instructions>
+
+       - id: show-constraints
+         content: |
+           <instructions>
+           Display the standard architectural constraint block that gets injected
+           into every Lovable prompt. Read current state from API_CONTRACT.md,
+           client.ts, and types.ts to ensure constraints reflect actual codebase.
+           </instructions>
+
+     menu:
+       - trigger: GP or fuzzy match on generate-prompt
+         action: '#generate-prompt'
+         description: '[GP] Generate Lovable prompt for a story'
+
+       - trigger: SC or fuzzy match on show-constraints
+         action: '#show-constraints'
+         description: '[SC] Show standard constraint block'
+     ```
+
+     **Activation:**
+     ```yaml
+     activation:
+       hasCriticalActions: false
+       rationale: >
+         Viper operates under direct user guidance. User invokes GP with a story ID,
+         agent gathers context and produces a prompt. No autonomous actions, no
+         background processes, no proactive behavior needed.
+
+     routing:
+       buildApproach: "Agent without sidecar"
+       hasSidecar: false
+       rationale: "Stateless agent - all context sourced from project files per invocation"
+     ```
+
+   - **Reference files loaded for Build step (Step 7):**
+     - `_bmad/bmb/workflows/agent/templates/agent-template.md` - Handlebars template defining YAML structure
+     - `_bmad/bmb/workflows/agent/data/agent-architecture.md` - Architecture requirements, validation checklist
+     - `_bmad/bmb/workflows/agent/data/agent-compilation.md` - What YOU write vs what COMPILER adds
+     - `_bmad/bmb/workflows/agent/data/critical-actions.md` - Critical actions patterns
+
+   - **Other reference files loaded during workflow:**
+     - `_bmad/bmb/config.yaml` - BMB module config (user_name: parth, output folder paths)
+     - `_bmad/bmb/workflows/agent/workflow-create-agent.md` - Main workflow entry point
+     - `_bmad/bmb/workflows/agent/steps-c/step-01-brainstorm.md` through `step-07-build-agent.md`
+     - `_bmad/bmb/workflows/agent/data/understanding-agent-types.md` - Sidecar decision framework
+     - `_bmad/bmb/workflows/agent/data/agent-metadata.md` - Metadata property definitions
+     - `_bmad/bmb/workflows/agent/data/persona-properties.md` - Four-field persona system
+     - `_bmad/bmb/workflows/agent/data/principles-crafting.md` - Principles composition guidance
+     - `_bmad/bmb/workflows/agent/data/communication-presets.csv` - 60 communication style presets
+     - `_bmad/bmb/workflows/agent/data/agent-menu-patterns.md` - Menu command patterns
+     - `_bmad/_config/agent-manifest.csv` - 22 agents across core/bmm/bmb/tea/cis modules
+     - `_bmad-output/planning-artifacts/epics.md` - Full epic breakdown (15 stories across 5 epics)
+     - All 5 Epic 1 story files (1-1 through 1-5)
+
+4. Errors and fixes:
+   - No errors were encountered during this session. All workflow steps executed cleanly. User approved all proposals without requesting changes (except naming the agent "Viper" which was an expected user input, not a correction).
+
+5. Problem Solving:
+   - **Context Recovery**: Successfully resumed the retrospective workflow from a previous session that ran out of context, picking up at Step 6 and completing through Step 12
+   - **Agent Design Decisions**: Through Party Mode, surfaced 8 key refinements including auto-detection of initial vs. remediation mode, deterministic context gathering, standard prompt structure, and dual output
+   - **Sidecar Decision**: Correctly identified that Viper needs no persistent memory (hasSidecar: false) since each prompt generation is independent
+
+6. All user messages:
+   - (Context recovery message with full session summary from previous conversation)
+   - "n" (skip brainstorming in Step 1)
+   - "c" (continue to Discovery from Step 1)
+   - "I need a prompt engineer expert to help write prompts that will be passed to Lovable to complete my UI tasks"
+   - "1. I should just pass US name and it should take all the revelevent info from there. 2. Single prompt and it should just refer the master doc. The doc will be attabled in the Lovable website. 3. Yes, the agent automatically inject the architectural constraints and also the agent automatically inject the architectural constext needed to complete the prompt. 4. only for TaskFlow's Lovable workflow"
+   - "Yes, also for review"
+   - "P" (enter Party Mode from Discovery)
+   - "auto please" (auto-detection of initial vs. remediation mode)
+   - "both" (save to file AND display for copy-paste)
+   - "c" (continue from Discovery/Party Mode to Step 3)
+   - "Call it Viper. and hasSidecar: false is correct"
+   - "c" (continue from Step 3 to Step 4)
+   - "looks good" (approved persona in Step 4)
+   - "c" (continue from Step 4 to Step 5)
+   - "yes, looks good" (approved commands in Step 5)
+   - "c" (continue from Step 5 to Step 6)
+   - "c" (continue from Step 6 to Step 7 Build)
+
+7. Pending Tasks:
+   - **Build the Viper agent YAML file** (Step 7 of agent creation workflow - currently in progress)
+   - Output path: `_bmad-output/bmb-creations/lovable-prompt-engineer.agent.yaml` (hasSidecar: false, single file)
+   - After build: Step 8 (Celebrate) with installation guidance
+
+8. Current Work:
+   The workflow is in **Step 7: Build Agent** (`_bmad/bmb/workflows/agent/steps-c/step-07-build-agent.md`). All reference materials have been loaded:
+   - Agent template (`agent-template.md`)
+   - Agent architecture (`agent-architecture.md`)  
+   - Agent compilation rules (`agent-compilation.md`)
+   - Critical actions reference (`critical-actions.md`)
+   - The complete agent plan (`agent-plan-lovable-prompt-engineer.md`)
+   
+   The build approach is confirmed: **Agent WITHOUT sidecar** → single YAML file output at `{bmb_creations_output_folder}/lovable-prompt-engineer.agent.yaml`.
+   
+   The agent plan contains all required content: metadata, persona, prompts, menu, activation decisions. No critical_actions needed.
+
+9. Optional Next Step:
+   **Assemble and write the Viper agent YAML file** following the loaded template, architecture, and compilation rules. The YAML should include:
+   - `agent.metadata` (id, name: Viper, title, icon, module, hasSidecar: false)
+   - `agent.persona` (role, identity, communication_style, principles)
+   - `agent.prompts` (generate-prompt, show-constraints)
+   - `agent.menu` (GP, SC commands only - no MH/CH/PM/DA as those are auto-injected by compiler)
+   - NO critical_actions, NO frontmatter, NO activation XML, NO rules section (compiler adds these)
+   
+   Output to: `_bmad-output/bmb-creations/lovable-prompt-engineer.agent.yaml`
+   
+   Then present the menu and upon "C", proceed to Step 8 (Celebrate) by loading `step-08-celebrate.md`.
+   
+   The user's last action was selecting "c" to continue to the Build step, and all Phase 1-2 reference loading is complete. The next action is Phase 3-6: determine build approach (already known: no sidecar), assemble YAML from plan, write to file, present menu.
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: /home/parth/.REDACTED.jsonl
+Please continue the conversation from where we left off without asking the user any further questions. Continue with the last task that you were asked to work on.
+
+---
+
+c
+
+---
+
+v run validation on Epic 1 and US 1.4
+
+---
+
+C
+
+---
+
+F
+
+---
+
+All.
+
+---
+
+S
+
+---
+
+How can I invoke this?

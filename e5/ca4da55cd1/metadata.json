@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "e5ca4da55cd1",
+  "strategy": "manual-commit",
+  "branch": "master",
+  "checkpoints_count": 30,
+  "files_touched": [
+    "_bmad-output/bmb-creations/agent-completion-lovable-prompt-engineer.md",
+    "_bmad-output/bmb-creations/agent-plan-lovable-prompt-engineer.md",
+    "_bmad-output/bmb-creations/lovable-prompt-engineer.agent.yaml",
+    "_bmad-output/bmb-creations/validation-report-lovable-prompt-engineer.md",
+    "_bmad-output/implementation-artifacts/epic-1-retro-2026-02-17.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml",
+    "taskflow-ui/src/test/settings.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e5/ca4da55cd1/0/metadata.json",
+      "transcript": "/e5/ca4da55cd1/0/full.jsonl",
+      "context": "/e5/ca4da55cd1/0/context.md",
+      "content_hash": "/e5/ca4da55cd1/0/content_hash.txt",
+      "prompt": "/e5/ca4da55cd1/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 176,
+    "cache_creation_tokens": 523868,
+    "cache_read_tokens": 12105779,
+    "output_tokens": 11073,
+    "api_call_count": 116
+  }
+}
