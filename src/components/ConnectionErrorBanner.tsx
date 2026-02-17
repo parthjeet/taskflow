@@ -12,7 +12,7 @@ export function ConnectionErrorBanner({ visible }: ConnectionErrorBannerProps) {
 
   return (
     <Alert variant="destructive">
-      <AlertTriangle className="h-4 w-4" />
+      <AlertTriangle data-testid="connection-error-icon" className="h-4 w-4" />
       <AlertDescription className="flex items-center justify-between">
         <span>Unable to connect to database</span>
         <Button variant="outline" size="sm" asChild className="ml-4 border-destructive/50 text-destructive hover:bg-destructive/10">
