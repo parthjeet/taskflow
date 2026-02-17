@@ -22,3 +22,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Process artifacts (out of scope for app source)
+LOVABLE_HANDOFF_STORY_1_5.md
+LOVABLE_PROMPT_STORY_1_5.md
+playwright-report/
+test-results/
+playwright.config.ts
+tests/e2e/
