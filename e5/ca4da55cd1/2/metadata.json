@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "e5ca4da55cd1",
+  "session_id": "4f153664-b05a-45f9-b792-14cfd042eff4",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-17T22:53:27.335352412Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "_bmad-output/implementation-artifacts/1-5-functional-settings-page-connection-error-banner.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "c6dcb206-39fe-4242-8d75-7095d8a739ca",
+  "token_usage": {
+    "input_tokens": 29,
+    "cache_creation_tokens": 157552,
+    "cache_read_tokens": 2667152,
+    "output_tokens": 2040,
+    "api_call_count": 24
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-17T22:53:26.803156392Z",
+    "agent_lines": 0,
+    "human_added": 4688,
+    "human_modified": 70,
+    "human_removed": 0,
+    "total_committed": 4723,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/4f153664-b05a-45f9-b792-14cfd042eff4.jsonl"
+}
