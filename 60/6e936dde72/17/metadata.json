@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "606e936dde72",
+  "session_id": "c9b2d6dc-0e3c-4e8a-b986-c7843ae2a806",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T13:06:28.011519844Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "_bmad-output/implementation-artifacts/2-1-task-management-api-crud-business-logic.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "8b69c089-ed4f-419f-8fd0-082ccd27a3cb",
+  "token_usage": {
+    "input_tokens": 20,
+    "cache_creation_tokens": 68622,
+    "cache_read_tokens": 1238837,
+    "output_tokens": 3276,
+    "api_call_count": 17
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T13:06:27.791672009Z",
+    "agent_lines": 0,
+    "human_added": 683,
+    "human_modified": 649,
+    "human_removed": 0,
+    "total_committed": 1258,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/c9b2d6dc-0e3c-4e8a-b986-c7843ae2a806.jsonl"
+}
