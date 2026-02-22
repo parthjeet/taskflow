@@ -3,7 +3,7 @@
   "checkpoint_id": "606e936dde72",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 10,
+  "checkpoints_count": 11,
   "files_touched": [
     "_bmad-output/implementation-artifacts/2-1-task-management-api-crud-business-logic.md",
     "_bmad-output/implementation-artifacts/2-2-task-detail-page-with-adapter-pattern.md",
@@ -66,13 +66,20 @@
       "context": "/60/6e936dde72/7/context.md",
       "content_hash": "/60/6e936dde72/7/content_hash.txt",
       "prompt": "/60/6e936dde72/7/prompt.txt"
+    },
+    {
+      "metadata": "/60/6e936dde72/8/metadata.json",
+      "transcript": "/60/6e936dde72/8/full.jsonl",
+      "context": "/60/6e936dde72/8/context.md",
+      "content_hash": "/60/6e936dde72/8/content_hash.txt",
+      "prompt": "/60/6e936dde72/8/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 194,
-    "cache_creation_tokens": 983482,
-    "cache_read_tokens": 13859488,
-    "output_tokens": 20877,
-    "api_call_count": 164
+    "input_tokens": 216,
+    "cache_creation_tokens": 1187232,
+    "cache_read_tokens": 15218076,
+    "output_tokens": 22712,
+    "api_call_count": 183
   }
 }
