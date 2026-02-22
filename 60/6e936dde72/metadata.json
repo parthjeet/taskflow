@@ -3,7 +3,7 @@
   "checkpoint_id": "606e936dde72",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 19,
+  "checkpoints_count": 21,
   "files_touched": [
     "_bmad-output/implementation-artifacts/2-1-task-management-api-crud-business-logic.md",
     "_bmad-output/implementation-artifacts/2-2-task-detail-page-with-adapter-pattern.md",
@@ -13,6 +13,7 @@
     "taskflow-ui/src/lib/dashboard/tasks.ts",
     "taskflow-ui/src/test/mock-task-filters.test.ts",
     "taskflow-ui/src/test/mock-task-gaps.test.ts",
+    "taskflow-ui/src/test/task-form-dialog.test.tsx",
     "taskflow-ui/tests/e2e/specs/tasks.spec.ts"
   ],
   "sessions": [
@@ -127,13 +128,20 @@
       "context": "/60/6e936dde72/15/context.md",
       "content_hash": "/60/6e936dde72/15/content_hash.txt",
       "prompt": "/60/6e936dde72/15/prompt.txt"
+    },
+    {
+      "metadata": "/60/6e936dde72/16/metadata.json",
+      "transcript": "/60/6e936dde72/16/full.jsonl",
+      "context": "/60/6e936dde72/16/context.md",
+      "content_hash": "/60/6e936dde72/16/content_hash.txt",
+      "prompt": "/60/6e936dde72/16/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 389,
-    "cache_creation_tokens": 2012647,
-    "cache_read_tokens": 27129321,
-    "output_tokens": 73306,
-    "api_call_count": 337
+    "input_tokens": 605,
+    "cache_creation_tokens": 2121965,
+    "cache_read_tokens": 28553593,
+    "output_tokens": 76835,
+    "api_call_count": 357
   }
 }
