@@ -15,8 +15,19 @@ def _stringify_validation_error(exc: RequestValidationError) -> str:
         return "Validation error"
 
     first_error = errors[0]
-    location = ".".join(str(item) for item in first_error.get("loc", []))
-    message = first_error.get("msg", "Validation error")
+    raw_location = [str(item) for item in first_error.get("loc", [])]
+    if raw_location and raw_location[0] == "body":
+        raw_location = raw_location[1:]
+    location = ".".join(raw_location)
+
+    message = str(first_error.get("msg", "Validation error"))
+    value_error_prefix = "Value error, "
+    if message.startswith(value_error_prefix):
+        message = message[len(value_error_prefix):]
+    if location:
+        location_prefix = f"{location}: "
+        if message.startswith(location_prefix):
+            message = message[len(location_prefix):]
     return f"{location}: {message}" if location else str(message)
 
 

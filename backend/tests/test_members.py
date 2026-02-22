@@ -207,8 +207,7 @@ def test_patch_member_rejects_explicit_null_name() -> None:
     assert response.status_code == 400
     body = response.json()
     assert "error" in body
-    assert "body.name" in body["error"]
-    assert "field cannot be null" in body["error"]
+    assert body["error"] == "name: field cannot be null"
 
 
 def test_patch_member_rejects_explicit_null_email() -> None:
@@ -220,8 +219,7 @@ def test_patch_member_rejects_explicit_null_email() -> None:
     assert response.status_code == 400
     body = response.json()
     assert "error" in body
-    assert "body.email" in body["error"]
-    assert "field cannot be null" in body["error"]
+    assert body["error"] == "email: field cannot be null"
 
 
 def test_delete_member_returns_no_content_and_removes_member_when_tasks_schema_is_missing() -> None:
@@ -251,17 +249,17 @@ def test_delete_member_with_assigned_tasks_returns_conflict() -> None:
     member = _create_member(client, name="Bob", email="bob@example.com")
 
     engine = client.app.state.testing_engine
-    metadata = sa.MetaData()
-    tasks_table = sa.Table(
-        "tasks",
-        metadata,
-        sa.Column("id", sa.String(length=36), primary_key=True),
-        sa.Column("assignee_id", sa.Uuid(), nullable=True),
-    )
-    metadata.create_all(engine)
+    tasks_table = sa.Table("tasks", sa.MetaData(), autoload_with=engine)
     with engine.begin() as connection:
         connection.execute(
-            sa.insert(tasks_table).values(id=str(uuid.uuid4()), assignee_id=uuid.UUID(str(member["id"])))
+            sa.insert(tasks_table).values(
+                id=uuid.uuid4().hex,
+                title="Assigned task",
+                status="To Do",
+                priority="Medium",
+                assignee_id=uuid.UUID(str(member["id"])).hex,
+                blocking_reason="",
+            )
         )
 
     response = client.delete(f"/api/v1/members/{member['id']}")
@@ -278,6 +276,9 @@ def test_delete_member_returns_no_content_when_tasks_table_lacks_assignee_column
 
     engine = client.app.state.testing_engine
     metadata = sa.MetaData()
+    with engine.begin() as connection:
+        connection.execute(sa.text("DROP TABLE tasks"))
+
     tasks_table = sa.Table(
         "tasks",
         metadata,

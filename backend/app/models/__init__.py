@@ -2,5 +2,6 @@
 
 from app.db.base import Base
 from app.models.member import Member
+from app.models.task import Task
 
-__all__ = ["Base", "Member"]
+__all__ = ["Base", "Member", "Task"]
