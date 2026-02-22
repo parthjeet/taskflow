@@ -22,12 +22,12 @@ export interface DailyUpdate {
 export interface Task {
   id: string;
   title: string;
-  description: string;
+  description: string | null;
   status: Status;
   priority: Priority;
   assigneeId: string | null;
   assigneeName: string | null;
-  gearId: string;
+  gearId: string | null;
   blockingReason: string;
   subTasks: SubTask[];
   dailyUpdates: DailyUpdate[];

@@ -6,16 +6,15 @@ import type {
 
 export interface CreateTaskData {
   title: string;
-  description: string;
+  description: string | null;
   status: Status;
   priority: Priority;
   assigneeId: string | null;
-  assigneeName: string | null;
-  gearId: string;
+  gearId: string | null;
   blockingReason: string;
 }
 
-export type UpdateTaskData = Partial<Omit<Task, 'id' | 'createdAt' | 'subTasks' | 'dailyUpdates'>>;
+export type UpdateTaskData = Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt' | 'subTasks' | 'dailyUpdates' | 'assigneeName'>>;
 
 export interface ApiClient {
   // Tasks

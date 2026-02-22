@@ -22,7 +22,6 @@ describe("MockApiClient smoke", () => {
       status: "To Do",
       priority: "Medium",
       assigneeId: null,
-      assigneeName: null,
       gearId: "9001",
       blockingReason: "",
     };
@@ -97,8 +96,7 @@ describe("MockApiClient smoke", () => {
       status: "In Progress",
       priority: "Low",
       assigneeId: member.id,
-      assigneeName: updatedMember.name,
-      gearId: "777",
+      gearId: "7770",
       blockingReason: "",
     });
 
@@ -108,9 +106,22 @@ describe("MockApiClient smoke", () => {
 
     await client.updateTask(assignedTask.id, {
       assigneeId: null,
-      assigneeName: null,
     });
     await expect(client.deleteMember(member.id)).resolves.toBeUndefined();
+  });
+
+  it("rejects invalid gearId values outside 4-digit format", async () => {
+    await expect(
+      client.createTask({
+        title: "Invalid gear id",
+        description: null,
+        status: "To Do",
+        priority: "Low",
+        assigneeId: null,
+        gearId: "777",
+        blockingReason: "",
+      }),
+    ).rejects.toThrow("GEAR ID must be 4 digits");
   });
 
   it("handles connection settings test and save", async () => {

@@ -50,10 +50,10 @@ development_status:
   epic-1-retrospective: done
 
   # Epic 2: Core Task Management
-  epic-2: backlog
-  2-1-task-management-api-crud-business-logic: backlog
-  2-2-task-detail-page-with-adapter-pattern: backlog
-  epic-2-retrospective: optional
+  epic-2: in-progress
+  2-1-task-management-api-crud-business-logic: done
+  2-2-task-detail-page-with-adapter-pattern: done
+  epic-2-retrospective: done
 
   # Epic 3: Task Breakdown & Daily Progress Tracking
   epic-3: backlog
