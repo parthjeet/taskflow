@@ -1,0 +1,32 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "606e936dde72",
+  "session_id": "00806ac2-8aff-4f1c-9015-a79efdc464fb",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T13:06:21.403549129Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "_bmad-output/implementation-artifacts/2-2-task-detail-page-with-adapter-pattern.md",
+    "_bmad-output/implementation-artifacts/sprint-status.yaml"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "49d2b792-a7ed-4a8f-aab4-e9c2ff33a0b4",
+  "token_usage": {
+    "input_tokens": 26,
+    "cache_creation_tokens": 163381,
+    "cache_read_tokens": 2394873,
+    "output_tokens": 3549,
+    "api_call_count": 23
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T13:06:20.781033945Z",
+    "agent_lines": 0,
+    "human_added": 704,
+    "human_modified": 607,
+    "human_removed": 0,
+    "total_committed": 1300,
+    "agent_percentage": 0
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/00806ac2-8aff-4f1c-9015-a79efdc464fb.jsonl"
+}
