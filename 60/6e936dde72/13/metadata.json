@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.4.4",
+  "checkpoint_id": "606e936dde72",
+  "session_id": "b735482a-2ddf-4776-ae10-0bc8c32b55b0",
+  "strategy": "manual-commit",
+  "created_at": "2026-02-22T13:06:26.535242627Z",
+  "branch": "master",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "_bmad-output/implementation-artifacts/tests/test-summary.md",
+    "backend/tests/test_tasks.py",
+    "taskflow-ui/src/test/mock-task-filters.test.ts",
+    "taskflow-ui/src/test/mock-task-gaps.test.ts",
+    "taskflow-ui/tests/e2e/specs/tasks.spec.ts"
+  ],
+  "agent": "Claude Code",
+  "transcript_identifier_at_start": "d5196ea3-f36f-4dcb-ba8f-77b8d86f9217",
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 102986,
+    "cache_read_tokens": 2934741,
+    "output_tokens": 4797,
+    "api_call_count": 37
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-02-22T13:06:26.233680715Z",
+    "agent_lines": 747,
+    "human_added": 0,
+    "human_modified": 570,
+    "human_removed": 221,
+    "total_committed": 1317,
+    "agent_percentage": 56.71981776765376
+  },
+  "transcript_path": ".claude/projects/-home-parth-ws-taskflow/b735482a-2ddf-4776-ae10-0bc8c32b55b0.jsonl"
+}

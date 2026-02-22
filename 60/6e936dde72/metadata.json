@@ -3,12 +3,17 @@
   "checkpoint_id": "606e936dde72",
   "strategy": "manual-commit",
   "branch": "master",
-  "checkpoints_count": 16,
+  "checkpoints_count": 17,
   "files_touched": [
     "_bmad-output/implementation-artifacts/2-1-task-management-api-crud-business-logic.md",
     "_bmad-output/implementation-artifacts/2-2-task-detail-page-with-adapter-pattern.md",
     "_bmad-output/implementation-artifacts/sprint-status.yaml",
-    "taskflow-ui/src/lib/dashboard/tasks.ts"
+    "_bmad-output/implementation-artifacts/tests/test-summary.md",
+    "backend/tests/test_tasks.py",
+    "taskflow-ui/src/lib/dashboard/tasks.ts",
+    "taskflow-ui/src/test/mock-task-filters.test.ts",
+    "taskflow-ui/src/test/mock-task-gaps.test.ts",
+    "taskflow-ui/tests/e2e/specs/tasks.spec.ts"
   ],
   "sessions": [
     {
@@ -101,13 +106,20 @@
       "context": "/60/6e936dde72/12/context.md",
       "content_hash": "/60/6e936dde72/12/content_hash.txt",
       "prompt": "/60/6e936dde72/12/prompt.txt"
+    },
+    {
+      "metadata": "/60/6e936dde72/13/metadata.json",
+      "transcript": "/60/6e936dde72/13/full.jsonl",
+      "context": "/60/6e936dde72/13/context.md",
+      "content_hash": "/60/6e936dde72/13/content_hash.txt",
+      "prompt": "/60/6e936dde72/13/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 306,
-    "cache_creation_tokens": 1713306,
-    "cache_read_tokens": 20897703,
-    "output_tokens": 38360,
-    "api_call_count": 259
+    "input_tokens": 344,
+    "cache_creation_tokens": 1816292,
+    "cache_read_tokens": 23832444,
+    "output_tokens": 43157,
+    "api_call_count": 296
   }
 }
