@@ -1,5 +1,12 @@
 import type { ApiClient, CreateTaskData, UpdateTaskData } from '../client';
 import type { Task, SubTask, DailyUpdate, TeamMember, TaskFilters, ConnectionSettings, ConnectionTestResult } from '../types';
+import {
+  MAX_BLOCKING_REASON_LENGTH,
+  MAX_DAILY_UPDATE_CONTENT_LENGTH,
+  MAX_SUBTASK_TITLE_LENGTH,
+  MAX_TASK_DESCRIPTION_LENGTH,
+  MAX_TASK_TITLE_LENGTH,
+} from '../constants';
 
 const TASKS_KEY = 'taskflow_tasks';
 const MEMBERS_KEY = 'taskflow_members';
@@ -16,7 +23,7 @@ function delay(): Promise<void> {
 }
 
 function seedData() {
-  if (localStorage.getItem(MEMBERS_KEY)) return;
+  if (localStorage.getItem(MEMBERS_KEY) && localStorage.getItem(TASKS_KEY)) return;
 
   const members: TeamMember[] = [
     { id: 'm1', name: 'Alice Chen', email: 'alice@devops.io', active: true },
@@ -30,7 +37,7 @@ function seedData() {
   const now = new Date();
   const h = (hoursAgo: number) => new Date(now.getTime() - hoursAgo * ONE_HOUR_MS).toISOString();
 
-  const tasks: Task[] = [
+  const tasks = [
     {
       id: 't1', title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated testing and deployment to staging.',
       status: 'In Progress', priority: 'High', assigneeId: 'm1', assigneeName: 'Alice Chen', gearId: '1024',
@@ -97,7 +104,7 @@ function seedData() {
     },
     {
       id: 't6', title: 'Log aggregation setup', description: 'Deploy ELK stack for centralized logging across all services.',
-      status: 'In Progress', priority: 'Low', assigneeId: null, assigneeName: null, gearId: '',
+      status: 'In Progress', priority: 'Low', assigneeId: null, assigneeName: null, gearId: null,
       blockingReason: '', subTasks: [
         { id: 's15', title: 'Deploy Elasticsearch', completed: true, createdAt: h(96) },
         { id: 's16', title: 'Configure Logstash', completed: false, createdAt: h(96) },
@@ -154,6 +161,47 @@ function parseConnectionSettings(raw: string): ConnectionSettings | null {
   }
 }
 
+function assertValidGearId(gearId: string | null | undefined) {
+  if (gearId !== null && gearId !== undefined && !/^\d{4}$/.test(gearId)) {
+    throw new Error('GEAR ID must be 4 digits');
+  }
+}
+
+function assertTaskFieldLengths(title: string, description: string | null, blockingReason: string) {
+  const normalizedTitle = title.trim();
+  const normalizedDescription = description?.trim() ?? '';
+  if (!normalizedTitle) {
+    throw new Error('Task title is required');
+  }
+  if (normalizedTitle.length > MAX_TASK_TITLE_LENGTH) {
+    throw new Error(`Task title must be ${MAX_TASK_TITLE_LENGTH} characters or fewer`);
+  }
+  if (normalizedDescription.length > MAX_TASK_DESCRIPTION_LENGTH) {
+    throw new Error(`Task description must be ${MAX_TASK_DESCRIPTION_LENGTH} characters or fewer`);
+  }
+  if (blockingReason.length > MAX_BLOCKING_REASON_LENGTH) {
+    throw new Error(`Blocking reason must be ${MAX_BLOCKING_REASON_LENGTH} characters or fewer`);
+  }
+}
+
+function assertSubTaskTitleLength(title: string) {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle) {
+    throw new Error('Sub-task title is required');
+  }
+  if (normalizedTitle.length > MAX_SUBTASK_TITLE_LENGTH) {
+    throw new Error(`Sub-task title must be ${MAX_SUBTASK_TITLE_LENGTH} characters or fewer`);
+  }
+}
+
+function normalizeDailyUpdateContent(content: string): string {
+  const normalized = content.trim();
+  if (normalized.length < 1 || normalized.length > MAX_DAILY_UPDATE_CONTENT_LENGTH) {
+    throw new Error(`Update content must be between 1 and ${MAX_DAILY_UPDATE_CONTENT_LENGTH} characters`);
+  }
+  return normalized;
+}
+
 export class MockApiClient implements ApiClient {
   // ---- Tasks ----
 
@@ -164,22 +212,30 @@ export class MockApiClient implements ApiClient {
     if (filters?.priority) list = list.filter(t => t.priority === filters.priority);
     if (filters?.assignee === 'unassigned') list = list.filter(t => !t.assigneeId);
     else if (filters?.assignee) list = list.filter(t => t.assigneeId === filters.assignee);
-    if (filters?.search) {
-      const q = filters.search.toLowerCase();
+    if (filters?.search?.trim()) {
+      const q = filters.search.trim().toLowerCase();
       list = list.filter(t =>
         t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.gearId.includes(q)
+        (t.description ?? '').toLowerCase().includes(q) ||
+        (t.gearId ?? '').includes(q)
       );
     }
     const sort = filters?.sort || 'updated';
     if (sort === 'updated') list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     else if (sort === 'priority') {
       const order = { High: 0, Medium: 1, Low: 2 };
-      list.sort((a, b) => order[a.priority] - order[b.priority]);
+      list.sort((a, b) => {
+        const byPriority = order[a.priority] - order[b.priority];
+        if (byPriority !== 0) return byPriority;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
     } else if (sort === 'status') {
-      const order = { 'Blocked': 0, 'In Progress': 1, 'To Do': 2, 'Done': 3 };
-      list.sort((a, b) => order[a.status] - order[b.status]);
+      const order = { 'To Do': 1, 'In Progress': 2, 'Blocked': 3, 'Done': 4 };
+      list.sort((a, b) => {
+        const byStatus = order[a.status] - order[b.status];
+        if (byStatus !== 0) return byStatus;
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      });
     }
     return list;
   }
@@ -191,11 +247,38 @@ export class MockApiClient implements ApiClient {
 
   async createTask(data: CreateTaskData): Promise<Task> {
     await delay();
-    if (data.status === 'Blocked' && !data.blockingReason.trim()) {
+    assertValidGearId(data.gearId);
+    const title = data.title.trim();
+    const description = data.description?.trim() || null;
+    const normalizedBlockingReason = data.status === 'Blocked' ? data.blockingReason.trim() : '';
+    assertTaskFieldLengths(title, description, normalizedBlockingReason);
+    if (data.status === 'Blocked' && !normalizedBlockingReason) {
       throw new Error('Blocking reason is required for blocked tasks.');
     }
+    let assigneeName: string | null;
+    if (data.assigneeId === null) {
+      assigneeName = null;
+    } else {
+      const member = getMembers().find(m => m.id === data.assigneeId);
+      if (!member || !member.active) throw new Error('Assignee not found');
+      assigneeName = member.name;
+    }
     const now = new Date().toISOString();
-    const task: Task = { ...data, id: generateId(), subTasks: [], dailyUpdates: [], createdAt: now, updatedAt: now };
+    const task: Task = {
+      title,
+      description,
+      status: data.status,
+      priority: data.priority,
+      assigneeId: data.assigneeId,
+      gearId: data.gearId,
+      assigneeName,
+      blockingReason: normalizedBlockingReason,
+      id: generateId(),
+      subTasks: [],
+      dailyUpdates: [],
+      createdAt: now,
+      updatedAt: now,
+    };
     const tasks = getTasks();
     tasks.push(task);
     saveTasks(tasks);
@@ -204,14 +287,32 @@ export class MockApiClient implements ApiClient {
 
   async updateTask(id: string, data: UpdateTaskData): Promise<Task> {
     await delay();
+    const safeData = Object.fromEntries(
+      Object.entries(data).filter(([, value]) => value !== undefined),
+    ) as UpdateTaskData;
+    assertValidGearId(safeData.gearId);
     const tasks = getTasks();
     const idx = tasks.findIndex(t => t.id === id);
     if (idx === -1) throw new Error('Task not found');
-    const merged = { ...tasks[idx], ...data, updatedAt: new Date().toISOString() };
-    if (merged.status === 'Blocked' && !merged.blockingReason.trim()) {
+    const merged = { ...tasks[idx], ...safeData, updatedAt: new Date().toISOString() };
+    merged.title = merged.title.trim();
+    merged.description = merged.description?.trim() || null;
+    const normalizedBlockingReason = merged.blockingReason.trim();
+    if (merged.status === 'Blocked' && !normalizedBlockingReason) {
       throw new Error('Blocking reason is required for blocked tasks.');
     }
-    if (merged.status !== 'Blocked') merged.blockingReason = '';
+    merged.blockingReason = merged.status === 'Blocked' ? normalizedBlockingReason : '';
+    assertTaskFieldLengths(merged.title, merged.description, merged.blockingReason);
+    if ('assigneeId' in safeData) {
+      if (merged.assigneeId === null) {
+        merged.assigneeName = null;
+      } else {
+        const members = getMembers();
+        const member = members.find(m => m.id === merged.assigneeId);
+        if (!member || !member.active) throw new Error('Assignee not found');
+        merged.assigneeName = member.name;
+      }
+    }
     tasks[idx] = merged;
     saveTasks(tasks);
     return merged;
@@ -219,7 +320,10 @@ export class MockApiClient implements ApiClient {
 
   async deleteTask(id: string): Promise<void> {
     await delay();
-    saveTasks(getTasks().filter(t => t.id !== id));
+    const tasks = getTasks();
+    const remaining = tasks.filter(t => t.id !== id);
+    if (remaining.length === tasks.length) throw new Error('Task not found');
+    saveTasks(remaining);
   }
 
   // ---- Sub-tasks ----
@@ -229,7 +333,9 @@ export class MockApiClient implements ApiClient {
     const tasks = getTasks();
     const task = tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Task not found');
-    const sub: SubTask = { id: generateId(), title: data.title, completed: false, createdAt: new Date().toISOString() };
+    assertSubTaskTitleLength(data.title);
+    if (task.subTasks.length >= 20) throw new Error('Maximum of 20 sub-tasks per task');
+    const sub: SubTask = { id: generateId(), title: data.title.trim(), completed: false, createdAt: new Date().toISOString() };
     task.subTasks.push(sub);
     task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
@@ -253,7 +359,9 @@ export class MockApiClient implements ApiClient {
     const tasks = getTasks();
     const task = tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Task not found');
-    task.subTasks = task.subTasks.filter(s => s.id !== subTaskId);
+    const remaining = task.subTasks.filter(s => s.id !== subTaskId);
+    if (remaining.length === task.subTasks.length) throw new Error('Sub-task not found');
+    task.subTasks = remaining;
     task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
   }
@@ -267,9 +375,10 @@ export class MockApiClient implements ApiClient {
     if (!task) throw new Error('Task not found');
     const members = getMembers();
     const author = members.find(m => m.id === data.authorId);
-    if (!author) throw new Error('Author not found');
+    if (!author || !author.active) throw new Error('Author not found');
+    const content = normalizeDailyUpdateContent(data.content);
     const now = new Date().toISOString();
-    const update: DailyUpdate = { id: generateId(), taskId, authorId: data.authorId, authorName: author.name, content: data.content, createdAt: now, updatedAt: now, edited: false };
+    const update: DailyUpdate = { id: generateId(), taskId, authorId: data.authorId, authorName: author.name, content, createdAt: now, updatedAt: now, edited: false };
     task.dailyUpdates.unshift(update);
     task.updatedAt = now;
     saveTasks(tasks);
@@ -285,9 +394,10 @@ export class MockApiClient implements ApiClient {
     if (!upd) throw new Error('Update not found');
     const age = Date.now() - new Date(upd.createdAt).getTime();
     if (age > ONE_DAY_MS) throw new Error('Updates can only be edited within 24 hours.');
-    upd.content = data.content;
+    upd.content = normalizeDailyUpdateContent(data.content);
     upd.updatedAt = new Date().toISOString();
     upd.edited = true;
+    task.updatedAt = upd.updatedAt;
     saveTasks(tasks);
   }
 
@@ -301,6 +411,7 @@ export class MockApiClient implements ApiClient {
     const age = Date.now() - new Date(upd.createdAt).getTime();
     if (age > ONE_DAY_MS) throw new Error('Updates can only be deleted within 24 hours.');
     task.dailyUpdates = task.dailyUpdates.filter(u => u.id !== updateId);
+    task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
   }
 
@@ -313,8 +424,11 @@ export class MockApiClient implements ApiClient {
 
   async createMember(data: Omit<TeamMember, 'id'>): Promise<TeamMember> {
     await delay();
-    const member: TeamMember = { ...data, id: generateId() };
     const members = getMembers();
+    if (members.some(m => m.email === data.email)) {
+      throw new Error('A member with this email already exists');
+    }
+    const member: TeamMember = { ...data, id: generateId() };
     members.push(member);
     saveMembers(members);
     return member;
@@ -325,6 +439,9 @@ export class MockApiClient implements ApiClient {
     const members = getMembers();
     const idx = members.findIndex(m => m.id === id);
     if (idx === -1) throw new Error('Member not found');
+    if (data.email !== undefined && members.some(m => m.id !== id && m.email === data.email)) {
+      throw new Error('A member with this email already exists');
+    }
     members[idx] = { ...members[idx], ...data };
     saveMembers(members);
     return members[idx];
@@ -332,12 +449,24 @@ export class MockApiClient implements ApiClient {
 
   async deleteMember(id: string): Promise<void> {
     await delay();
+    const members = getMembers();
+    const memberIndex = members.findIndex(m => m.id === id);
+    if (memberIndex === -1) {
+      throw new Error('Member not found');
+    }
     const tasks = getTasks();
     const assigned = tasks.filter(t => t.assigneeId === id);
     if (assigned.length > 0) {
       throw new Error(`Cannot delete member with ${assigned.length} assigned task(s). Reassign or complete them first.`);
     }
-    saveMembers(getMembers().filter(m => m.id !== id));
+    const authoredUpdates = tasks.reduce((count, task) => (
+      count + task.dailyUpdates.filter(update => update.authorId === id).length
+    ), 0);
+    if (authoredUpdates > 0) {
+      throw new Error(`Cannot delete member with ${authoredUpdates} authored daily update(s). Reassign or remove them first.`);
+    }
+    members.splice(memberIndex, 1);
+    saveMembers(members);
   }
 
   // ---- Settings ----

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { TaskFormDialog } from '@/components/TaskFormDialog';
@@ -16,11 +16,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { apiClient } from '@/lib/api';
+import { MAX_DAILY_UPDATE_CONTENT_LENGTH, MAX_SUBTASK_TITLE_LENGTH } from '@/lib/api/constants';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { formatRelativeDate, isWithin24Hours } from '@/lib/date-utils';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Pencil, Trash2, Plus, Loader2, AlertTriangle, User, X } from 'lucide-react';
+
+const LAST_AUTHOR_KEY = 'taskflow-last-author';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -38,20 +41,39 @@ export default function TaskDetail() {
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [editUpdateLoading, setEditUpdateLoading] = useState(false);
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
+  const [deletingUpdate, setDeletingUpdate] = useState(false);
+  const [deletingTask, setDeletingTask] = useState(false);
+  const [addingSubTask, setAddingSubTask] = useState(false);
+  const [deletingSubTaskId, setDeletingSubTaskId] = useState<string | null>(null);
+  const [togglingSubTaskId, setTogglingSubTaskId] = useState<string | null>(null);
+  const mountedRef = useRef(false);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const load = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     try {
       const [t, m] = await Promise.all([apiClient.getTask(id), apiClient.getMembers()]);
+      if (!mountedRef.current) return;
       if (!t) { navigate('/'); return; }
       setTask(t);
       setMembers(m);
+    } catch (err) {
+      if (!mountedRef.current) return;
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+      navigate('/');
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }, [id, navigate]);
+  }, [id, navigate, toast]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -66,6 +88,9 @@ export default function TaskDetail() {
 
   const completedSubs = task.subTasks.filter(s => s.completed).length;
   const totalSubs = task.subTasks.length;
+  const sortedDailyUpdates = task.dailyUpdates
+    .slice()
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   const progress = totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0;
   const isBlocked = task.status === 'Blocked';
   const activeMembers = members.filter(m => m.active);
@@ -80,6 +105,21 @@ export default function TaskDetail() {
     'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
     Blocked: 'bg-red-100 text-red-700 border-red-200',
     Done: 'bg-green-100 text-green-700 border-green-200',
+  };
+
+  const handleAddSubTask = async () => {
+    const title = newSub.trim();
+    if (!title || addingSubTask) return;
+    setAddingSubTask(true);
+    try {
+      await apiClient.addSubTask(task.id, { title });
+      setNewSub('');
+      load();
+    } catch (err) {
+      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      if (mountedRef.current) setAddingSubTask(false);
+    }
   };
 
   return (
@@ -136,35 +176,52 @@ export default function TaskDetail() {
               <div key={sub.id} className="flex items-center gap-2 group">
                 <Checkbox
                   checked={sub.completed}
+                  disabled={togglingSubTaskId === sub.id}
                   onCheckedChange={async () => {
-                    await apiClient.toggleSubTask(task.id, sub.id);
-                    load();
+                    if (togglingSubTaskId === sub.id) return;
+                    setTogglingSubTaskId(sub.id);
+                    try {
+                      await apiClient.toggleSubTask(task.id, sub.id);
+                      load();
+                    } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
+                    finally {
+                      if (mountedRef.current) setTogglingSubTaskId(null);
+                    }
                   }}
                 />
                 <span className={cn('text-sm flex-1', sub.completed && 'line-through text-muted-foreground')}>{sub.title}</span>
                 <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                  onClick={async () => { await apiClient.deleteSubTask(task.id, sub.id); toast({ title: 'Sub-task removed' }); load(); }}>
-                  <X className="h-3 w-3" />
+                  data-testid={`delete-subtask-${sub.id}`}
+                  disabled={deletingSubTaskId === sub.id}
+                  onClick={async () => {
+                    if (deletingSubTaskId === sub.id) return;
+                    setDeletingSubTaskId(sub.id);
+                    try {
+                      await apiClient.deleteSubTask(task.id, sub.id);
+                      toast({ title: 'Sub-task removed' });
+                      load();
+                    } catch (err) {
+                      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                    } finally {
+                      if (mountedRef.current) setDeletingSubTaskId(null);
+                    }
+                  }}>
+                  {deletingSubTaskId === sub.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                 </Button>
               </div>
             ))}
           </div>
           <div className="flex gap-2">
             <Input placeholder="Add sub-task..." value={newSub} onChange={e => setNewSub(e.target.value)}
+              maxLength={MAX_SUBTASK_TITLE_LENGTH}
               onKeyDown={async e => {
-                if (e.key === 'Enter' && newSub.trim()) {
-                  await apiClient.addSubTask(task.id, { title: newSub.trim() });
-                  setNewSub('');
-                  load();
+                if (e.key === 'Enter' && newSub.trim() && !addingSubTask) {
+                  await handleAddSubTask();
                 }
               }}
               className="text-sm" />
-            <Button size="sm" variant="outline" disabled={!newSub.trim()} onClick={async () => {
-              await apiClient.addSubTask(task.id, { title: newSub.trim() });
-              setNewSub('');
-              load();
-            }}>
-              <Plus className="h-4 w-4" />
+            <Button size="sm" variant="outline" disabled={!newSub.trim() || addingSubTask} data-testid="add-subtask-btn" onClick={handleAddSubTask}>
+              {addingSubTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -173,29 +230,47 @@ export default function TaskDetail() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold">Daily Updates</h2>
-            <Button size="sm" onClick={() => { setAddingUpdate(true); setUpdateAuthor(activeMembers[0]?.id || ''); setUpdateContent(''); }}>
+            <Button size="sm" onClick={() => {
+              setAddingUpdate(true);
+              const stored = localStorage.getItem(LAST_AUTHOR_KEY);
+              const validId = stored && activeMembers.some(m => m.id === stored) ? stored : (activeMembers[0]?.id || '');
+              setUpdateAuthor(validId);
+              setUpdateContent('');
+            }}>
               <Plus className="h-4 w-4" /> Add Update
             </Button>
           </div>
-          {task.dailyUpdates.length === 0 && (
+          {sortedDailyUpdates.length === 0 && (
             <p className="text-sm text-muted-foreground py-4 text-center">No updates yet.</p>
           )}
           <div className="space-y-3">
-            {task.dailyUpdates.map(upd => (
+            {sortedDailyUpdates.map(upd => (
               <div key={upd.id} className="rounded-md border p-3 space-y-1">
                 {editingUpdateId === upd.id ? (
                   <div className="space-y-2">
-                    <Textarea value={editingContent} onChange={e => setEditingContent(e.target.value)} rows={2} />
+                    <Textarea
+                      value={editingContent}
+                      onChange={e => setEditingContent(e.target.value)}
+                      rows={2}
+                      maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
+                    />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="outline" onClick={() => setEditingUpdateId(null)}>Cancel</Button>
-                      <Button size="sm" onClick={async () => {
+                      <Button size="sm" variant="outline" disabled={editUpdateLoading} onClick={() => setEditingUpdateId(null)}>Cancel</Button>
+                      <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={async () => {
+                        const normalizedContent = editingContent.trim();
+                        if (!normalizedContent) return;
+                        setEditUpdateLoading(true);
                         try {
-                          await apiClient.editDailyUpdate(task.id, upd.id, { content: editingContent });
+                          await apiClient.editDailyUpdate(task.id, upd.id, { content: normalizedContent });
                           toast({ title: 'Update edited' });
                           setEditingUpdateId(null);
                           load();
-                      } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
-                      }}>Save</Button>
+                        } catch (err) {
+                          toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                        } finally {
+                          if (mountedRef.current) setEditUpdateLoading(false);
+                        }
+                      }}>{editUpdateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Save</Button>
                     </div>
                   </div>
                 ) : (
@@ -247,7 +322,13 @@ export default function TaskDetail() {
             </div>
             <div className="space-y-1.5">
               <Label>Update</Label>
-              <Textarea value={updateContent} onChange={e => setUpdateContent(e.target.value)} placeholder="What's the latest?" rows={3} />
+              <Textarea
+                value={updateContent}
+                onChange={e => setUpdateContent(e.target.value)}
+                placeholder="What's the latest?"
+                rows={3}
+                maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
+              />
             </div>
           </div>
           <DialogFooter>
@@ -256,11 +337,12 @@ export default function TaskDetail() {
               setUpdateLoading(true);
               try {
                 await apiClient.addDailyUpdate(task.id, { authorId: updateAuthor, content: updateContent.trim() });
+                localStorage.setItem(LAST_AUTHOR_KEY, updateAuthor);
                 toast({ title: 'Update added' });
                 setAddingUpdate(false);
                 load();
               } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
-              finally { setUpdateLoading(false); }
+              finally { if (mountedRef.current) setUpdateLoading(false); }
             }}>
               {updateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Add
             </Button>
@@ -270,7 +352,11 @@ export default function TaskDetail() {
 
       {/* Edit Task Dialog */}
       <TaskFormDialog open={editOpen} onOpenChange={setEditOpen} members={members} task={task}
-        onSubmit={async data => { await apiClient.updateTask(task.id, data); toast({ title: 'Task updated' }); load(); }} />
+        onSubmit={async data => {
+          await apiClient.updateTask(task.id, data);
+          toast({ title: 'Task updated' });
+          load();
+        }} />
 
       {/* Delete Task Confirm */}
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
@@ -281,11 +367,25 @@ export default function TaskDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              await apiClient.deleteTask(task.id);
-              toast({ title: 'Task deleted' });
-              navigate('/');
-            }}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              data-testid="confirm-delete-task"
+              disabled={deletingTask}
+              onClick={async () => {
+                if (deletingTask) return;
+                setDeletingTask(true);
+                try {
+                  await apiClient.deleteTask(task.id);
+                  toast({ title: 'Task deleted' });
+                  navigate('/');
+                } catch (err) {
+                  toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                } finally {
+                  if (mountedRef.current) setDeletingTask(false);
+                }
+              }}
+            >
+              {deletingTask && <Loader2 className="h-4 w-4 animate-spin" />} Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -299,14 +399,26 @@ export default function TaskDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={async () => {
-              try {
-                await apiClient.deleteDailyUpdate(task.id, deleteUpdateId!);
-                toast({ title: 'Update deleted' });
-                setDeleteUpdateId(null);
-                load();
-              } catch (err) { toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' }); }
-            }}>Delete</AlertDialogAction>
+            <AlertDialogAction
+              data-testid="confirm-delete-update"
+              disabled={deletingUpdate}
+              onClick={async () => {
+                if (deletingUpdate) return;
+                setDeletingUpdate(true);
+                try {
+                  await apiClient.deleteDailyUpdate(task.id, deleteUpdateId!);
+                  toast({ title: 'Update deleted' });
+                  setDeleteUpdateId(null);
+                  load();
+                } catch (err) {
+                  toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
+                } finally {
+                  if (mountedRef.current) setDeletingUpdate(false);
+                }
+              }}
+            >
+              {deletingUpdate && <Loader2 className="h-4 w-4 animate-spin" />} Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

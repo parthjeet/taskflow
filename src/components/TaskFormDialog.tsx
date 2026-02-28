@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,14 +7,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Task, TeamMember, Status, Priority } from '@/types';
+import { MAX_BLOCKING_REASON_LENGTH, MAX_TASK_DESCRIPTION_LENGTH, MAX_TASK_TITLE_LENGTH } from '@/lib/api/constants';
 import { Loader2, AlertCircle } from 'lucide-react';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: {
-    title: string; description: string; status: Status; priority: Priority;
-    assigneeId: string | null; assigneeName: string | null; gearId: string; blockingReason: string;
+    title: string; description: string | null; status: Status; priority: Priority;
+    assigneeId: string | null; gearId: string | null; blockingReason: string;
   }) => Promise<void>;
   members: TeamMember[];
   task?: Task | null;
@@ -34,16 +35,18 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState('');
+  const wasOpenRef = useRef(false);
 
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpenRef.current) {
       if (task) {
         setTitle(task.title);
-        setDescription(task.description);
+        setDescription(task.description ?? '');
         setStatus(task.status);
         setPriority(task.priority);
-        setAssigneeId(task.assigneeId || 'unassigned');
-        setGearId(task.gearId);
+        const hasActiveAssignee = task.assigneeId !== null && members.some(m => m.id === task.assigneeId && m.active);
+        setAssigneeId(hasActiveAssignee ? task.assigneeId : 'unassigned');
+        setGearId(task.gearId ?? '');
         setBlockingReason(task.blockingReason);
       } else {
         setTitle(''); setDescription(''); setStatus('To Do'); setPriority('Medium');
@@ -51,7 +54,14 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
       }
       setErrors({}); setFormError('');
     }
-  }, [open, task]);
+    wasOpenRef.current = open;
+  }, [open, task, members]);
+
+  useEffect(() => {
+    if (!open || assigneeId === 'unassigned') return;
+    const hasActiveAssignee = members.some(m => m.id === assigneeId && m.active);
+    if (!hasActiveAssignee) setAssigneeId('unassigned');
+  }, [open, assigneeId, members]);
 
   useEffect(() => {
     if (status !== 'Blocked') setBlockingReason('');
@@ -59,9 +69,22 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!title.trim()) e.title = 'Title is required';
+    const normalizedTitle = title.trim();
+    const normalizedDescription = description.trim();
+    const normalizedBlockingReason = blockingReason.trim();
+
+    if (!normalizedTitle) e.title = 'Title is required';
+    if (normalizedTitle.length > MAX_TASK_TITLE_LENGTH) {
+      e.title = `Title must be ${MAX_TASK_TITLE_LENGTH} characters or fewer`;
+    }
+    if (normalizedDescription.length > MAX_TASK_DESCRIPTION_LENGTH) {
+      e.description = `Description must be ${MAX_TASK_DESCRIPTION_LENGTH} characters or fewer`;
+    }
     if (gearId && !/^\d{4}$/.test(gearId)) e.gearId = 'GEAR ID must be exactly 4 digits';
-    if (status === 'Blocked' && !blockingReason.trim()) e.blockingReason = 'Blocking reason is required';
+    if (status === 'Blocked' && !normalizedBlockingReason) e.blockingReason = 'Blocking reason is required';
+    if (normalizedBlockingReason.length > MAX_BLOCKING_REASON_LENGTH) {
+      e.blockingReason = `Blocking reason must be ${MAX_BLOCKING_REASON_LENGTH} characters or fewer`;
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -72,12 +95,16 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
     setFormError('');
     setLoading(true);
     try {
-      const member = members.find(m => m.id === assigneeId);
+      const normalizedGearId = gearId.trim();
+      const normalizedDescription = description.trim();
       await onSubmit({
-        title: title.trim(), description: description.trim(), status, priority,
+        title: title.trim(),
+        description: normalizedDescription === '' ? null : normalizedDescription,
+        status,
+        priority,
         assigneeId: assigneeId === 'unassigned' ? null : assigneeId,
-        assigneeName: member ? member.name : null,
-        gearId: gearId.trim(), blockingReason: blockingReason.trim(),
+        gearId: normalizedGearId === '' ? null : normalizedGearId,
+        blockingReason: blockingReason.trim(),
       });
       onOpenChange(false);
     } catch (err) {
@@ -105,12 +132,13 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
           )}
           <div className="space-y-1.5">
             <Label htmlFor="title">Title *</Label>
-            <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" />
+            <Input id="title" value={title} onChange={e => setTitle(e.target.value)} placeholder="Task title" maxLength={MAX_TASK_TITLE_LENGTH} />
             {errors.title && <p className="text-xs text-destructive">{errors.title}</p>}
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="desc">Description</Label>
-            <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" rows={3} />
+            <Textarea id="desc" value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description" rows={3} maxLength={MAX_TASK_DESCRIPTION_LENGTH} />
+            {errors.description && <p className="text-xs text-destructive">{errors.description}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -148,7 +176,7 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
           {status === 'Blocked' && (
             <div className="space-y-1.5 rounded-md border-2 border-red-300 bg-red-50 p-3">
               <Label htmlFor="reason" className="text-red-700">Blocking Reason *</Label>
-              <Textarea id="reason" value={blockingReason} onChange={e => setBlockingReason(e.target.value)} placeholder="Why is this task blocked?" rows={2} className="border-red-200" />
+              <Textarea id="reason" value={blockingReason} onChange={e => setBlockingReason(e.target.value)} placeholder="Why is this task blocked?" rows={2} maxLength={MAX_BLOCKING_REASON_LENGTH} className="border-red-200" />
               {errors.blockingReason && <p className="text-xs text-destructive">{errors.blockingReason}</p>}
             </div>
           )}

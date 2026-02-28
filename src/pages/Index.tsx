@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Header } from '@/components/Header';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskFormDialog } from '@/components/TaskFormDialog';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { apiClient } from '@/lib/api';
 import { Task, TeamMember } from '@/types';
+import { DashboardSort, filterAndSortDashboardTasks, getActiveAssigneeMembers } from '@/lib/dashboard/tasks';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Search, Loader2 } from 'lucide-react';
 
@@ -21,48 +22,44 @@ export default function Dashboard() {
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [assigneeFilter, setAssigneeFilter] = useState('all');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState('updated');
+  const [sort, setSort] = useState<DashboardSort>('updated');
   const { toast } = useToast();
+  const mountedRef = useRef(false);
 
-  async function load() {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [t, m] = await Promise.all([apiClient.getTasks(), apiClient.getMembers()]);
+      if (!mountedRef.current) return;
       setTasks(t);
       setMembers(m);
       setConnectionError(false);
     } catch {
-      setConnectionError(true);
+      if (mountedRef.current) setConnectionError(true);
     } finally {
-      setLoading(false);
+      if (mountedRef.current) setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const activeMembers = useMemo(() => getActiveAssigneeMembers(members), [members]);
 
   const filtered = useMemo(() => {
-    let list = [...tasks];
-    if (statusFilter !== 'all') list = list.filter(t => t.status === statusFilter);
-    if (priorityFilter !== 'all') list = list.filter(t => t.priority === priorityFilter);
-    if (assigneeFilter === 'unassigned') list = list.filter(t => !t.assigneeId);
-    else if (assigneeFilter !== 'all') list = list.filter(t => t.assigneeId === assigneeFilter);
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter(t =>
-        t.title.toLowerCase().includes(q) ||
-        t.description.toLowerCase().includes(q) ||
-        t.gearId.includes(q)
-      );
-    }
-    if (sort === 'updated') list.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    else if (sort === 'priority') {
-      const order = { High: 0, Medium: 1, Low: 2 };
-      list.sort((a, b) => order[a.priority] - order[b.priority]);
-    } else if (sort === 'status') {
-      const order = { 'Blocked': 0, 'In Progress': 1, 'To Do': 2, 'Done': 3 };
-      list.sort((a, b) => order[a.status] - order[b.status]);
-    }
-    return list;
+    return filterAndSortDashboardTasks(tasks, {
+      statusFilter,
+      priorityFilter,
+      assigneeFilter,
+      search,
+      sort,
+    });
   }, [tasks, statusFilter, priorityFilter, assigneeFilter, search, sort]);
 
   const hasFilters = statusFilter !== 'all' || priorityFilter !== 'all' || assigneeFilter !== 'all' || search.trim();
@@ -109,10 +106,10 @@ export default function Dashboard() {
             <SelectContent>
               <SelectItem value="all">All Members</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
-              {members.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+              {activeMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
             </SelectContent>
           </Select>
-          <Select value={sort} onValueChange={setSort}>
+          <Select value={sort} onValueChange={value => setSort(value as DashboardSort)}>
             <SelectTrigger className="w-[160px]"><SelectValue placeholder="Sort" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="updated">Recently Updated</SelectItem>
