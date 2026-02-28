@@ -42,19 +42,31 @@ describe("MockApiClient smoke", () => {
     expect(deleted).toBeUndefined();
   });
 
-  it("handles subtask add, toggle, and delete", async () => {
+  it("handles subtask add, toggle, edit, reorder, and delete", async () => {
     const tasks = await client.getTasks();
     const taskId = tasks[0].id;
 
     const subTask = await client.addSubTask(taskId, { title: "Smoke subtask" });
     expect(subTask.completed).toBe(false);
+    expect(subTask.position).toBeGreaterThanOrEqual(0);
 
-    await client.toggleSubTask(taskId, subTask.id);
-    const taskAfterToggle = await client.getTask(taskId);
-    const toggled = taskAfterToggle?.subTasks.find((item) => item.id === subTask.id);
-    expect(toggled?.completed).toBe(true);
+    const toggled = await client.toggleSubTask(taskId, subTask.id);
+    expect(toggled.completed).toBe(true);
+
+    const edited = await client.editSubTask(taskId, subTask.id, { title: "Edited subtask" });
+    expect(edited.title).toBe("Edited subtask");
+
+    // Add another subtask and reorder
+    const sub2 = await client.addSubTask(taskId, { title: "Second subtask" });
+    const taskAfterAdd = await client.getTask(taskId);
+    const allIds = taskAfterAdd!.subTasks.map(s => s.id);
+    const reversed = [...allIds].reverse();
+    const reordered = await client.reorderSubTasks(taskId, reversed);
+    expect(reordered[0].id).toBe(reversed[0]);
+    expect(reordered[0].position).toBe(0);
 
     await client.deleteSubTask(taskId, subTask.id);
+    await client.deleteSubTask(taskId, sub2.id);
     const taskAfterDelete = await client.getTask(taskId);
     const removed = taskAfterDelete?.subTasks.find((item) => item.id === subTask.id);
     expect(removed).toBeUndefined();
