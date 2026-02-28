@@ -90,7 +90,6 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     try {
       await apiClient.deleteDailyUpdate(taskId, deleteUpdateId);
       toast({ title: 'Update deleted' });
-      setDeleteUpdateId(null);
       onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -188,7 +187,11 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
               <Select value={updateAuthor} onValueChange={setUpdateAuthor}>
                 <SelectTrigger><SelectValue placeholder="Select author" /></SelectTrigger>
                 <SelectContent>
-                  {activeMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)}
+                  {activeMembers.length === 0 ? (
+                    <SelectItem value="_none" disabled>No active members</SelectItem>
+                  ) : (
+                    activeMembers.map(m => <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>)
+                  )}
                 </SelectContent>
               </Select>
             </div>

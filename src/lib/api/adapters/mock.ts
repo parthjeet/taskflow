@@ -395,6 +395,9 @@ export class MockApiClient implements ApiClient {
     const task = tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Task not found');
     const existingIds = new Set(task.subTasks.map(s => s.id));
+    if (new Set(subTaskIds).size !== subTaskIds.length) {
+      throw new Error('sub_task_ids: must not contain duplicates');
+    }
     if (subTaskIds.length !== existingIds.size || !subTaskIds.every(id => existingIds.has(id))) {
       throw new Error('Reorder list must include each existing sub-task exactly once');
     }
