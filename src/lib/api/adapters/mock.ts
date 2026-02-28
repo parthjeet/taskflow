@@ -42,9 +42,9 @@ function seedData() {
       id: 't1', title: 'Set up CI/CD pipeline', description: 'Configure GitHub Actions for automated testing and deployment to staging.',
       status: 'In Progress', priority: 'High', assigneeId: 'm1', assigneeName: 'Alice Chen', gearId: '1024',
       blockingReason: '', subTasks: [
-        { id: 's1', title: 'Create workflow YAML', completed: true, createdAt: h(72) },
-        { id: 's2', title: 'Add test stage', completed: true, createdAt: h(72) },
-        { id: 's3', title: 'Add deploy stage', completed: false, createdAt: h(72) },
+        { id: 's1', title: 'Create workflow YAML', completed: true, position: 0, createdAt: h(72) },
+        { id: 's2', title: 'Add test stage', completed: true, position: 1, createdAt: h(72) },
+        { id: 's3', title: 'Add deploy stage', completed: false, position: 2, createdAt: h(72) },
       ],
       dailyUpdates: [
         { id: 'u1', taskId: 't1', authorId: 'm1', authorName: 'Alice Chen', content: 'Workflow YAML created, test stage passing.', createdAt: h(4), updatedAt: h(4), edited: false },
@@ -56,9 +56,9 @@ function seedData() {
       status: 'Blocked', priority: 'High', assigneeId: 'm2', assigneeName: 'Bob Martinez', gearId: '2048',
       blockingReason: 'Waiting for DBA approval to increase migration timeout from 30s to 120s. Ticket submitted to infrastructure team.',
       subTasks: [
-        { id: 's4', title: 'Identify failing migration', completed: true, createdAt: h(120) },
-        { id: 's5', title: 'Request timeout increase', completed: true, createdAt: h(120) },
-        { id: 's6', title: 'Re-run migration', completed: false, createdAt: h(120) },
+        { id: 's4', title: 'Identify failing migration', completed: true, position: 0, createdAt: h(120) },
+        { id: 's5', title: 'Request timeout increase', completed: true, position: 1, createdAt: h(120) },
+        { id: 's6', title: 'Re-run migration', completed: false, position: 2, createdAt: h(120) },
       ],
       dailyUpdates: [
         { id: 'u2', taskId: 't2', authorId: 'm2', authorName: 'Bob Martinez', content: 'Submitted ticket to infra team for timeout change.', createdAt: h(26), updatedAt: h(26), edited: false },
@@ -69,8 +69,8 @@ function seedData() {
       id: 't3', title: 'Monitoring dashboard alerts', description: 'Set up Grafana alerts for CPU, memory, and disk usage on all prod nodes.',
       status: 'To Do', priority: 'Medium', assigneeId: 'm3', assigneeName: 'Carol Kim', gearId: '3072',
       blockingReason: '', subTasks: [
-        { id: 's7', title: 'Define alert thresholds', completed: false, createdAt: h(48) },
-        { id: 's8', title: 'Configure Grafana panels', completed: false, createdAt: h(48) },
+        { id: 's7', title: 'Define alert thresholds', completed: false, position: 0, createdAt: h(48) },
+        { id: 's8', title: 'Configure Grafana panels', completed: false, position: 1, createdAt: h(48) },
       ],
       dailyUpdates: [],
       createdAt: h(48), updatedAt: h(48),
@@ -79,9 +79,9 @@ function seedData() {
       id: 't4', title: 'Container image optimization', description: 'Reduce Docker image sizes for all microservices by switching to Alpine base.',
       status: 'Done', priority: 'Low', assigneeId: 'm4', assigneeName: 'Dan Wilson', gearId: '4096',
       blockingReason: '', subTasks: [
-        { id: 's9', title: 'Audit current image sizes', completed: true, createdAt: h(336) },
-        { id: 's10', title: 'Switch to Alpine', completed: true, createdAt: h(336) },
-        { id: 's11', title: 'Verify all tests pass', completed: true, createdAt: h(336) },
+        { id: 's9', title: 'Audit current image sizes', completed: true, position: 0, createdAt: h(336) },
+        { id: 's10', title: 'Switch to Alpine', completed: true, position: 1, createdAt: h(336) },
+        { id: 's11', title: 'Verify all tests pass', completed: true, position: 2, createdAt: h(336) },
       ],
       dailyUpdates: [
         { id: 'u3', taskId: 't4', authorId: 'm4', authorName: 'Dan Wilson', content: 'All images reduced by ~60%. Tests passing.', createdAt: h(200), updatedAt: h(200), edited: false },
@@ -93,9 +93,9 @@ function seedData() {
       status: 'Blocked', priority: 'Medium', assigneeId: 'm6', assigneeName: 'Frank Lee', gearId: '5120',
       blockingReason: 'Certificate authority requires domain ownership re-verification. Waiting on DNS TXT record update from domain registrar support.',
       subTasks: [
-        { id: 's12', title: 'Submit renewal request', completed: true, createdAt: h(168) },
-        { id: 's13', title: 'Complete domain verification', completed: false, createdAt: h(168) },
-        { id: 's14', title: 'Install new certificate', completed: false, createdAt: h(168) },
+        { id: 's12', title: 'Submit renewal request', completed: true, position: 0, createdAt: h(168) },
+        { id: 's13', title: 'Complete domain verification', completed: false, position: 1, createdAt: h(168) },
+        { id: 's14', title: 'Install new certificate', completed: false, position: 2, createdAt: h(168) },
       ],
       dailyUpdates: [
         { id: 'u4', taskId: 't5', authorId: 'm6', authorName: 'Frank Lee', content: 'Contacted registrar support, ETA 2 business days.', createdAt: h(6), updatedAt: h(3), edited: true },
@@ -106,9 +106,9 @@ function seedData() {
       id: 't6', title: 'Log aggregation setup', description: 'Deploy ELK stack for centralized logging across all services.',
       status: 'In Progress', priority: 'Low', assigneeId: null, assigneeName: null, gearId: null,
       blockingReason: '', subTasks: [
-        { id: 's15', title: 'Deploy Elasticsearch', completed: true, createdAt: h(96) },
-        { id: 's16', title: 'Configure Logstash', completed: false, createdAt: h(96) },
-        { id: 's17', title: 'Set up Kibana dashboards', completed: false, createdAt: h(96) },
+        { id: 's15', title: 'Deploy Elasticsearch', completed: true, position: 0, createdAt: h(96) },
+        { id: 's16', title: 'Configure Logstash', completed: false, position: 1, createdAt: h(96) },
+        { id: 's17', title: 'Set up Kibana dashboards', completed: false, position: 2, createdAt: h(96) },
       ],
       dailyUpdates: [],
       createdAt: h(96), updatedAt: h(24),
@@ -335,14 +335,20 @@ export class MockApiClient implements ApiClient {
     if (!task) throw new Error('Task not found');
     assertSubTaskTitleLength(data.title);
     if (task.subTasks.length >= 20) throw new Error('Maximum of 20 sub-tasks per task');
-    const sub: SubTask = { id: generateId(), title: data.title.trim(), completed: false, createdAt: new Date().toISOString() };
+    const sub: SubTask = {
+      id: generateId(),
+      title: data.title.trim(),
+      completed: false,
+      position: task.subTasks.length,
+      createdAt: new Date().toISOString(),
+    };
     task.subTasks.push(sub);
     task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
     return sub;
   }
 
-  async toggleSubTask(taskId: string, subTaskId: string): Promise<void> {
+  async toggleSubTask(taskId: string, subTaskId: string): Promise<SubTask> {
     await delay();
     const tasks = getTasks();
     const task = tasks.find(t => t.id === taskId);
@@ -352,6 +358,7 @@ export class MockApiClient implements ApiClient {
     sub.completed = !sub.completed;
     task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
+    return { ...sub };
   }
 
   async deleteSubTask(taskId: string, subTaskId: string): Promise<void> {
@@ -361,9 +368,45 @@ export class MockApiClient implements ApiClient {
     if (!task) throw new Error('Task not found');
     const remaining = task.subTasks.filter(s => s.id !== subTaskId);
     if (remaining.length === task.subTasks.length) throw new Error('Sub-task not found');
+    // Re-assign positions
+    remaining.forEach((s, i) => { s.position = i; });
     task.subTasks = remaining;
     task.updatedAt = new Date().toISOString();
     saveTasks(tasks);
+  }
+
+  async editSubTask(taskId: string, subTaskId: string, data: { title: string }): Promise<SubTask> {
+    await delay();
+    const tasks = getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) throw new Error('Task not found');
+    const sub = task.subTasks.find(s => s.id === subTaskId);
+    if (!sub) throw new Error('Sub-task not found');
+    assertSubTaskTitleLength(data.title);
+    sub.title = data.title.trim();
+    task.updatedAt = new Date().toISOString();
+    saveTasks(tasks);
+    return { ...sub };
+  }
+
+  async reorderSubTasks(taskId: string, subTaskIds: string[]): Promise<SubTask[]> {
+    await delay();
+    const tasks = getTasks();
+    const task = tasks.find(t => t.id === taskId);
+    if (!task) throw new Error('Task not found');
+    const existingIds = new Set(task.subTasks.map(s => s.id));
+    if (subTaskIds.length !== existingIds.size || !subTaskIds.every(id => existingIds.has(id))) {
+      throw new Error('Reorder list must include each existing sub-task exactly once');
+    }
+    const reordered = subTaskIds.map((id, index) => {
+      const sub = task.subTasks.find(s => s.id === id)!;
+      sub.position = index;
+      return sub;
+    });
+    task.subTasks = reordered;
+    task.updatedAt = new Date().toISOString();
+    saveTasks(tasks);
+    return reordered.map(s => ({ ...s }));
   }
 
   // ---- Daily Updates ----
@@ -480,7 +523,6 @@ export class MockApiClient implements ApiClient {
 
   async testConnection(data: ConnectionSettings): Promise<ConnectionTestResult> {
     await delay();
-    // Mock: always succeeds
     return { success: true, message: `Successfully connected to ${data.host}:${data.port}/${data.database}` };
   }
 

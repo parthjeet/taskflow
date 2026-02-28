@@ -17,7 +17,7 @@ async function listFilesRecursively(dir: string): Promise<string[]> {
 }
 
 function isTestFile(filePath: string): boolean {
-  const normalized = filePath.replaceAll('\\', '/');
+  const normalized = filePath.split('\\').join('/');
   return (
     normalized.includes('/src/test/') ||
     normalized.endsWith('.test.ts') ||
@@ -26,7 +26,7 @@ function isTestFile(filePath: string): boolean {
 }
 
 function isAllowedImporter(filePath: string): boolean {
-  const normalized = filePath.replaceAll('\\', '/');
+  const normalized = filePath.split('\\').join('/');
   return (
     normalized.endsWith('/src/lib/api/index.ts') ||
     normalized.includes('/src/lib/api/adapters/')
@@ -71,10 +71,10 @@ describe('AC1 guardrail: no direct mock adapter imports in app source', () => {
     for (const file of sourceFiles) {
       const content = await readFile(file, 'utf8');
       const hasViolation = extractImportSpecifiers(content).some(specifier =>
-        DISALLOWED_IMPORT.test(specifier.replaceAll('\\', '/')),
+        DISALLOWED_IMPORT.test(specifier.split('\\').join('/')),
       );
       if (hasViolation) {
-        violations.push(path.relative(process.cwd(), file).replaceAll('\\', '/'));
+        violations.push(path.relative(process.cwd(), file).split('\\').join('/'));
       }
     }
 
