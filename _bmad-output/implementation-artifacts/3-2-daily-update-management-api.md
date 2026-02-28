@@ -1,6 +1,6 @@
 # Story 3.2: Daily Update Management API [Backend]
 
-Status: in-progress
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
