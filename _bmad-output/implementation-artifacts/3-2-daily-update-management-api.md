@@ -311,6 +311,9 @@ GPT-5 Codex
 - `uv --project backend run pytest backend/tests/test_daily_updates.py` (31 passed)
 - `uv --project backend run pytest` (170 passed)
 - `uv --project backend run ruff check backend/app backend/tests` (`ruff` failed to spawn: permission denied)
+- `uv --project backend run pytest backend/tests/test_daily_updates.py backend/tests/test_tasks.py` (94 passed)
+- `uv --project backend run pytest` (171 passed)
+- `uv --project backend run ruff check backend/app backend/tests` (`ruff` failed to spawn: permission denied)
 ### Completion Notes List
 
 - Implemented DailyUpdate data model with proper FK behavior (`task_id` CASCADE, `author_id` RESTRICT), timestamp defaults, and `edited` tracking.
@@ -335,6 +338,10 @@ GPT-5 Codex
 - ✅ Resolved review finding [LOW]: added PATCH boundary test confirming exactly 1000-char content succeeds.
 - ✅ Resolved review finding [LOW]: added PATCH null-content rejection test (`content: null` returns 400).
 - Re-ran targeted and full backend suites after round-3 fixes (31 targeted tests, 170 full-suite tests passing).
+- ✅ Resolved review finding [MEDIUM]: optimized task list loading to omit daily-update payloads in `GET /tasks` (detail endpoint remains the source of full daily-update data).
+- ✅ Resolved review finding [MEDIUM]: fixed no-op task update path to refresh `sub_tasks` and `daily_updates` before returning, avoiding lazy-load regressions.
+- Added regression coverage for list/detail daily-update behavior and no-op update refresh behavior in task tests.
+- Re-ran targeted and full backend suites after round-4 fixes (94 targeted tests, 171 full-suite tests passing).
 ### File List
 
 - _bmad-output/implementation-artifacts/3-2-daily-update-management-api.md
@@ -355,6 +362,7 @@ GPT-5 Codex
 - backend/app/schemas/task.py
 - backend/tests/test_daily_updates.py
 - backend/tests/test_members.py
+- backend/tests/test_tasks.py
 - taskflow-ui/API_CONTRACT.md
 
 ## Change Log
@@ -368,11 +376,19 @@ GPT-5 Codex
 - 2026-02-28: Addressed round-3 code review findings - 3 items resolved (0 HIGH, 0 MEDIUM, 3 LOW), validated with 31 targeted tests and 170 full-suite backend tests. Story moved to `review`.
 
 - 2026-02-28: Code review round 4 (AI). 0 HIGH, 2 MEDIUM, 3 LOW issues found. 5 action items added to Tasks/Subtasks (Review Follow-ups Round 4). Story moved to `in-progress`.
+- 2026-02-28: Addressed remaining round-4 code review findings - 2 MEDIUM items resolved, validated with 94 targeted tests and 171 full-suite backend tests. Story moved to `review`.
+- 2026-02-28: Code review round 5 (Claude Opus 4.6). 1 HIGH, 1 MEDIUM, 1 LOW issues found and fixed inline. 24-hour window bypass on no-op PATCH fixed, test added, function renamed. Validated with 32 targeted tests and 172 full-suite backend tests. Story moved to `done`.
 
 ### Review Follow-ups Round 4 (AI — 2026-02-28)
 
-- [ ] [AI-Review-R4][MEDIUM] Optimize `list_tasks` to avoid unbounded eager-loading of `daily_updates`. Consider omitting them from the list view (or only returning a count), restricting full data to the detail view (`GET /tasks/{id}`). [backend/app/crud/task.py: list_tasks]
-- [ ] [AI-Review-R4][MEDIUM] Fix N+1 lazy-loading regression in `update_task` early return. Ensure `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` is called even when no fields change. [backend/app/crud/task.py: update_task]
+- [x] [AI-Review-R4][MEDIUM] Optimize `list_tasks` to avoid unbounded eager-loading of `daily_updates`. Consider omitting them from the list view (or only returning a count), restricting full data to the detail view (`GET /tasks/{id}`). [backend/app/crud/task.py: list_tasks]
+- [x] [AI-Review-R4][MEDIUM] Fix N+1 lazy-loading regression in `update_task` early return. Ensure `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` is called even when no fields change. [backend/app/crud/task.py: update_task]
 - [x] [AI-Review-R4][LOW] Update `update_daily_update` to return early without side effects if the new content exactly matches the existing content. [backend/app/crud/daily_update.py: update_daily_update]
 - [x] [AI-Review-R4][LOW] Optimize lock duration in `create_daily_update` by moving `_resolve_author_name` above the `get_task_by_id(..., for_update=True)` call. [backend/app/crud/daily_update.py: create_daily_update]
 - [x] [AI-Review-R4][LOW] Optimize lock behavior in `update_daily_update` and `delete_daily_update` by performing a fast unlocked read of the daily update existence before executing the expensive `get_task_by_id(..., for_update=True)`. [backend/app/crud/daily_update.py]
+
+### Review Follow-ups Round 5 (AI — 2026-02-28)
+
+- [x] [AI-Review-R5][HIGH] Fix `update_daily_update` no-op early return bypassing 24-hour window check — moved window enforcement before content equality check to ensure 403 is returned regardless of payload content (AC #4 violation) [backend/app/crud/daily_update.py: update_daily_update]
+- [x] [AI-Review-R5][MEDIUM] Add test for PATCH with identical content after 24h returns 403 (covered the bypass discovered in H1) [backend/tests/test_daily_updates.py]
+- [x] [AI-Review-R5][LOW] Rename `_is_outside_edit_window` → `_is_outside_modification_window` for semantic accuracy when used in both edit and delete paths [backend/app/crud/daily_update.py]

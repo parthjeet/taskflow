@@ -455,6 +455,23 @@ def test_update_daily_update_exactly_24_hours_is_allowed(client: TestClient) -> 
     assert response.json()["edited"] is True
 
 
+def test_update_daily_update_same_content_after_24_hours_returns_403(client: TestClient) -> None:
+    member = _create_member(client)
+    task = _create_task(client)
+    created = _create_daily_update(client, task["id"], author_id=member["id"], content="Same content")
+    created_at = _parse_datetime(created["created_at"])
+
+    with patch("app.crud.daily_update.datetime") as mocked_datetime:
+        mocked_datetime.now.return_value = created_at + timedelta(hours=24, seconds=1)
+        response = client.patch(
+            f"/api/v1/tasks/{task['id']}/updates/{created['id']}",
+            json={"content": "Same content"},
+        )
+
+    assert response.status_code == 403
+    assert response.json() == {"error": "Updates can only be edited within 24 hours."}
+
+
 def test_update_daily_update_operational_error_returns_503_with_retry_after(client: TestClient) -> None:
     member = _create_member(client)
     task = _create_task(client)
@@ -582,7 +599,7 @@ def test_get_task_includes_daily_updates_ordered_newest_first(client: TestClient
     assert [item["id"] for item in updates] == [second["id"], first["id"]]
 
 
-def test_list_tasks_includes_daily_updates_ordered_newest_first(client: TestClient) -> None:
+def test_list_tasks_omits_daily_update_payloads(client: TestClient) -> None:
     member = _create_member(client)
     task = _create_task(client)
     first = _create_daily_update(client, task["id"], author_id=member["id"], content="First update")
@@ -600,7 +617,11 @@ def test_list_tasks_includes_daily_updates_ordered_newest_first(client: TestClie
     response = client.get("/api/v1/tasks")
     assert response.status_code == 200
     listed_task = next(item for item in response.json() if item["id"] == task["id"])
-    updates = listed_task["daily_updates"]
+    assert listed_task["daily_updates"] == []
+
+    detail_response = client.get(f"/api/v1/tasks/{task['id']}")
+    assert detail_response.status_code == 200
+    updates = detail_response.json()["daily_updates"]
     assert [item["id"] for item in updates] == [second["id"], first["id"]]
 
 

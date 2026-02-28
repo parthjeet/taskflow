@@ -3,10 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import time
 import uuid
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app import models  # noqa: F401 — registers all models with Base.metadata
@@ -585,6 +586,25 @@ def test_update_task_empty_payload_keeps_task_unchanged() -> None:
     assert body["status"] == created["status"]
     assert body["priority"] == created["priority"]
     assert body["updated_at"] == created["updated_at"]
+
+
+def test_update_task_empty_payload_refreshes_relationships() -> None:
+    client = _build_test_client()
+    member = _create_member(client)
+    task = _create_task(client, title="Task with update")
+    create_update_response = client.post(
+        f"/api/v1/tasks/{task['id']}/updates",
+        json={"author_id": member["id"], "content": "Progress update"},
+    )
+    assert create_update_response.status_code == 201
+
+    with patch("app.crud.task.Session.refresh", autospec=True, wraps=Session.refresh) as refresh_spy:
+        response = client.patch(f"/api/v1/tasks/{task['id']}", json={})
+    assert response.status_code == 200
+    assert any(
+        call.kwargs.get("attribute_names") == ["sub_tasks", "daily_updates"]
+        for call in refresh_spy.call_args_list
+    )
 
 
 def test_update_task_blocking_reason_auto_cleared_on_unblock() -> None:

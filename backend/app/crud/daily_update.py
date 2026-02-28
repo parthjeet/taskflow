@@ -37,7 +37,7 @@ def _normalize_created_at(created_at: datetime) -> datetime:
     return created_at.astimezone(timezone.utc)
 
 
-def _is_outside_edit_window(created_at: datetime, now: datetime) -> bool:
+def _is_outside_modification_window(created_at: datetime, now: datetime) -> bool:
     normalized_created_at = _normalize_created_at(created_at)
     return (now - normalized_created_at) > timedelta(hours=24)
 
@@ -97,6 +97,10 @@ def update_daily_update(
     if daily_update_unlocked is None:
         raise LookupError("Daily update not found")
 
+    now = datetime.now(timezone.utc)
+    if _is_outside_modification_window(daily_update_unlocked.created_at, now):
+        raise PermissionError(_EDIT_WINDOW_ERROR)
+
     if daily_update_unlocked.content == payload.content:
         return daily_update_unlocked
 
@@ -113,10 +117,6 @@ def update_daily_update(
     daily_update = _get_daily_update(db, task_id, update_id)
     if daily_update is None:
         raise LookupError("Daily update not found")
-
-    now = datetime.now(timezone.utc)
-    if _is_outside_edit_window(daily_update.created_at, now):
-        raise PermissionError(_EDIT_WINDOW_ERROR)
 
     daily_update.content = payload.content
     daily_update.edited = True
@@ -159,7 +159,7 @@ def delete_daily_update(db: Session, *, task_id: uuid.UUID, update_id: uuid.UUID
         raise LookupError("Daily update not found")
 
     now = datetime.now(timezone.utc)
-    if _is_outside_edit_window(daily_update.created_at, now):
+    if _is_outside_modification_window(daily_update.created_at, now):
         raise PermissionError(_DELETE_WINDOW_ERROR)
 
     db.delete(daily_update)

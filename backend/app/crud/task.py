@@ -6,7 +6,7 @@ import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, noload, selectinload
 
 from app.models.member import Member
 from app.models.task import Task
@@ -52,7 +52,8 @@ def list_tasks(
     search: str | None = None,
     sort: Literal["updated", "priority", "status"] = "updated",
 ) -> list[Task]:
-    statement = select(Task).options(selectinload(Task.sub_tasks))
+    # List view intentionally omits daily update payloads to avoid unbounded fan-out.
+    statement = select(Task).options(selectinload(Task.sub_tasks), noload(Task.daily_updates))
 
     if status is not None:
         statement = statement.where(Task.status == status.value)
@@ -153,6 +154,7 @@ def create_task(db: Session, payload: TaskCreate) -> Task:
 def update_task(db: Session, task: Task, payload: TaskUpdate) -> Task:
     update_data = payload.model_dump(exclude_unset=True)
     if not update_data:
+        db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])
         return task
 
     current_status = TaskStatus(task.status)
