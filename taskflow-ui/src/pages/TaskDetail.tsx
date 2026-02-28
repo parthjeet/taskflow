@@ -11,13 +11,10 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { apiClient } from '@/lib/api';
-import { MAX_DAILY_UPDATE_CONTENT_LENGTH, MAX_SUBTASK_TITLE_LENGTH } from '@/lib/api/constants';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Pencil, Trash2, Loader2, AlertTriangle, User } from 'lucide-react';
-
-const LAST_AUTHOR_KEY = 'taskflow-last-author';
 
 export default function TaskDetail() {
   const { id } = useParams<{ id: string }>();
@@ -77,21 +74,6 @@ export default function TaskDetail() {
     'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
     Blocked: 'bg-red-100 text-red-700 border-red-200',
     Done: 'bg-green-100 text-green-700 border-green-200',
-  };
-
-  const handleAddSubTask = async () => {
-    const title = newSub.trim();
-    if (!title || addingSubTask) return;
-    setAddingSubTask(true);
-    try {
-      await apiClient.addSubTask(task.id, { title });
-      setNewSub('');
-      load();
-    } catch (err) {
-      toast({ title: 'Error', description: err instanceof Error ? err.message : 'Unknown error', variant: 'destructive' });
-    } finally {
-      if (mountedRef.current) setAddingSubTask(false);
-    }
   };
 
   return (
