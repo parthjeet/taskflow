@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useMemo } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -35,6 +35,7 @@ function SortableSubTaskItem({
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(sub.title);
   const inputRef = useRef<HTMLInputElement>(null);
+  const savingRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -77,31 +78,37 @@ function SortableSubTaskItem({
   }, [deleting, taskId, sub.id, onMutate, toast]);
 
   const saveEdit = useCallback(async () => {
-    const trimmed = editTitle.trim();
-    if (!trimmed) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Sub-task title is required' });
-      setEditTitle(sub.title);
-      setEditing(false);
-      return;
-    }
-    if (trimmed.length > MAX_SUBTASK_TITLE_LENGTH) {
-      toast({ variant: 'destructive', title: 'Error', description: `Sub-task title must be ${MAX_SUBTASK_TITLE_LENGTH} characters or fewer` });
-      setEditTitle(sub.title);
-      setEditing(false);
-      return;
-    }
-    if (trimmed === sub.title) {
-      setEditing(false);
-      return;
-    }
+    if (savingRef.current) return;
+    savingRef.current = true;
     try {
-      await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
-      onMutate();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An error occurred';
-      toast({ variant: 'destructive', title: 'Error', description: msg });
+      const trimmed = editTitle.trim();
+      if (!trimmed) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Sub-task title is required' });
+        setEditTitle(sub.title);
+        setEditing(false);
+        return;
+      }
+      if (trimmed.length > MAX_SUBTASK_TITLE_LENGTH) {
+        toast({ variant: 'destructive', title: 'Error', description: `Sub-task title must be ${MAX_SUBTASK_TITLE_LENGTH} characters or fewer` });
+        setEditTitle(sub.title);
+        setEditing(false);
+        return;
+      }
+      if (trimmed === sub.title) {
+        setEditing(false);
+        return;
+      }
+      try {
+        await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
+        onMutate();
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'An error occurred';
+        toast({ variant: 'destructive', title: 'Error', description: msg });
+      }
+      setEditing(false);
+    } finally {
+      savingRef.current = false;
     }
-    setEditing(false);
   }, [editTitle, sub.title, sub.id, taskId, onMutate, toast]);
 
   return (
@@ -161,7 +168,10 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const [reordering, setReordering] = useState(false);
 
   // Keep local items in sync with prop (unless actively reordering)
-  const sorted = [...subTasks].sort((a, b) => a.position - b.position);
+  const sorted = useMemo(
+    () => [...subTasks].sort((a, b) => a.position - b.position),
+    [subTasks],
+  );
   const displayItems = reordering ? items : sorted;
 
   const sensors = useSensors(
