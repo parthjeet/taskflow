@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: in-progress
+Status: review
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -98,10 +98,10 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 2 (AI)
 
-- [ ] [AI-Review-R2][HIGH] Fix dead assertion in test CMP-041 (`story-3-3-subtask-edit-reorder.test.tsx:47`): `.not.toBeDefined` without `()` is a property access that always passes. Set up `vi.spyOn(apiClient, 'editSubTask')` and assert `.not.toHaveBeenCalled()`
-- [ ] [AI-Review-R2][MEDIUM] Guard against potential double `saveEdit` call in `SubTaskList.tsx` — Enter key calls `saveEdit()`, then `setEditing(false)` fires `onBlur={saveEdit}` a second time. Add a `savingRef` guard or `e.preventDefault()` on blur-during-save
-- [ ] [AI-Review-R2][MEDIUM] Memoize `sorted` array in `SubTaskList.tsx:162` — currently `[...subTasks].sort(...)` runs every render unlike `DailyUpdateFeed` which correctly uses `useMemo`. Wrap in `useMemo(() => [...subTasks].sort(...), [subTasks])`
-- [ ] [AI-Review-R2][MEDIUM] Fix `handleDragEnd` broken memoization in `SubTaskList.tsx:187` — depends on unmemoized `sorted` reference causing `useCallback` to recreate every render. Resolved automatically when M2-sorted is memoized
+- [x] [AI-Review-R2][HIGH] Fix dead assertion in test CMP-041 (`story-3-3-subtask-edit-reorder.test.tsx:47`): `.not.toBeDefined` without `()` is a property access that always passes. Set up `vi.spyOn(apiClient, 'editSubTask')` and assert `.not.toHaveBeenCalled()`
+- [x] [AI-Review-R2][MEDIUM] Guard against potential double `saveEdit` call in `SubTaskList.tsx` — Enter key calls `saveEdit()`, then `setEditing(false)` fires `onBlur={saveEdit}` a second time. Add a `savingRef` guard or `e.preventDefault()` on blur-during-save
+- [x] [AI-Review-R2][MEDIUM] Memoize `sorted` array in `SubTaskList.tsx:162` — currently `[...subTasks].sort(...)` runs every render unlike `DailyUpdateFeed` which correctly uses `useMemo`. Wrap in `useMemo(() => [...subTasks].sort(...), [subTasks])`
+- [x] [AI-Review-R2][MEDIUM] Fix `handleDragEnd` broken memoization in `SubTaskList.tsx:187` — depends on unmemoized `sorted` reference causing `useCallback` to recreate every render. Resolved automatically when M2-sorted is memoized
 
 ## Dev Notes
 
