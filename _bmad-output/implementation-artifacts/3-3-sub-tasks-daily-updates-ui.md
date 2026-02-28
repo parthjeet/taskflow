@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: review
+Status: in-progress
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -103,6 +103,15 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R2][MEDIUM] Memoize `sorted` array in `SubTaskList.tsx:162` — currently `[...subTasks].sort(...)` runs every render unlike `DailyUpdateFeed` which correctly uses `useMemo`. Wrap in `useMemo(() => [...subTasks].sort(...), [subTasks])`
 - [x] [AI-Review-R2][MEDIUM] Fix `handleDragEnd` broken memoization in `SubTaskList.tsx:187` — depends on unmemoized `sorted` reference causing `useCallback` to recreate every render. Resolved automatically when M2-sorted is memoized
 
+### Review Follow-ups Round 3 (AI)
+
+- [ ] [AI-Review-R3][HIGH] Fix mock adapter `reorderSubTasks` accepting duplicate IDs — data corruption risk. Input `['s1', 's1', 's3']` with 3 existing sub-tasks passes validation (length matches set size, every ID in set) but silently drops `s2`. Add `new Set(subTaskIds).size !== subTaskIds.length` duplicate check per `API_CONTRACT.md` requirement. `src/lib/api/adapters/mock.ts:350-355`
+- [ ] [AI-Review-R3][HIGH] Test CMP-009 for drag reorder is a no-op — zero behavioral coverage for AC #5 (reorder persistence). Test renders component, queries checkboxes, then asserts reorderSpy was *not* called. Must simulate `onDragEnd` callback with synthetic `DragEndEvent` and assert `reorderSubTasks` called with expected ID array. `src/test/story-3-3-subtask-edit-reorder.test.tsx:118-131`
+- [ ] [AI-Review-R3][MEDIUM] Drag handle `<button>` in `SubTaskList.tsx:117-119` lacks `aria-label` — screen readers announce it as an unlabeled button. Add `aria-label="Reorder sub-task"` or `aria-roledescription="sortable"` to the drag handle wrapper
+- [ ] [AI-Review-R3][MEDIUM] Story File Map lists `task-detail-author-persistence.test.tsx` as Modified but no changes exist in git diff (`5819aac..HEAD`). Remove the spurious entry or clarify discrepancy
+- [ ] [AI-Review-R3][LOW] No fallback when all members inactive in Add Update dialog — `DailyUpdateFeed.tsx:57-58` sets `updateAuthor` to `''`, Select renders empty with no guidance. Add "No active members" disabled state or message
+- [ ] [AI-Review-R3][LOW] `handleDelete` in `DailyUpdateFeed.tsx:99-107` double-sets `deleteUpdateId` to null — once in try block on success, again via AlertDialog `onOpenChange`. Harmless but redundant
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -195,6 +204,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - Key blockers: dead code in TaskDetail.tsx causes `tsc` compilation failure (C1, C2); missing test coverage for 3.3-specific UI flows (H2); sub-task title edit not keyboard-accessible (H1).
 - 2026-02-28: Remediation validated. Lovable AI completed 9/11 review follow-ups (H1, H2, H3, M1, M2, M3, L1, L2 done; C1, C2, M4 missed). Dev agent fixed C1+C2 (dead code removal from TaskDetail.tsx) and M4 (File Map). `tsc --noEmit` passes. All 32 new tests pass. All 33 regression tests pass. Story → complete.
 - 2026-02-28: Code review round 2. 1 HIGH, 3 MEDIUM issues found. 4 action items created under "Review Follow-ups Round 2 (AI)". Fixed L1 (bun.lock in File Map/File List) and committed L2 (pending TaskDetail.tsx dead code removal). Status → in-progress.
+- 2026-02-28: Code review round 3. All R1/R2 follow-ups verified resolved. 2 HIGH, 2 MEDIUM, 2 LOW new issues found. `tsc --noEmit` clean. All 165 tests pass (12 files). 6 action items created under "Review Follow-ups Round 3 (AI)". Status → in-progress.
 
 ### Change Log
 
@@ -203,6 +213,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-02-28 | AI Code Review | Reviewed Lovable AI implementation. 11 action items created. Status → in-progress. |
 | 2026-02-28 | Dev Agent (Copilot) | Remediation validation: fixed C1+C2+M4 missed by Lovable. Verified 9/11 items done by Lovable (H1,H2,H3,M1,M2,M3,L1,L2). All tests green. Status → complete. |
 | 2026-02-28 | AI Code Review (R2) | Round 2 review: 1 HIGH (dead test assertion), 3 MEDIUM (double-save risk, missing useMemo, broken useCallback). 4 action items created. L1+L2 fixed. Status → in-progress. |
+| 2026-02-28 | AI Code Review (R3) | Round 3 review: 2 HIGH (mock reorder duplicate-ID validation, CMP-009 no-op test), 2 MEDIUM (drag handle aria-label, File Map stale entry), 2 LOW (empty-members fallback, redundant setState). 6 action items created. Status → in-progress. |
 
 ### File List
 
