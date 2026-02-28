@@ -10,11 +10,12 @@ from app.models.member import Member
 from app.schemas.member import MemberCreate, MemberUpdate
 
 _TASKS_TABLE = table("tasks", column("assignee_id", Uuid))
+_DAILY_UPDATES_TABLE = table("daily_updates", column("author_id", Uuid))
 _POSTGRES_UNDEFINED_TABLE = "42P01"
 _POSTGRES_UNDEFINED_COLUMN = "42703"
 
 
-def _is_missing_tasks_schema_error(exc: DBAPIError) -> bool:
+def _is_missing_schema_error(exc: DBAPIError) -> bool:
     orig = getattr(exc, "orig", None)
     sqlstate = getattr(orig, "pgcode", None) or getattr(orig, "sqlstate", None)
     return sqlstate in {_POSTGRES_UNDEFINED_TABLE, _POSTGRES_UNDEFINED_COLUMN}
@@ -34,6 +35,22 @@ def _has_tasks_assignment_schema(db: Session) -> bool:
 
     columns = {column_data["name"] for column_data in inspector.get_columns("tasks")}
     return "assignee_id" in columns
+
+
+def _has_daily_updates_author_schema(db: Session) -> bool:
+    bind = db.get_bind()
+    if bind is None:
+        return True
+
+    if bind.dialect.name != "sqlite":
+        return True
+
+    inspector = inspect(bind)
+    if not inspector.has_table("daily_updates"):
+        return False
+
+    columns = {column_data["name"] for column_data in inspector.get_columns("daily_updates")}
+    return "author_id" in columns
 
 
 def list_members(db: Session) -> list[Member]:
@@ -88,7 +105,25 @@ def count_assigned_tasks(db: Session, member_id: uuid.UUID) -> int:
         )
         return int(db.execute(statement).scalar_one())
     except DBAPIError as exc:
-        if _is_missing_tasks_schema_error(exc):
+        if _is_missing_schema_error(exc):
+            db.rollback()
+            return 0
+        raise
+
+
+def count_authored_daily_updates(db: Session, member_id: uuid.UUID) -> int:
+    if not _has_daily_updates_author_schema(db):
+        return 0
+
+    try:
+        statement = (
+            select(func.count())
+            .select_from(_DAILY_UPDATES_TABLE)
+            .where(_DAILY_UPDATES_TABLE.c.author_id == member_id)
+        )
+        return int(db.execute(statement).scalar_one())
+    except DBAPIError as exc:
+        if _is_missing_schema_error(exc):
             db.rollback()
             return 0
         raise

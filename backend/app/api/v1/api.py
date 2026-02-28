@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.daily_updates import router as daily_updates_router
 from app.api.v1.members import router as members_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.subtasks import router as subtasks_router
@@ -11,3 +12,4 @@ api_router.include_router(members_router, prefix="/members", tags=["members"])
 api_router.include_router(settings_router, prefix="/settings", tags=["settings"])
 api_router.include_router(tasks_router, prefix="/tasks", tags=["tasks"])
 api_router.include_router(subtasks_router, prefix="/tasks/{task_id}/subtasks", tags=["subtasks"])
+api_router.include_router(daily_updates_router, prefix="/tasks/{task_id}/updates", tags=["daily-updates"])

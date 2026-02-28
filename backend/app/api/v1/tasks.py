@@ -90,7 +90,13 @@ def update_task(task_id: uuid.UUID, payload: TaskUpdate, db: Session = Depends(g
     _validate_gear_id(payload.gear_id)
 
     try:
-        task = task_crud.get_task_by_id(db, task_id, for_update=True)
+        task = task_crud.get_task_by_id(
+            db,
+            task_id,
+            for_update=True,
+            include_sub_tasks=False,
+            include_daily_updates=False,
+        )
     except OperationalError as exc:
         handle_operational_error(db, exc)
 
@@ -113,7 +119,13 @@ def update_task(task_id: uuid.UUID, payload: TaskUpdate, db: Session = Depends(g
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(task_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
     try:
-        task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+        task = task_crud.get_task_by_id(
+            db,
+            task_id,
+            for_update=True,
+            include_sub_tasks=False,
+            include_daily_updates=False,
+        )
     except OperationalError as exc:
         handle_operational_error(db, exc)
 

@@ -558,6 +558,7 @@ DELETE /members/{id}
 
 **Error:**
 - `409 Conflict` — `"Cannot delete member with N assigned task(s). Reassign or complete them first."`
+- `409 Conflict` — `"Cannot delete member with N authored daily update(s). Delete those updates first."`
 - `404 Not Found`
 
 ---

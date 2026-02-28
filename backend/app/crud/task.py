@@ -52,7 +52,7 @@ def list_tasks(
     search: str | None = None,
     sort: Literal["updated", "priority", "status"] = "updated",
 ) -> list[Task]:
-    statement = select(Task).options(selectinload(Task.sub_tasks))
+    statement = select(Task).options(selectinload(Task.sub_tasks), selectinload(Task.daily_updates))
 
     if status is not None:
         statement = statement.where(Task.status == status.value)
@@ -112,10 +112,13 @@ def get_task_by_id(
     *,
     for_update: bool = False,
     include_sub_tasks: bool = True,
+    include_daily_updates: bool = True,
 ) -> Task | None:
     statement = select(Task).where(Task.id == task_id)
     if include_sub_tasks:
         statement = statement.options(selectinload(Task.sub_tasks))
+    if include_daily_updates:
+        statement = statement.options(selectinload(Task.daily_updates))
     if for_update:
         statement = statement.with_for_update()
     return db.scalars(statement).first()
@@ -143,7 +146,7 @@ def create_task(db: Session, payload: TaskCreate) -> Task:
     db.add(task)
     db.commit()
     db.refresh(task)
-    db.refresh(task, attribute_names=["sub_tasks"])
+    db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])
     return task
 
 
@@ -193,7 +196,7 @@ def update_task(db: Session, task: Task, payload: TaskUpdate) -> Task:
     touch_task_updated_at(db, task)
     db.commit()
     db.refresh(task)
-    db.refresh(task, attribute_names=["sub_tasks"])
+    db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])
     return task
 
 

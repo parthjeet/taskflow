@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any
 import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import DateTime, ForeignKey, String, Uuid
-from sqlalchemy.orm import Mapped, foreign, mapped_column, relationship, remote
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 
@@ -55,12 +54,10 @@ class Task(Base):
         passive_deletes=True,
         order_by="SubTask.position",
     )
-    # TODO: Replace with DailyUpdate in Story 3.2.
-    daily_updates: Mapped[list[Any]] = relationship(
-        "Task",
-        primaryjoin=lambda: sa.and_(remote(Task.id) == foreign(Task.id), sa.text("1=0")),
-        viewonly=True,
-        lazy="noload",
-        uselist=True,
-        overlaps="daily_updates",
+    daily_updates: Mapped[list["DailyUpdate"]] = relationship(
+        "DailyUpdate",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="DailyUpdate.created_at.desc()",
     )

@@ -58,7 +58,7 @@ development_status:
   # Epic 3: Task Breakdown & Daily Progress Tracking
   epic-3: in-progress
   3-1-sub-task-management-api: done
-  3-2-daily-update-management-api: ready-for-dev
+  3-2-daily-update-management-api: in-progress
   3-3-sub-tasks-daily-updates-ui: backlog
   epic-3-retrospective: optional
 

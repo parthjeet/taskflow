@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum
-from typing import Any
 import uuid
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationInfo, field_validator
 
+from app.schemas.daily_update import DailyUpdateResponse
 from app.schemas.base import BaseTitlePayload
 from app.schemas.subtask import SubTaskResponse
 
@@ -61,7 +61,7 @@ class TaskResponse(BaseModel):
     gear_id: str | None
     blocking_reason: str
     sub_tasks: list[SubTaskResponse] = Field(default_factory=list)
-    daily_updates: list[Any] = Field(default_factory=list)
+    daily_updates: list[DailyUpdateResponse] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
 

@@ -1,6 +1,6 @@
 # Story 3.2: Daily Update Management API [Backend]
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -70,41 +70,62 @@ so that I can track daily progress with 24-hour edit/delete windows and author n
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Create DailyUpdate model and Alembic migration (AC: #1)
-  - [ ] 1.1 Create `backend/app/models/daily_update.py` with SQLAlchemy model matching API_CONTRACT.md field names; `author_id` FK uses `ondelete="RESTRICT"` (referential integrity for authored updates)
-  - [ ] 1.2 Replace temporary placeholder in `backend/app/models/task.py` with real `daily_updates` relationship (`order_by=DailyUpdate.created_at.desc()`)
-  - [ ] 1.3 Update `backend/app/models/__init__.py` to import DailyUpdate
-  - [ ] 1.4 Generate Alembic migration for `daily_updates` table with FK, index on `task_id`
-- [ ] Task 2: Create Pydantic schemas (AC: #2, #3)
-  - [ ] 2.1 Create `backend/app/schemas/daily_update.py` with `DailyUpdateCreate`, `DailyUpdateUpdate`, `DailyUpdateResponse`
-  - [ ] 2.2 Update `TaskResponse` in `backend/app/schemas/task.py` to replace `daily_updates: list[Any]` with `daily_updates: list[DailyUpdateResponse]` (add `from app.schemas.daily_update import DailyUpdateResponse` import; no circular dependency risk)
-- [ ] Task 3: Create CRUD operations (AC: #2, #3, #4, #5, #6, #7, #8, #9, #10)
-  - [ ] 3.1 Create `backend/app/crud/daily_update.py` with `create_daily_update`, `update_daily_update`, `delete_daily_update`
-  - [ ] 3.2 Implement author_name resolution from members table in create
-  - [ ] 3.3 Implement 24-hour edit window check for update and delete (403 path)
-  - [ ] 3.4 Ensure update lookup is scoped by BOTH `task_id` and `update_id` (wrong pair returns 404)
-  - [ ] 3.5 Implement parent task `updated_at` touch on all mutations
-- [ ] Task 4: Create API router (AC: #2, #3, #4, #5, #6, #8, #10)
-  - [ ] 4.1 Create `backend/app/api/v1/daily_updates.py` with POST, PATCH, DELETE endpoints
-  - [ ] 4.2 Map time-window violations to `403` explicitly in router exception handling
-  - [ ] 4.3 Use shared `handle_operational_error()` path for `OperationalError` to enforce standardized `503` + `Retry-After: 5`
-  - [ ] 4.4 Register router in `backend/app/api/v1/api.py` at `/tasks/{task_id}/updates`
-- [ ] Task 5: Integrate daily_updates into task queries and responses (AC: #7, #9)
-  - [ ] 5.1 Add `selectinload(Task.daily_updates)` to `list_tasks` query in `backend/app/crud/task.py`
-  - [ ] 5.2 Add `include_daily_updates: bool = True` parameter to `get_task_by_id` (parallel to existing `include_sub_tasks`), loading `selectinload(Task.daily_updates)` when `True`
-  - [ ] 5.3 Update `db.refresh(task, attribute_names=["sub_tasks"])` → `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` in both `create_task` and `update_task` in `backend/app/crud/task.py` (lines 146, 196)
-- [ ] Task 6: Write comprehensive tests (AC: all)
-  - [ ] 6.1 Create `backend/tests/test_daily_updates.py` with full acceptance criteria coverage
-  - [ ] 6.2 Add cross-task pairing tests (existing update ID under wrong task returns 404)
-  - [ ] 6.3 Add 24-hour boundary tests (exactly 24h allowed; >24h forbidden)
-  - [ ] 6.4 Add OperationalError-to-503 tests for POST/PATCH/DELETE
-  - [ ] 6.5 Add cascade delete test (deleting parent task removes all daily updates)
-  - [ ] 6.6 Add member-delete regression test (member referenced by daily update returns 409, not 500)
-  - [ ] 6.7 Run full backend regression suite
-- [ ] Task 7: Prevent member deletion regression from `daily_updates.author_id` FK (AC: #11)
-  - [ ] 7.1 Update `backend/app/crud/member.py` to account for authored daily updates before delete (new helper count or equivalent)
-  - [ ] 7.2 Update `backend/app/api/v1/members.py` delete path to return `409` with deterministic message when member is referenced by daily updates
-  - [ ] 7.3 Add/extend tests in `backend/tests/test_members.py` to verify the new `409` contract
+- [x] Task 1: Create DailyUpdate model and Alembic migration (AC: #1)
+  - [x] 1.1 Create `backend/app/models/daily_update.py` with SQLAlchemy model matching API_CONTRACT.md field names; `author_id` FK uses `ondelete="RESTRICT"` (referential integrity for authored updates)
+  - [x] 1.2 Replace temporary placeholder in `backend/app/models/task.py` with real `daily_updates` relationship (`order_by=DailyUpdate.created_at.desc()`)
+  - [x] 1.3 Update `backend/app/models/__init__.py` to import DailyUpdate
+  - [x] 1.4 Generate Alembic migration for `daily_updates` table with FK, index on `task_id`
+- [x] Task 2: Create Pydantic schemas (AC: #2, #3)
+  - [x] 2.1 Create `backend/app/schemas/daily_update.py` with `DailyUpdateCreate`, `DailyUpdateUpdate`, `DailyUpdateResponse`
+  - [x] 2.2 Update `TaskResponse` in `backend/app/schemas/task.py` to replace `daily_updates: list[Any]` with `daily_updates: list[DailyUpdateResponse]` (add `from app.schemas.daily_update import DailyUpdateResponse` import; no circular dependency risk)
+- [x] Task 3: Create CRUD operations (AC: #2, #3, #4, #5, #6, #7, #8, #9, #10)
+  - [x] 3.1 Create `backend/app/crud/daily_update.py` with `create_daily_update`, `update_daily_update`, `delete_daily_update`
+  - [x] 3.2 Implement author_name resolution from members table in create
+  - [x] 3.3 Implement 24-hour edit window check for update and delete (403 path)
+  - [x] 3.4 Ensure update lookup is scoped by BOTH `task_id` and `update_id` (wrong pair returns 404)
+  - [x] 3.5 Implement parent task `updated_at` touch on all mutations
+- [x] Task 4: Create API router (AC: #2, #3, #4, #5, #6, #8, #10)
+  - [x] 4.1 Create `backend/app/api/v1/daily_updates.py` with POST, PATCH, DELETE endpoints
+  - [x] 4.2 Map time-window violations to `403` explicitly in router exception handling
+  - [x] 4.3 Use shared `handle_operational_error()` path for `OperationalError` to enforce standardized `503` + `Retry-After: 5`
+  - [x] 4.4 Register router in `backend/app/api/v1/api.py` at `/tasks/{task_id}/updates`
+- [x] Task 5: Integrate daily_updates into task queries and responses (AC: #7, #9)
+  - [x] 5.1 Add `selectinload(Task.daily_updates)` to `list_tasks` query in `backend/app/crud/task.py`
+  - [x] 5.2 Add `include_daily_updates: bool = True` parameter to `get_task_by_id` (parallel to existing `include_sub_tasks`), loading `selectinload(Task.daily_updates)` when `True`
+  - [x] 5.3 Update `db.refresh(task, attribute_names=["sub_tasks"])` → `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` in both `create_task` and `update_task` in `backend/app/crud/task.py` (lines 146, 196)
+- [x] Task 6: Write comprehensive tests (AC: all)
+  - [x] 6.1 Create `backend/tests/test_daily_updates.py` with full acceptance criteria coverage
+  - [x] 6.2 Add cross-task pairing tests (existing update ID under wrong task returns 404)
+  - [x] 6.3 Add 24-hour boundary tests (exactly 24h allowed; >24h forbidden)
+  - [x] 6.4 Add OperationalError-to-503 tests for POST/PATCH/DELETE
+  - [x] 6.5 Add cascade delete test (deleting parent task removes all daily updates)
+  - [x] 6.6 Add member-delete regression test (member referenced by daily update returns 409, not 500)
+  - [x] 6.7 Run full backend regression suite
+- [x] Task 7: Prevent member deletion regression from `daily_updates.author_id` FK (AC: #11)
+  - [x] 7.1 Update `backend/app/crud/member.py` to account for authored daily updates before delete (new helper count or equivalent)
+  - [x] 7.2 Update `backend/app/api/v1/members.py` delete path to return `409` with deterministic message when member is referenced by daily updates
+  - [x] 7.3 Add/extend tests in `backend/tests/test_members.py` to verify the new `409` contract
+
+### Review Follow-ups (AI)
+
+- [x] [AI-Review][MEDIUM] Update `taskflow-ui/API_CONTRACT.md` Delete Member section to document second `409 Conflict` response for authored daily updates (`"Cannot delete member with N authored daily update(s). Delete those updates first."`) [taskflow-ui/API_CONTRACT.md: Delete Member section]
+- [x] [AI-Review][MEDIUM] Add `PRAGMA foreign_keys=ON` to `_build_test_client` in `test_members.py` to enable SQLite FK enforcement, matching the pattern in `test_daily_updates.py` [backend/tests/test_members.py:43-44]
+- [x] [AI-Review][LOW] Add test asserting content whitespace stripping on valid create (e.g., `"  hello  "` stored as `"hello"`) [backend/tests/test_daily_updates.py]
+- [x] [AI-Review][LOW] Remove `onupdate=sa.func.now()` from `DailyUpdate.updated_at` — it's dead code (CRUD always sets explicitly) and inconsistent with Task model [backend/app/models/daily_update.py:47]
+
+### Review Follow-ups Round 2 (AI — 2026-02-28)
+
+- [x] [AI-Review-R2][MEDIUM] Catch `IntegrityError` in POST `create_daily_update` route to handle race condition where member is deleted between author resolution and INSERT commit; return `409` instead of leaking `500` [backend/app/api/v1/daily_updates.py:20-31]
+- [x] [AI-Review-R2][LOW] Add boundary test: exactly 1000-char content succeeds on POST create [backend/tests/test_daily_updates.py]
+- [x] [AI-Review-R2][LOW] Add test: missing `author_id` in POST request body returns 400 [backend/tests/test_daily_updates.py]
+- [x] [AI-Review-R2][LOW] Add test: empty string `""` content returns 400 on POST create [backend/tests/test_daily_updates.py]
+- [x] [AI-Review-R2][LOW] Pass `include_daily_updates=False, include_sub_tasks=False` to `get_task_by_id` lock query in `update_task` route to avoid wasted eager-load before refresh [backend/app/api/v1/tasks.py:100]
+
+### Review Follow-ups Round 3 (AI — 2026-02-28)
+
+- [x] [AI-Review-R3][LOW] Fix docstring inaccuracy in `delete_daily_update`: says "within the 24-hour edit window" but should say "24-hour delete window" or "24-hour window" [backend/app/crud/daily_update.py:107]
+- [x] [AI-Review-R3][LOW] Add PATCH boundary test: exactly 1000-char content succeeds (mirrors existing POST boundary test) [backend/tests/test_daily_updates.py]
+- [x] [AI-Review-R3][LOW] Add PATCH `content: null` rejection test: `{"content": null}` returns 400 (mirrors null-rejection tests for TaskUpdate fields) [backend/tests/test_daily_updates.py]
 
 ## Dev Notes
 
@@ -275,10 +296,83 @@ Recent commits show:
 
 ### Agent Model Used
 
-{{agent_model_name_version}}
+GPT-5 Codex
 
 ### Debug Log References
 
+- `uv --project backend run pytest backend/tests/test_daily_updates.py backend/tests/test_members.py` (42 passed)
+- `uv --project backend run pytest` (163 passed)
+- `uv --project backend run pytest backend/tests/test_daily_updates.py backend/tests/test_members.py` (43 passed)
+- `uv --project backend run pytest` (164 passed)
+- `uv --project backend run ruff check backend/app backend/tests` (ruff executable unavailable in this environment)
+- `uv --project backend run pytest backend/tests/test_daily_updates.py backend/tests/test_tasks.py` (91 passed)
+- `uv --project backend run pytest` (168 passed)
+- `uv --project backend run ruff check backend/app backend/tests` (`ruff` failed to spawn: permission denied)
+- `uv --project backend run pytest backend/tests/test_daily_updates.py` (31 passed)
+- `uv --project backend run pytest` (170 passed)
+- `uv --project backend run ruff check backend/app backend/tests` (`ruff` failed to spawn: permission denied)
 ### Completion Notes List
 
+- Implemented DailyUpdate data model with proper FK behavior (`task_id` CASCADE, `author_id` RESTRICT), timestamp defaults, and `edited` tracking.
+- Added Alembic revision `20260228_0006` creating `daily_updates` with `idx_daily_updates_task_id`.
+- Replaced Task daily-updates placeholder with a real relationship ordered by `created_at DESC`.
+- Added DailyUpdate schemas (`create`, `update`, `response`) and typed `TaskResponse.daily_updates` with `DailyUpdateResponse`.
+- Implemented daily update CRUD with parent-task locking, author-name resolution, strict 24-hour edit/delete enforcement, scoped `(task_id, update_id)` lookup, and parent `updated_at` touches.
+- Added nested daily update API routes (`POST`, `PATCH`, `DELETE`) with standardized 400/403/404/503 handling.
+- Integrated daily updates into task read paths via `selectinload(Task.daily_updates)` and refreshed task mutation responses with `daily_updates`.
+- Added member deletion guardrails for authored daily updates with deterministic `409` behavior.
+- Added comprehensive daily-update regression tests, member-delete regression coverage, and validated full backend regression (163 passing tests).
+- ✅ Resolved review finding [MEDIUM]: documented member-delete `409` contract for authored daily updates in `taskflow-ui/API_CONTRACT.md`.
+- ✅ Resolved review finding [MEDIUM]: enabled SQLite foreign key enforcement in `backend/tests/test_members.py` test client setup.
+- ✅ Resolved review finding [LOW]: added create-path whitespace-stripping regression test for daily update content in `backend/tests/test_daily_updates.py`.
+- ✅ Resolved review finding [LOW]: removed redundant `onupdate` from `DailyUpdate.updated_at` in `backend/app/models/daily_update.py`.
+- Re-ran targeted and full backend suites after review fixes (43 targeted tests, 164 full-suite tests passing).
+- ✅ Resolved review finding [MEDIUM]: catch `IntegrityError` in daily-update create route and return deterministic `409` for member-delete race conditions.
+- ✅ Resolved review finding [LOW]: added POST create boundary/validation tests for exactly-1000-char content, missing `author_id`, and empty-string content.
+- ✅ Resolved review finding [LOW]: optimized task update lock query by disabling eager-loading (`include_sub_tasks=False`, `include_daily_updates=False`).
+- Re-ran targeted and full backend suites after round-2 fixes (91 targeted tests, 168 full-suite tests passing).
+- ✅ Resolved review finding [LOW]: corrected `delete_daily_update` docstring to reference the 24-hour delete window.
+- ✅ Resolved review finding [LOW]: added PATCH boundary test confirming exactly 1000-char content succeeds.
+- ✅ Resolved review finding [LOW]: added PATCH null-content rejection test (`content: null` returns 400).
+- Re-ran targeted and full backend suites after round-3 fixes (31 targeted tests, 170 full-suite tests passing).
 ### File List
+
+- _bmad-output/implementation-artifacts/3-2-daily-update-management-api.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
+- backend/alembic/versions/20260228_0006_add_daily_updates_table.py
+- backend/app/api/v1/api.py
+- backend/app/api/v1/daily_updates.py
+- backend/app/api/v1/members.py
+- backend/app/api/v1/tasks.py
+- backend/app/crud/daily_update.py
+- backend/app/crud/member.py
+- backend/app/crud/subtask.py
+- backend/app/crud/task.py
+- backend/app/models/__init__.py
+- backend/app/models/daily_update.py
+- backend/app/models/task.py
+- backend/app/schemas/daily_update.py
+- backend/app/schemas/task.py
+- backend/tests/test_daily_updates.py
+- backend/tests/test_members.py
+- taskflow-ui/API_CONTRACT.md
+
+## Change Log
+
+- 2026-02-28: Implemented Story 3.2 Daily Update Management API end-to-end (model, migration, schemas, CRUD, nested routes, task integration, member delete safeguards, and comprehensive tests). Story moved to `review`.
+- 2026-02-28: Code review completed (Claude Opus 4.6). 0 HIGH, 2 MEDIUM, 2 LOW issues found. 4 action items added to Tasks/Subtasks. Story moved back to `in-progress` pending MEDIUM follow-ups.
+- 2026-02-28: Addressed code review findings - 4 items resolved (2 MEDIUM, 2 LOW), validated with 43 targeted tests and 164 full-suite backend tests. Story moved to `review`.
+- 2026-02-28: Code review round 2 (Claude Opus 4.6). 0 HIGH, 1 MEDIUM, 4 LOW issues found. 5 action items added to Tasks/Subtasks (Review Follow-ups Round 2). Story moved to `in-progress`.
+- 2026-02-28: Addressed round-2 code review findings - 5 items resolved (1 MEDIUM, 4 LOW), validated with 91 targeted tests and 168 full-suite backend tests. Story moved to `review`.
+- 2026-02-28: Code review round 3 (Claude Opus 4.6). 0 HIGH, 0 MEDIUM, 3 LOW issues found. 3 action items added to Tasks/Subtasks (Review Follow-ups Round 3). Story remains `in-progress` pending LOW follow-ups.
+- 2026-02-28: Addressed round-3 code review findings - 3 items resolved (0 HIGH, 0 MEDIUM, 3 LOW), validated with 31 targeted tests and 170 full-suite backend tests. Story moved to `review`.
+
+- 2026-02-28: Code review round 4 (AI). 0 HIGH, 2 MEDIUM, 3 LOW issues found. 5 action items added to Tasks/Subtasks (Review Follow-ups Round 4). Story moved to `in-progress`.
+
+### Review Follow-ups Round 4 (AI — 2026-02-28)
+
+- [ ] [AI-Review-R4][MEDIUM] Optimize `list_tasks` to avoid unbounded eager-loading of `daily_updates`. Consider omitting them from the list view (or only returning a count), restricting full data to the detail view (`GET /tasks/{id}`). [backend/app/crud/task.py: list_tasks]
+- [ ] [AI-Review-R4][MEDIUM] Fix N+1 lazy-loading regression in `update_task` early return. Ensure `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` is called even when no fields change. [backend/app/crud/task.py: update_task]
+- [ ] [AI-Review-R4][LOW] Update `update_daily_update` to return early without side effects if the new content exactly matches the existing content. [backend/app/crud/daily_update.py: update_daily_update]
+- [ ] [AI-Review-R4][LOW] Optimize lock duration in `create_daily_update` by moving `_resolve_author_name` above the `get_task_by_id(..., for_update=True)` call. [backend/app/crud/daily_update.py: create_daily_update]
+- [ ] [AI-Review-R4][LOW] Optimize lock behavior in `update_daily_update` and `delete_daily_update` by performing a fast unlocked read of the daily update existence before executing the expensive `get_task_by_id(..., for_update=True)`. [backend/app/crud/daily_update.py]

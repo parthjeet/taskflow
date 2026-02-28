@@ -74,4 +74,14 @@ def delete_member(member_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
             detail=f"Cannot delete member with {assigned_tasks_count} assigned task(s). Reassign or complete them first.",
         )
 
+    authored_updates_count = member_crud.count_authored_daily_updates(db, member_id)
+    if authored_updates_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Cannot delete member with {authored_updates_count} authored daily update(s). "
+                "Delete those updates first."
+            ),
+        )
+
     member_crud.delete_member(db, member)

@@ -32,7 +32,13 @@ def _list_subtasks_for_task(db: Session, task_id: uuid.UUID) -> list[SubTask]:
 def create_subtask(db: Session, *, task_id: uuid.UUID, payload: SubTaskCreate) -> SubTask:
     """Create a sub-task with contiguous next-position assignment and task touch."""
 
-    task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+    task = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=True,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
     if task is None:
         raise LookupError("Task not found")
 
@@ -55,7 +61,13 @@ def create_subtask(db: Session, *, task_id: uuid.UUID, payload: SubTaskCreate) -
 def toggle_subtask(db: Session, *, task_id: uuid.UUID, sub_task_id: uuid.UUID) -> SubTask:
     """Toggle a sub-task completion state and refresh parent task timestamp."""
 
-    task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+    task = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=True,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
     if task is None:
         raise LookupError("Task not found")
 
@@ -73,7 +85,13 @@ def toggle_subtask(db: Session, *, task_id: uuid.UUID, sub_task_id: uuid.UUID) -
 def update_subtask(db: Session, *, task_id: uuid.UUID, sub_task_id: uuid.UUID, payload: SubTaskUpdate) -> SubTask:
     """Update a sub-task title and refresh parent task timestamp."""
 
-    task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+    task = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=True,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
     if task is None:
         raise LookupError("Task not found")
 
@@ -95,7 +113,13 @@ def update_subtask(db: Session, *, task_id: uuid.UUID, sub_task_id: uuid.UUID, p
 def reorder_subtasks(db: Session, *, task_id: uuid.UUID, payload: SubTaskReorder) -> list[dict[str, Any]]:
     """Apply a full reorder payload and return subtasks in requested order."""
 
-    task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+    task = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=True,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
     if task is None:
         raise LookupError("Task not found")
 
@@ -136,7 +160,13 @@ def reorder_subtasks(db: Session, *, task_id: uuid.UUID, payload: SubTaskReorder
 def delete_subtask(db: Session, *, task_id: uuid.UUID, sub_task_id: uuid.UUID) -> None:
     """Delete a sub-task and compact remaining positions without gaps."""
 
-    task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
+    task = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=True,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
     if task is None:
         raise LookupError("Task not found")
 

@@ -39,6 +39,7 @@ def _build_test_client() -> TestClient:
 
     @event.listens_for(engine, "connect")
     def _register_sqlite_functions(dbapi_connection, _connection_record) -> None:  # noqa: ANN001
+        dbapi_connection.execute("PRAGMA foreign_keys=ON")
         dbapi_connection.create_function("gen_random_uuid", 0, lambda: uuid.uuid4().hex)
 
     testing_session_factory = sessionmaker(bind=engine, autocommit=False, autoflush=False)
@@ -57,6 +58,14 @@ def _build_test_client() -> TestClient:
     app.dependency_overrides[get_db] = override_get_db
     app.state.testing_engine = engine
     return TestClient(app)
+
+
+def _create_task(client: TestClient, **overrides: object) -> dict[str, object]:
+    payload: dict[str, object] = {"title": "Parent task", "status": "To Do", "priority": "Medium"}
+    payload.update(overrides)
+    response = client.post("/api/v1/tasks", json=payload)
+    assert response.status_code == 201
+    return response.json()
 
 
 def test_get_members_returns_empty_list() -> None:
@@ -267,6 +276,25 @@ def test_delete_member_with_assigned_tasks_returns_conflict() -> None:
     assert response.status_code == 409
     assert response.json() == {
         "error": "Cannot delete member with 1 assigned task(s). Reassign or complete them first."
+    }
+
+
+def test_delete_member_with_authored_daily_updates_returns_conflict() -> None:
+    client = _build_test_client()
+    member = _create_member(client, name="Author", email="author@example.com")
+    task = _create_task(client)
+
+    create_update_response = client.post(
+        f"/api/v1/tasks/{task['id']}/updates",
+        json={"author_id": member["id"], "content": "Progress update"},
+    )
+    assert create_update_response.status_code == 201
+
+    response = client.delete(f"/api/v1/members/{member['id']}")
+
+    assert response.status_code == 409
+    assert response.json() == {
+        "error": "Cannot delete member with 1 authored daily update(s). Delete those updates first."
     }
 
 
