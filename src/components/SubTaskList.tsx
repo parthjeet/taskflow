@@ -23,11 +23,11 @@ function SortableSubTaskItem({
   sub,
   taskId,
   onMutate,
-}: {
+}: Readonly<{
   sub: SubTask;
   taskId: string;
   onMutate: () => void;
-}) {
+}>) {
   const { toast } = useToast();
   const [completed, setCompleted] = useState(sub.completed);
   const [toggling, setToggling] = useState(false);
