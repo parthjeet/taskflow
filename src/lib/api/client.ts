@@ -26,8 +26,10 @@ export interface ApiClient {
 
   // Sub-tasks
   addSubTask(taskId: string, data: { title: string }): Promise<SubTask>;
-  toggleSubTask(taskId: string, subTaskId: string): Promise<void>;
+  toggleSubTask(taskId: string, subTaskId: string): Promise<SubTask>;
   deleteSubTask(taskId: string, subTaskId: string): Promise<void>;
+  editSubTask(taskId: string, subTaskId: string, data: { title: string }): Promise<SubTask>;
+  reorderSubTasks(taskId: string, subTaskIds: string[]): Promise<SubTask[]>;
 
   // Daily Updates
   addDailyUpdate(taskId: string, data: { authorId: string; content: string }): Promise<DailyUpdate>;

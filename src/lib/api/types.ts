@@ -5,6 +5,7 @@ export interface SubTask {
   id: string;
   title: string;
   completed: boolean;
+  position: number;
   createdAt: string;
 }
 

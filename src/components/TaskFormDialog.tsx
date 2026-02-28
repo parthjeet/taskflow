@@ -45,7 +45,7 @@ export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: 
         setStatus(task.status);
         setPriority(task.priority);
         const hasActiveAssignee = task.assigneeId !== null && members.some(m => m.id === task.assigneeId && m.active);
-        setAssigneeId(hasActiveAssignee ? task.assigneeId : 'unassigned');
+        setAssigneeId(hasActiveAssignee && task.assigneeId ? task.assigneeId : 'unassigned');
         setGearId(task.gearId ?? '');
         setBlockingReason(task.blockingReason);
       } else {
