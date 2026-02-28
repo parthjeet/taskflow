@@ -41,6 +41,7 @@ describe('SubTaskList — inline edit', () => {
   });
 
   it('CMP-041: Escape cancels without API call', () => {
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Changed' });
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
 
     fireEvent.click(screen.getByText('First'));
@@ -49,7 +50,7 @@ describe('SubTaskList — inline edit', () => {
     fireEvent.keyDown(input, { key: 'Escape' });
 
     expect(screen.getByText('First')).toBeInTheDocument();
-    expect(apiClient.editSubTask).not.toBeDefined; // no spy set up = never called
+    expect(editSpy).not.toHaveBeenCalled();
   });
 
   it('CMP-019: empty title → validation toast, reverts', async () => {
