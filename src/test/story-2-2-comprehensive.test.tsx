@@ -277,11 +277,12 @@ describe('Story 2.2 Comprehensive Test Suite', () => {
 
     const originalToggleSubTask = apiClient.toggleSubTask.bind(apiClient);
     let releaseToggle: (() => void) | null = null;
-    const toggleSpy = vi.spyOn(apiClient, 'toggleSubTask').mockImplementation(async (taskId, subTaskId) => {
+    const toggleSpy = vi.spyOn(apiClient, 'toggleSubTask').mockImplementation(async (tId, sId) => {
       await new Promise<void>((resolve) => {
         releaseToggle = resolve;
       });
-      return originalToggleSubTask(taskId, subTaskId);
+      const result = await originalToggleSubTask(tId, sId);
+      return result;
     });
 
     render(
