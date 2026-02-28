@@ -276,13 +276,12 @@ describe('Story 2.2 Comprehensive Test Suite', () => {
     await apiClient.addSubTask(task.id, { title: 'Toggle me' });
 
     const originalToggleSubTask = apiClient.toggleSubTask.bind(apiClient);
-    let releaseToggle: (() => void) | null = null;
-    const toggleSpy = vi.spyOn(apiClient, 'toggleSubTask').mockImplementation(async (tId, sId) => {
+    let releaseToggle: (() => void) | undefined;
+    const toggleSpy = vi.spyOn(apiClient, 'toggleSubTask').mockImplementation(async (tId: string, sId: string) => {
       await new Promise<void>((resolve) => {
         releaseToggle = resolve;
       });
-      const result = await originalToggleSubTask(tId, sId);
-      return result;
+      return originalToggleSubTask(tId, sId);
     });
 
     render(
@@ -302,7 +301,7 @@ describe('Story 2.2 Comprehensive Test Suite', () => {
     expect(toggleSpy).toHaveBeenCalledTimes(1);
     expect(checkbox).toBeDisabled();
 
-    releaseToggle?.();
+    if (releaseToggle) releaseToggle();
 
     await waitFor(() => expect(screen.getByRole('checkbox')).not.toBeDisabled(), { timeout: 3000 });
     expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ variant: 'destructive' }));
