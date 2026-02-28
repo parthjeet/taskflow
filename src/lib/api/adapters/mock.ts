@@ -260,7 +260,7 @@ export class MockApiClient implements ApiClient {
       assigneeName = null;
     } else {
       const member = getMembers().find(m => m.id === data.assigneeId);
-      if (!member || !member.active) throw new Error('Assignee not found');
+      if (!member?.active) throw new Error('Assignee not found');
       assigneeName = member.name;
     }
     const now = new Date().toISOString();
@@ -309,7 +309,7 @@ export class MockApiClient implements ApiClient {
       } else {
         const members = getMembers();
         const member = members.find(m => m.id === merged.assigneeId);
-        if (!member || !member.active) throw new Error('Assignee not found');
+        if (!member?.active) throw new Error('Assignee not found');
         merged.assigneeName = member.name;
       }
     }
@@ -418,7 +418,7 @@ export class MockApiClient implements ApiClient {
     if (!task) throw new Error('Task not found');
     const members = getMembers();
     const author = members.find(m => m.id === data.authorId);
-    if (!author || !author.active) throw new Error('Author not found');
+    if (!author?.active) throw new Error('Author not found');
     const content = normalizeDailyUpdateContent(data.content);
     const now = new Date().toISOString();
     const update: DailyUpdate = { id: generateId(), taskId, authorId: data.authorId, authorName: author.name, content, createdAt: now, updatedAt: now, edited: false };
