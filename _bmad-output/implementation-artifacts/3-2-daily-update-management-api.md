@@ -373,6 +373,6 @@ GPT-5 Codex
 
 - [ ] [AI-Review-R4][MEDIUM] Optimize `list_tasks` to avoid unbounded eager-loading of `daily_updates`. Consider omitting them from the list view (or only returning a count), restricting full data to the detail view (`GET /tasks/{id}`). [backend/app/crud/task.py: list_tasks]
 - [ ] [AI-Review-R4][MEDIUM] Fix N+1 lazy-loading regression in `update_task` early return. Ensure `db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])` is called even when no fields change. [backend/app/crud/task.py: update_task]
-- [ ] [AI-Review-R4][LOW] Update `update_daily_update` to return early without side effects if the new content exactly matches the existing content. [backend/app/crud/daily_update.py: update_daily_update]
-- [ ] [AI-Review-R4][LOW] Optimize lock duration in `create_daily_update` by moving `_resolve_author_name` above the `get_task_by_id(..., for_update=True)` call. [backend/app/crud/daily_update.py: create_daily_update]
-- [ ] [AI-Review-R4][LOW] Optimize lock behavior in `update_daily_update` and `delete_daily_update` by performing a fast unlocked read of the daily update existence before executing the expensive `get_task_by_id(..., for_update=True)`. [backend/app/crud/daily_update.py]
+- [x] [AI-Review-R4][LOW] Update `update_daily_update` to return early without side effects if the new content exactly matches the existing content. [backend/app/crud/daily_update.py: update_daily_update]
+- [x] [AI-Review-R4][LOW] Optimize lock duration in `create_daily_update` by moving `_resolve_author_name` above the `get_task_by_id(..., for_update=True)` call. [backend/app/crud/daily_update.py: create_daily_update]
+- [x] [AI-Review-R4][LOW] Optimize lock behavior in `update_daily_update` and `delete_daily_update` by performing a fast unlocked read of the daily update existence before executing the expensive `get_task_by_id(..., for_update=True)`. [backend/app/crud/daily_update.py]

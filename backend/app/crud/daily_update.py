@@ -45,6 +45,8 @@ def _is_outside_edit_window(created_at: datetime, now: datetime) -> bool:
 def create_daily_update(db: Session, *, task_id: uuid.UUID, payload: DailyUpdateCreate) -> DailyUpdate:
     """Create a daily update for a task and refresh the parent task timestamp."""
 
+    author_name = _resolve_author_name(db, payload.author_id)
+
     task = task_crud.get_task_by_id(
         db,
         task_id,
@@ -55,7 +57,6 @@ def create_daily_update(db: Session, *, task_id: uuid.UUID, payload: DailyUpdate
     if task is None:
         raise LookupError("Task not found")
 
-    author_name = _resolve_author_name(db, payload.author_id)
     now = datetime.now(timezone.utc)
     daily_update = DailyUpdate(
         task_id=task_id,
@@ -81,6 +82,23 @@ def update_daily_update(
     payload: DailyUpdateUpdate,
 ) -> DailyUpdate:
     """Update a daily update within the 24-hour edit window."""
+
+    task_exists = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=False,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
+    if task_exists is None:
+        raise LookupError("Task not found")
+
+    daily_update_unlocked = _get_daily_update(db, task_id, update_id)
+    if daily_update_unlocked is None:
+        raise LookupError("Daily update not found")
+
+    if daily_update_unlocked.content == payload.content:
+        return daily_update_unlocked
 
     task = task_crud.get_task_by_id(
         db,
@@ -111,6 +129,20 @@ def update_daily_update(
 
 def delete_daily_update(db: Session, *, task_id: uuid.UUID, update_id: uuid.UUID) -> None:
     """Delete a daily update within the 24-hour delete window."""
+
+    task_exists = task_crud.get_task_by_id(
+        db,
+        task_id,
+        for_update=False,
+        include_sub_tasks=False,
+        include_daily_updates=False,
+    )
+    if task_exists is None:
+        raise LookupError("Task not found")
+
+    daily_update_unlocked = _get_daily_update(db, task_id, update_id)
+    if daily_update_unlocked is None:
+        raise LookupError("Daily update not found")
 
     task = task_crud.get_task_by_id(
         db,

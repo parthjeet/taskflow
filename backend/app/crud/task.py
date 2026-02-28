@@ -52,7 +52,7 @@ def list_tasks(
     search: str | None = None,
     sort: Literal["updated", "priority", "status"] = "updated",
 ) -> list[Task]:
-    statement = select(Task).options(selectinload(Task.sub_tasks), selectinload(Task.daily_updates))
+    statement = select(Task).options(selectinload(Task.sub_tasks))
 
     if status is not None:
         statement = statement.where(Task.status == status.value)
@@ -188,6 +188,7 @@ def update_task(db: Session, task: Task, payload: TaskUpdate) -> Task:
         if getattr(task, field) != value
     }
     if not effective_update_data:
+        db.refresh(task, attribute_names=["sub_tasks", "daily_updates"])
         return task
 
     for field, value in effective_update_data.items():
