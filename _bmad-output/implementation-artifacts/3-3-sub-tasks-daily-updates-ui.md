@@ -64,37 +64,44 @@ So that I can break down work and log progress directly from the UI.
   - [x] 3.6 Optimistic toggle: on checkbox click, immediately flip `completed` state in local state and update progress count, then call `apiClient.toggleSubTask()`. Revert on error.
   - [x] 3.7 "Add sub-task" input at bottom: Enter key or button to submit. Show `toast({ variant: "destructive" })` with error message if max 20 limit reached.
   - [x] 3.8 Keyboard-accessible drag-and-drop (enabled by default with `@dnd-kit`).
-- [ ] Task 4: Build Daily Updates UI — extract `DailyUpdateFeed` component (AC: #6, #7, #8, #9, #10)
+- [x] Task 4: Build Daily Updates UI — extract `DailyUpdateFeed` component (AC: #6, #7, #8, #9, #10)
   - [x] 4.1 Create `src/components/DailyUpdateFeed.tsx` extracted from `src/pages/TaskDetail.tsx`.
   - [x] 4.2 Display reverse chronological feed: each update shows author name, `formatRelativeDate(createdAt)` timestamp, content text, and `"(edited)"` badge when `edited === true`.
-  - [ ] 4.3 For updates where `isWithin24Hours(createdAt)` is true: show Edit and Delete buttons on hover (`opacity-0 group-hover:opacity-100`).
-  - [ ] 4.4 For updates where `isWithin24Hours(createdAt)` is false: hide Edit/Delete buttons entirely, and show a `<Tooltip>` from shadcn/ui wrapping a small `<span className="text-xs text-muted-foreground italic">Past edit window</span>` label.
+  - [x] 4.3 For updates where `isWithin24Hours(createdAt)` is true: show Edit and Delete buttons on hover (`opacity-0 group-hover:opacity-100`).
+  - [x] 4.4 For updates where `isWithin24Hours(createdAt)` is false: hide Edit/Delete buttons entirely, and show a `<Tooltip>` from shadcn/ui wrapping a small `<span className="text-xs text-muted-foreground italic">Past edit window</span>` label.
   - [x] 4.5 "Add Update" dialog: author `<Select>` dropdown populated from `members` prop (parent still loads via `apiClient.getMembers()`, active members only), content `<Textarea>` (max 1000 chars). Pre-select last-used author from `localStorage` key `taskflow-last-author` (existing key; do not rename). Save selected author to localStorage on submit.
   - [x] 4.6 Edit flow: inline textarea replaces content, save calls `apiClient.editDailyUpdate()`, sets `"(edited)"` indicator. Handle 403 response gracefully (show destructive toast with error message).
   - [x] 4.7 Delete flow: `<AlertDialog>` confirmation, then `apiClient.deleteDailyUpdate()`. Handle 403 response gracefully.
-- [ ] Task 5: Wire up components in `TaskDetail.tsx`
-  - [ ] 5.1 Replace inline sub-task and daily update sections in `src/pages/TaskDetail.tsx` with `<SubTaskList>` and `<DailyUpdateFeed>` components.
+- [x] Task 5: Wire up components in `TaskDetail.tsx`
+  - [x] 5.1 Replace inline sub-task and daily update sections in `src/pages/TaskDetail.tsx` with `<SubTaskList>` and `<DailyUpdateFeed>` components.
   - [x] 5.2 Pass task data, active members, and `load()` refetch callback as props. Continue using existing `apiClient` + `useEffect` + manual `load()` pattern (consistent with Story 2.2 — TanStack Query migration is deferred to a separate story).
   - [x] 5.3 All mutations call `load()` after success to refresh parent task data (including `updatedAt`).
-- [ ] Task 6: Add/Update frontend tests for Story 3.3 behavior (AC: #1, #2, #3, #4, #5, #6, #7, #8, #9, #10)
+- [x] Task 6: Add/Update frontend tests for Story 3.3 behavior (AC: #1, #2, #3, #4, #5, #6, #7, #8, #9, #10)
   - [x] 6.1 Update existing TaskDetail tests to pass after extraction while preserving current behavior and selectors (`taskflow-last-author`, `data-testid="add-subtask-btn"`, `data-testid="delete-subtask-{id}"`, existing confirm-delete test IDs).
-  - [ ] 6.2 Add tests for sub-task inline edit and drag reorder flows (including optimistic path + error path rollback).
-  - [ ] 6.3 Add tests for daily update 24h gating UI (`Past edit window` indicator), edit/delete 403 error toasts, and newest-first rendering.
+  - [x] 6.2 Add tests for sub-task inline edit and drag reorder flows (including optimistic path + error path rollback).
+  - [x] 6.3 Add tests for daily update 24h gating UI (`Past edit window` indicator), edit/delete 403 error toasts, and newest-first rendering.
   - [x] 6.4 Run targeted frontend tests for touched flows before marking story complete.
 
 ### Review Follow-ups (AI)
 
-- [ ] [AI-Review][CRITICAL] Remove dead `handleAddSubTask` function and its undeclared variable references (`newSub`, `addingSubTask`, `setAddingSubTask`, `setNewSub`) from `src/pages/TaskDetail.tsx:82-94` — causes `tsc` compilation failure
-- [ ] [AI-Review][CRITICAL] Remove unused imports (`MAX_DAILY_UPDATE_CONTENT_LENGTH`, `MAX_SUBTASK_TITLE_LENGTH`) at `src/pages/TaskDetail.tsx:14` and unused `LAST_AUTHOR_KEY` constant at `src/pages/TaskDetail.tsx:20`
-- [ ] [AI-Review][HIGH] Add keyboard accessibility to sub-task inline title edit `<span>` in `src/components/SubTaskList.tsx:128-133` — add `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space triggers edit mode)
-- [ ] [AI-Review][HIGH] Write Story 3.3 tests: sub-task inline edit + drag reorder (optimistic + error rollback) per Task 6.2
-- [ ] [AI-Review][HIGH] Write Story 3.3 tests: daily update 24h gating UI ("Past edit window" indicator), edit/delete 403 error toasts, newest-first rendering per Task 6.3
-- [ ] [AI-Review][MEDIUM] Add hover-to-reveal for daily update Edit/Delete buttons (`opacity-0 group-hover:opacity-100`) in `src/components/DailyUpdateFeed.tsx` — currently always visible, story Task 4.3 requires hover pattern
-- [ ] [AI-Review][MEDIUM] Add `italic` class to "Past edit window" span in `src/components/DailyUpdateFeed.tsx:158` per story Task 4.4 spec
-- [ ] [AI-Review][MEDIUM] Fix optional chaining lint warnings in `src/lib/api/adapters/mock.ts` — lines 263, 312, 421: `!member || !member.active` → `!member?.active`
-- [ ] [AI-Review][MEDIUM] Update story File Map to document additional changed files: `TaskFormDialog.tsx`, `mock.smoke.test.ts`, `no-direct-mock-adapter-imports.test.ts`, `tsconfig.app.json`, `tsconfig.json`
-- [ ] [AI-Review][LOW] Mark component props as `Readonly<>` in `SubTaskList.tsx`, `DailyUpdateFeed.tsx`, `TaskFormDialog.tsx` per ESLint rule
-- [ ] [AI-Review][LOW] Restore trailing newlines in `tsconfig.json` and `tsconfig.app.json`
+- [x] [AI-Review][CRITICAL] Remove dead `handleAddSubTask` function and its undeclared variable references (`newSub`, `addingSubTask`, `setAddingSubTask`, `setNewSub`) from `src/pages/TaskDetail.tsx:82-94` — causes `tsc` compilation failure
+- [x] [AI-Review][CRITICAL] Remove unused imports (`MAX_DAILY_UPDATE_CONTENT_LENGTH`, `MAX_SUBTASK_TITLE_LENGTH`) at `src/pages/TaskDetail.tsx:14` and unused `LAST_AUTHOR_KEY` constant at `src/pages/TaskDetail.tsx:20`
+- [x] [AI-Review][HIGH] Add keyboard accessibility to sub-task inline title edit `<span>` in `src/components/SubTaskList.tsx:128-133` — add `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space triggers edit mode)
+- [x] [AI-Review][HIGH] Write Story 3.3 tests: sub-task inline edit + drag reorder (optimistic + error rollback) per Task 6.2
+- [x] [AI-Review][HIGH] Write Story 3.3 tests: daily update 24h gating UI ("Past edit window" indicator), edit/delete 403 error toasts, newest-first rendering per Task 6.3
+- [x] [AI-Review][MEDIUM] Add hover-to-reveal for daily update Edit/Delete buttons (`opacity-0 group-hover:opacity-100`) in `src/components/DailyUpdateFeed.tsx` — currently always visible, story Task 4.3 requires hover pattern
+- [x] [AI-Review][MEDIUM] Add `italic` class to "Past edit window" span in `src/components/DailyUpdateFeed.tsx:158` per story Task 4.4 spec
+- [x] [AI-Review][MEDIUM] Fix optional chaining lint warnings in `src/lib/api/adapters/mock.ts` — lines 263, 312, 421: `!member || !member.active` → `!member?.active`
+- [x] [AI-Review][MEDIUM] Update story File Map to document additional changed files: `TaskFormDialog.tsx`, `mock.smoke.test.ts`, `no-direct-mock-adapter-imports.test.ts`, `tsconfig.app.json`, `tsconfig.json`
+- [x] [AI-Review][LOW] Mark component props as `Readonly<>` in `SubTaskList.tsx`, `DailyUpdateFeed.tsx`, `TaskFormDialog.tsx` per ESLint rule
+- [x] [AI-Review][LOW] Restore trailing newlines in `tsconfig.json` and `tsconfig.app.json`
+
+### Review Follow-ups Round 2 (AI)
+
+- [ ] [AI-Review-R2][HIGH] Fix dead assertion in test CMP-041 (`story-3-3-subtask-edit-reorder.test.tsx:47`): `.not.toBeDefined` without `()` is a property access that always passes. Set up `vi.spyOn(apiClient, 'editSubTask')` and assert `.not.toHaveBeenCalled()`
+- [ ] [AI-Review-R2][MEDIUM] Guard against potential double `saveEdit` call in `SubTaskList.tsx` — Enter key calls `saveEdit()`, then `setEditing(false)` fires `onBlur={saveEdit}` a second time. Add a `savingRef` guard or `e.preventDefault()` on blur-during-save
+- [ ] [AI-Review-R2][MEDIUM] Memoize `sorted` array in `SubTaskList.tsx:162` — currently `[...subTasks].sort(...)` runs every render unlike `DailyUpdateFeed` which correctly uses `useMemo`. Wrap in `useMemo(() => [...subTasks].sort(...), [subTasks])`
+- [ ] [AI-Review-R2][MEDIUM] Fix `handleDragEnd` broken memoization in `SubTaskList.tsx:187` — depends on unmemoized `sorted` reference causing `useCallback` to recreate every render. Resolved automatically when M2-sorted is memoized
 
 ## Dev Notes
 
@@ -155,6 +162,14 @@ So that I can break down work and log progress directly from the UI.
 | `src/test/story-2-2-comprehensive.test.tsx` | Modify | Extend coverage for sub-task and daily-update UI flows after extraction |
 | `package.json` | Modify | Add `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` |
 | `package-lock.json` | Modify | Lockfile updates from npm dependency install |
+| `src/components/TaskFormDialog.tsx` | Modify | Component adjustments during extraction |
+| `src/lib/api/adapters/mock.smoke.test.ts` | Modify | Added subtask edit/reorder smoke tests |
+| `src/test/no-direct-mock-adapter-imports.test.ts` | Modify | Lint rule compliance |
+| `tsconfig.app.json` | Modify | Target bumped ES2020→ES2021 |
+| `tsconfig.json` | Modify | Reformatted |
+| `bun.lock` | Modify | Lockfile updates from bun dependency install |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Create | Tests for sub-task inline edit + drag reorder (Task 6.2) |
+| `src/test/story-3-3-daily-update-gating.test.tsx` | Create | Tests for daily update 24h gating + error toasts (Task 6.3) |
 
 ### References
 
@@ -178,12 +193,16 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 
 - 2026-02-28: Code review completed. All 10 ACs functionally implemented. 2 CRITICAL, 3 HIGH, 4 MEDIUM, 2 LOW issues found. Action items created under "Review Follow-ups (AI)". Story status set to in-progress pending fixes.
 - Key blockers: dead code in TaskDetail.tsx causes `tsc` compilation failure (C1, C2); missing test coverage for 3.3-specific UI flows (H2); sub-task title edit not keyboard-accessible (H1).
+- 2026-02-28: Remediation validated. Lovable AI completed 9/11 review follow-ups (H1, H2, H3, M1, M2, M3, L1, L2 done; C1, C2, M4 missed). Dev agent fixed C1+C2 (dead code removal from TaskDetail.tsx) and M4 (File Map). `tsc --noEmit` passes. All 32 new tests pass. All 33 regression tests pass. Story → complete.
+- 2026-02-28: Code review round 2. 1 HIGH, 3 MEDIUM issues found. 4 action items created under "Review Follow-ups Round 2 (AI)". Fixed L1 (bun.lock in File Map/File List) and committed L2 (pending TaskDetail.tsx dead code removal). Status → in-progress.
 
 ### Change Log
 
 | Date | Author | Changes |
 |---|---|---|
 | 2026-02-28 | AI Code Review | Reviewed Lovable AI implementation. 11 action items created. Status → in-progress. |
+| 2026-02-28 | Dev Agent (Copilot) | Remediation validation: fixed C1+C2+M4 missed by Lovable. Verified 9/11 items done by Lovable (H1,H2,H3,M1,M2,M3,L1,L2). All tests green. Status → complete. |
+| 2026-02-28 | AI Code Review (R2) | Round 2 review: 1 HIGH (dead test assertion), 3 MEDIUM (double-save risk, missing useMemo, broken useCallback). 4 action items created. L1+L2 fixed. Status → in-progress. |
 
 ### File List
 
@@ -194,7 +213,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `src/lib/api/adapters/mock.ts` | Modified | Implemented `editSubTask`, `reorderSubTasks`, aligned contracts |
 | `src/components/SubTaskList.tsx` | Created | Extracted sub-task checklist with DnD, inline editing, progress |
 | `src/components/DailyUpdateFeed.tsx` | Created | Extracted daily updates feed with 24h gating |
-| `src/pages/TaskDetail.tsx` | Modified | Replaced inline sections with extracted components (has dead code) |
+| `src/pages/TaskDetail.tsx` | Modified | Replaced inline sections with extracted components; dead code removed |
 | `src/components/TaskFormDialog.tsx` | Modified | (undocumented in story) |
 | `src/lib/api/adapters/mock.smoke.test.ts` | Modified | Added subtask edit/reorder/24h smoke tests |
 | `src/test/no-direct-mock-adapter-imports.test.ts` | Modified | (undocumented in story) |
@@ -202,3 +221,6 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `package.json` | Modified | Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities |
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
+| `bun.lock` | Modified | Lockfile updates from bun dependency install |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 16 tests for sub-task inline edit + drag reorder |
+| `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 16 tests for daily update 24h gating + error toasts |
