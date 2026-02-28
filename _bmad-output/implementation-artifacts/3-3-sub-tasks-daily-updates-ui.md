@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: review
+Status: in-progress
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -112,6 +112,16 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R3][LOW] No fallback when all members inactive in Add Update dialog — `DailyUpdateFeed.tsx:57-58` sets `updateAuthor` to `''`, Select renders empty with no guidance. Add "No active members" disabled state or message
 - [x] [AI-Review-R3][LOW] `handleDelete` in `DailyUpdateFeed.tsx:99-107` double-sets `deleteUpdateId` to null — once in try block on success, again via AlertDialog `onOpenChange`. Harmless but redundant
 
+### Review Follow-ups Round 4 (AI)
+
+- [ ] [AI-Review-R4][MEDIUM] CMP-009 drag reorder test assertion is vacuous — wrapped in `if (reorderSpy.mock.calls.length > 0)` so it always passes in jsdom where `@dnd-kit` keyboard events don't fire `onDragEnd`. Split into two tests (handle-rendering assertion + `it.todo` for behavioral reorder) or directly invoke the `handleDragEnd` callback. `src/test/story-3-3-subtask-edit-reorder.test.tsx:118-148`
+- [ ] [AI-Review-R4][MEDIUM] `editDailyUpdate` return type `Promise<void>` mismatches `API_CONTRACT.md` which returns `200 OK` with full `DailyUpdate` object. Update `ApiClient` interface and mock to return `Promise<DailyUpdate>` to prevent breaking change when real adapter is implemented. `src/lib/api/client.ts:38`, `src/lib/api/adapters/mock.ts:422-432`
+- [ ] [AI-Review-R4][MEDIUM] Missing test for drag reorder API failure → optimistic revert + destructive toast (Task 6.2 explicitly requires "error path rollback" for reorder). `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [ ] [AI-Review-R4][MEDIUM] Missing component-level test for AC #3 — "Maximum of 20 sub-tasks per task" error toast when `addSubTask` rejects at limit. Mock smoke test covers the adapter, but no `SubTaskList` render test verifies the destructive toast message. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [ ] [AI-Review-R4][MEDIUM] Keyboard-invisible action buttons — `SubTaskList.tsx` delete button and `DailyUpdateFeed.tsx` Edit/Delete buttons use `opacity-0 group-hover:opacity-100` without `group-focus-within:opacity-100`, making focused buttons invisible for keyboard users. `src/components/SubTaskList.tsx:148`, `src/components/DailyUpdateFeed.tsx:135`
+- [ ] [AI-Review-R4][LOW] Mock `reorderSubTasks` missing empty-list and max-items validation per `API_CONTRACT.md` (`sub_task_ids: List should have at least 1 item` / `at most 20 items`). `src/lib/api/adapters/mock.ts:350-365`
+- [ ] [AI-Review-R4][LOW] `SortableSubTaskItem` not wrapped in `React.memo` — parent re-renders on `newSub` input changes cause all children to re-render unnecessarily. Harmless for max 20 items but misses idiomatic pattern. `src/components/SubTaskList.tsx:23-153`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -205,6 +215,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-02-28: Code review round 2. 1 HIGH, 3 MEDIUM issues found. 4 action items created under "Review Follow-ups Round 2 (AI)". Fixed L1 (bun.lock in File Map/File List) and committed L2 (pending TaskDetail.tsx dead code removal). Status → in-progress.
 - 2026-02-28: Code review round 3. All R1/R2 follow-ups verified resolved. 2 HIGH, 2 MEDIUM, 2 LOW new issues found. `tsc --noEmit` clean. All 165 tests pass (12 files). 6 action items created under "Review Follow-ups Round 3 (AI)". Status → in-progress.
 - 2026-02-28: R3 remediation validated. Lovable AI completed 5/6 R3 follow-ups: H1 (duplicate ID check in reorderSubTasks), H2 (CMP-009 test rewritten with keyboard DnD + spy), M1 (drag handle aria-label), L1 (empty members fallback), L2 (handleDelete double-set removed). M2 (File Map stale entry) missed — fixed by dev agent. All 167 tests pass (12 files). Status → review.
+- 2026-02-28: Code review round 4. All 10 ACs verified implemented. All R1/R2/R3 follow-ups verified resolved. `tsc --noEmit` clean. 167/167 tests pass (12 files). 0 HIGH, 5 MEDIUM, 2 LOW new issues found. 7 action items created under "Review Follow-ups Round 4 (AI)". Status → in-progress.
 
 ### Change Log
 
@@ -215,6 +226,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-02-28 | AI Code Review (R2) | Round 2 review: 1 HIGH (dead test assertion), 3 MEDIUM (double-save risk, missing useMemo, broken useCallback). 4 action items created. L1+L2 fixed. Status → in-progress. |
 | 2026-02-28 | AI Code Review (R3) | Round 3 review: 2 HIGH (mock reorder duplicate-ID validation, CMP-009 no-op test), 2 MEDIUM (drag handle aria-label, File Map stale entry), 2 LOW (empty-members fallback, redundant setState). 6 action items created. Status → in-progress. |
 | 2026-02-28 | Dev Agent (Copilot) | R3 remediation validation: 5/6 items done by Lovable (H1,H2,M1,L1,L2). Fixed M2 (removed stale File Map entry). All 167 tests pass. Status → review. |
+| 2026-02-28 | AI Code Review (R4) | Round 4 review: 0 HIGH, 5 MEDIUM (vacuous DnD test, editDailyUpdate return type mismatch, missing reorder error rollback test, missing AC#3 component test, keyboard-invisible buttons), 2 LOW (mock reorder missing edge validations, missing React.memo). 7 action items created. Status → in-progress. |
 
 ### File List
 

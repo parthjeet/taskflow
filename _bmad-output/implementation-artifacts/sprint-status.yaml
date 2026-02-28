@@ -59,7 +59,7 @@ development_status:
   epic-3: in-progress
   3-1-sub-task-management-api: done
   3-2-daily-update-management-api: done
-  3-3-sub-tasks-daily-updates-ui: in-progress
+  3-3-sub-tasks-daily-updates-ui: in-progress  # R4 review: 5 MEDIUM, 2 LOW action items
   epic-3-retrospective: optional
 
   # Epic 4: Dashboard, Filtering & Search
