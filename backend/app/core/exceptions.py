@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 
 from fastapi import HTTPException, Request
@@ -38,12 +39,11 @@ async def http_exception_handler(_: Request, exc: HTTPException) -> JSONResponse
     else:
         # Fallback for structured error details (e.g. dicts/lists)
         try:
-            import json
             message = json.dumps(detail)
         except (TypeError, ValueError):
             message = str(detail)
 
-    return JSONResponse(status_code=exc.status_code, content={"error": message})
+    return JSONResponse(status_code=exc.status_code, content={"error": message}, headers=exc.headers)
 
 
 async def validation_exception_handler(_: Request, exc: RequestValidationError) -> JSONResponse:

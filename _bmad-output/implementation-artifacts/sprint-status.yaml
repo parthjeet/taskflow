@@ -1,4 +1,4 @@
-# generated: 2026-02-16
+# generated: 2026-02-26
 # project: taskflow
 # project_key: NOKEY
 # tracking_system: file-system
@@ -33,7 +33,7 @@
 # - SM typically creates next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
-generated: 2026-02-16
+generated: 2026-02-26
 project: taskflow
 project_key: NOKEY
 tracking_system: file-system
@@ -56,9 +56,9 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Task Breakdown & Daily Progress Tracking
-  epic-3: backlog
-  3-1-sub-task-management-api: backlog
-  3-2-daily-update-management-api: backlog
+  epic-3: in-progress
+  3-1-sub-task-management-api: done
+  3-2-daily-update-management-api: ready-for-dev
   3-3-sub-tasks-daily-updates-ui: backlog
   epic-3-retrospective: optional
 

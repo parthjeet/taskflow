@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Any
 import uuid
 
 import sqlalchemy as sa
@@ -19,6 +20,7 @@ class Task(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         Uuid,
         primary_key=True,
+        default=uuid.uuid4,
         server_default=sa.text("gen_random_uuid()"),
     )
     title: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -33,25 +35,32 @@ class Task(Base):
     assignee_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     gear_id: Mapped[str | None] = mapped_column(String(4), nullable=True)
     blocking_reason: Mapped[str] = mapped_column(String, nullable=False, server_default=sa.text("''"))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=sa.func.now())
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=sa.func.now())
-
-    # Placeholder relationships until Epic 3 introduces real sub-task and daily-update models.
-    # The join condition is intentionally unsatisfiable so API responses remain [] for this story.
-    # Do not change lazy="noload" until Epic 3 replaces these placeholders with real models.
-    sub_tasks: Mapped[list["Task"]] = relationship(
-        "Task",
-        primaryjoin=lambda: sa.and_(remote(Task.id) == foreign(Task.id), sa.text("1=0")),
-        viewonly=True,
-        lazy="noload",
-        uselist=True,
-        overlaps="sub_tasks,daily_updates",
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
     )
-    daily_updates: Mapped[list["Task"]] = relationship(
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        server_default=sa.func.now(),
+    )
+
+    sub_tasks: Mapped[list["SubTask"]] = relationship(
+        "SubTask",
+        back_populates="task",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="SubTask.position",
+    )
+    # TODO: Replace with DailyUpdate in Story 3.2.
+    daily_updates: Mapped[list[Any]] = relationship(
         "Task",
         primaryjoin=lambda: sa.and_(remote(Task.id) == foreign(Task.id), sa.text("1=0")),
         viewonly=True,
         lazy="noload",
         uselist=True,
-        overlaps="sub_tasks,daily_updates",
+        overlaps="daily_updates",
     )

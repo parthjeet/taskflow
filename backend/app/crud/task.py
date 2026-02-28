@@ -6,7 +6,7 @@ import uuid
 
 import sqlalchemy as sa
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.models.member import Member
 from app.models.task import Task
@@ -38,6 +38,11 @@ def _normalize_update_value(field: str, value: object) -> object:
     return value
 
 
+def touch_task_updated_at(db: Session, task: Task) -> None:
+    """Refresh a task's update timestamp inside the current transaction."""
+    task.updated_at = datetime.now(timezone.utc)
+
+
 def list_tasks(
     db: Session,
     *,
@@ -47,7 +52,7 @@ def list_tasks(
     search: str | None = None,
     sort: Literal["updated", "priority", "status"] = "updated",
 ) -> list[Task]:
-    statement = select(Task)
+    statement = select(Task).options(selectinload(Task.sub_tasks))
 
     if status is not None:
         statement = statement.where(Task.status == status.value)
@@ -101,8 +106,18 @@ def list_tasks(
     return list(db.scalars(statement))
 
 
-def get_task_by_id(db: Session, task_id: uuid.UUID) -> Task | None:
+def get_task_by_id(
+    db: Session,
+    task_id: uuid.UUID,
+    *,
+    for_update: bool = False,
+    include_sub_tasks: bool = True,
+) -> Task | None:
     statement = select(Task).where(Task.id == task_id)
+    if include_sub_tasks:
+        statement = statement.options(selectinload(Task.sub_tasks))
+    if for_update:
+        statement = statement.with_for_update()
     return db.scalars(statement).first()
 
 
@@ -128,6 +143,7 @@ def create_task(db: Session, payload: TaskCreate) -> Task:
     db.add(task)
     db.commit()
     db.refresh(task)
+    db.refresh(task, attribute_names=["sub_tasks"])
     return task
 
 
@@ -174,10 +190,10 @@ def update_task(db: Session, task: Task, payload: TaskUpdate) -> Task:
     for field, value in effective_update_data.items():
         setattr(task, field, value)
 
-    task.updated_at = datetime.now(timezone.utc)
-    db.add(task)
+    touch_task_updated_at(db, task)
     db.commit()
     db.refresh(task)
+    db.refresh(task, attribute_names=["sub_tasks"])
     return task
 
 

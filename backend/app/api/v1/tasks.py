@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import re
 import uuid
-from typing import Literal, NoReturn
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from app.api.v1.common import handle_operational_error, rollback_safely
 from app.api.deps import get_db
 from app.crud import task as task_crud
 from app.models.task import Task
@@ -18,7 +19,6 @@ router = APIRouter()
 _GEAR_ID_PATTERN = re.compile(r"\d{4}")
 _GEAR_ID_ERROR = "GEAR ID must be exactly 4 digits"
 _BLOCKED_REASON_ERROR = "Blocking reason is required when status is Blocked"
-_TRANSIENT_DB_ERROR = "Database connection lost. Please retry."
 
 
 def _validate_gear_id(gear_id: str | None) -> None:
@@ -33,11 +33,6 @@ def _validate_blocked_status(status_value: str, blocking_reason: str | None) -> 
         return
     if not (blocking_reason or "").strip():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=_BLOCKED_REASON_ERROR)
-
-
-def _handle_operational_error(db: Session, exc: OperationalError) -> NoReturn:
-    db.rollback()
-    raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=_TRANSIENT_DB_ERROR) from exc
 
 
 @router.get("", response_model=list[TaskResponse])
@@ -61,7 +56,7 @@ def list_tasks(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
@@ -69,7 +64,7 @@ def get_task(task_id: uuid.UUID, db: Session = Depends(get_db)) -> Task:
     try:
         task = task_crud.get_task_by_id(db, task_id)
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -84,10 +79,10 @@ def create_task(payload: TaskCreate, db: Session = Depends(get_db)) -> Task:
     try:
         return task_crud.create_task(db, payload)
     except ValueError as exc:
-        db.rollback()
+        rollback_safely(db)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
 
 @router.patch("/{task_id}", response_model=TaskResponse)
@@ -95,9 +90,9 @@ def update_task(task_id: uuid.UUID, payload: TaskUpdate, db: Session = Depends(g
     _validate_gear_id(payload.gear_id)
 
     try:
-        task = task_crud.get_task_by_id(db, task_id)
+        task = task_crud.get_task_by_id(db, task_id, for_update=True)
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -109,18 +104,18 @@ def update_task(task_id: uuid.UUID, payload: TaskUpdate, db: Session = Depends(g
     try:
         return task_crud.update_task(db, task, payload)
     except ValueError as exc:
-        db.rollback()
+        rollback_safely(db)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_task(task_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
     try:
-        task = task_crud.get_task_by_id(db, task_id)
+        task = task_crud.get_task_by_id(db, task_id, for_update=True, include_sub_tasks=False)
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)
 
     if not task:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
@@ -128,4 +123,4 @@ def delete_task(task_id: uuid.UUID, db: Session = Depends(get_db)) -> None:
     try:
         task_crud.delete_task(db, task)
     except OperationalError as exc:
-        _handle_operational_error(db, exc)
+        handle_operational_error(db, exc)

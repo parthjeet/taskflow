@@ -2,6 +2,7 @@
 
 from app.db.base import Base
 from app.models.member import Member
+from app.models.subtask import SubTask
 from app.models.task import Task
 
-__all__ = ["Base", "Member", "Task"]
+__all__ = ["Base", "Member", "SubTask", "Task"]

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 import time
 
 from fastapi import FastAPI, HTTPException
@@ -37,7 +39,7 @@ def _is_transient_connection_error(exc: Exception) -> bool:
 
 
 def initialize_backend_services(app: FastAPI) -> None:
-    if getattr(app.state, "testing_engine", None) is not None:
+    if getattr(app.state, "testing_session_factory", None) is not None:
         app.state.is_ready = True
         app.state.startup_error = None
         return
@@ -69,8 +71,14 @@ def initialize_backend_services(app: FastAPI) -> None:
     app.state.startup_error = f"Database startup failed: {reason}"
 
 
+@asynccontextmanager
+async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
+    initialize_backend_services(app)
+    yield
+
+
 def create_app() -> FastAPI:
-    app = FastAPI(title=settings.app_title)
+    app = FastAPI(title=settings.app_title, lifespan=_lifespan)
     app.state.is_ready = False
     app.state.startup_error = "Database startup has not completed"
 
@@ -90,10 +98,6 @@ def create_app() -> FastAPI:
     # Root-level health endpoint for Electron startup polling.
     app.include_router(health_router)
     app.include_router(api_router, prefix=settings.api_prefix)
-
-    @app.on_event("startup")
-    def startup_event() -> None:
-        initialize_backend_services(app)
 
     return app
 
