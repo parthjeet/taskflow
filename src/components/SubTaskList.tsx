@@ -113,7 +113,7 @@ function SortableSubTaskItem({
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 group">
-      <button type="button" className="cursor-grab touch-none text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
+      <button type="button" aria-label="Reorder sub-task" className="cursor-grab touch-none text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
         <GripVertical className="h-4 w-4" />
       </button>
       <Checkbox checked={completed} disabled={toggling} onCheckedChange={handleToggle} />

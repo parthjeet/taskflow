@@ -122,6 +122,16 @@ describe("MockApiClient smoke", () => {
     await expect(client.deleteMember(member.id)).resolves.toBeUndefined();
   });
 
+  it("reorderSubTasks rejects duplicate IDs", async () => {
+    const tasks = await client.getTasks();
+    const taskWithSubs = tasks.find(t => t.subTasks.length >= 3);
+    expect(taskWithSubs).toBeTruthy();
+    const ids = taskWithSubs!.subTasks.map(s => s.id);
+    await expect(
+      client.reorderSubTasks(taskWithSubs!.id, [ids[0], ids[0], ids[2]]),
+    ).rejects.toThrow("must not contain duplicates");
+  });
+
   it("rejects invalid gearId values outside 4-digit format", async () => {
     await expect(
       client.createTask({
