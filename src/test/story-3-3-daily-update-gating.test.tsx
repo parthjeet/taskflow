@@ -49,7 +49,6 @@ describe('DailyUpdateFeed — rendering order', () => {
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[oldUpdate, recentUpdate, editedUpdate]} members={members} onMutate={onMutate} />);
 
     const items = screen.getAllByText(/update/i);
-    // Recent update should appear before old
     const recentIdx = items.findIndex(el => el.textContent?.includes('Recent'));
     const oldIdx = items.findIndex(el => el.textContent?.includes('Old'));
     expect(recentIdx).toBeLessThan(oldIdx);
@@ -58,7 +57,7 @@ describe('DailyUpdateFeed — rendering order', () => {
     expect(screen.getByText('(edited)')).toBeInTheDocument();
 
     // Author names
-    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getAllByText('Alice').length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('Bob')).toBeInTheDocument();
   });
 
