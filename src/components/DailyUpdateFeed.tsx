@@ -25,7 +25,7 @@ interface DailyUpdateFeedProps {
   onMutate: () => void;
 }
 
-export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: DailyUpdateFeedProps) {
+export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Readonly<DailyUpdateFeedProps>) {
   const { toast } = useToast();
   const [addingUpdate, setAddingUpdate] = useState(false);
   const [updateAuthor, setUpdateAuthor] = useState('');
@@ -118,7 +118,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Dai
           {sortedUpdates.map(upd => {
             const editable = isWithin24Hours(upd.createdAt);
             return (
-              <div key={upd.id} className="rounded-md border p-3 space-y-1">
+              <div key={upd.id} className="rounded-md border p-3 space-y-1 group">
                 {editingUpdateId === upd.id ? (
                   <div className="space-y-2">
                     <Textarea
@@ -145,7 +145,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Dai
                     </div>
                     <p className="text-sm">{upd.content}</p>
                     {editable ? (
-                      <div className="flex gap-1 justify-end">
+                      <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button size="sm" variant="ghost" className="h-6 text-xs"
                           onClick={() => { setEditingUpdateId(upd.id); setEditingContent(upd.content); }}>
                           Edit
@@ -159,7 +159,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Dai
                       <div className="flex justify-end">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-xs text-muted-foreground cursor-default">Past edit window</span>
+                            <span className="text-xs text-muted-foreground italic cursor-default">Past edit window</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Updates can only be edited within 24 hours</p>
