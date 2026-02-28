@@ -50,12 +50,14 @@
 
 ### SubTask
 
-| Field       | Type                | Required | Description                        |
-|-------------|---------------------|----------|------------------------------------|
-| `id`        | `string (UUID)`     | Auto     | Server-generated unique identifier |
-| `title`     | `string`            | **Yes**  | 1–200 characters                   |
-| `completed` | `boolean`           | Auto     | Defaults to `false`                |
-| `created_at`| `string (ISO 8601)` | Auto     | Server-generated timestamp         |
+| Field        | Type                | Required | Description                         |
+|--------------|---------------------|----------|-------------------------------------|
+| `id`         | `string (UUID)`     | Auto     | Server-generated unique identifier  |
+| `task_id`    | `string (UUID)`     | Auto     | Parent task reference               |
+| `title`      | `string`            | **Yes**  | 1–200 characters                    |
+| `completed`  | `boolean`           | Auto     | Defaults to `false`                 |
+| `position`   | `number`            | Auto     | Zero-based order within parent task |
+| `created_at` | `string (ISO 8601)` | Auto     | Server-generated timestamp          |
 
 ### DailyUpdate
 
@@ -113,7 +115,14 @@ GET /tasks
     "gear_id": "1024",
     "blocking_reason": "",
     "sub_tasks": [
-      { "id": "s1", "title": "Create workflow YAML", "completed": true }
+      {
+        "id": "s1",
+        "task_id": "abc12345",
+        "title": "Create workflow YAML",
+        "completed": true,
+        "position": 0,
+        "created_at": "2026-02-15T09:00:00Z"
+      }
     ],
     "daily_updates": [
       {
@@ -133,6 +142,10 @@ GET /tasks
 ]
 ```
 
+**Errors:**
+- `400 Bad Request` — Invalid filter value (for example malformed `assignee` UUID or unsupported `sort`)
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
+
 ---
 
 ### Get Single Task
@@ -143,10 +156,9 @@ GET /tasks/{id}
 
 **Response:** `200 OK` — Full task object (same shape as list item)
 
-**Error:** `404 Not Found`
-```json
-{ "error": "Task not found" }
-```
+**Errors:**
+- `404 Not Found` — Task not found
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -178,6 +190,7 @@ POST /tasks
 
 **Errors:**
 - `400 Bad Request` — Validation failure (see [Business Rules](#business-rules))
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -206,6 +219,7 @@ PATCH /tasks/{id}
 **Errors:**
 - `400 Bad Request` — Validation failure
 - `404 Not Found` — Task does not exist
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -217,7 +231,9 @@ DELETE /tasks/{id}
 
 **Response:** `204 No Content`
 
-**Error:** `404 Not Found`
+**Errors:**
+- `404 Not Found` — Task not found
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -240,12 +256,20 @@ POST /tasks/{taskId}/subtasks
 ```json
 {
   "id": "generated-uuid",
+  "task_id": "task-uuid",
   "title": "Sub-task title",
-  "completed": false
+  "completed": false,
+  "position": 0,
+  "created_at": "2026-02-16T14:00:00Z"
 }
 ```
 
 **Side Effect:** Parent task's `updated_at` is refreshed.
+
+**Errors:**
+- `400 Bad Request` — Validation failure or maximum sub-task limit reached (20 per task)
+- `404 Not Found`
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -261,12 +285,108 @@ PATCH /tasks/{taskId}/subtasks/{subTaskId}/toggle
 ```json
 {
   "id": "s1",
+  "task_id": "t1",
   "title": "Sub-task title",
-  "completed": true
+  "completed": true,
+  "position": 0,
+  "created_at": "2026-02-16T14:00:00Z"
 }
 ```
 
 **Side Effect:** Parent task's `updated_at` is refreshed.
+
+**Errors:**
+- `404 Not Found`
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
+
+---
+
+### Update Sub-Task Title
+
+```
+PATCH /tasks/{taskId}/subtasks/{subTaskId}
+```
+
+**Request Body:**
+```json
+{
+  "title": "Updated sub-task title"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "id": "s1",
+  "task_id": "t1",
+  "title": "Updated sub-task title",
+  "completed": false,
+  "position": 1,
+  "created_at": "2026-02-16T14:00:00Z"
+}
+```
+
+**Side Effect:** Parent task's `updated_at` is refreshed.
+
+**Errors:**
+- `400 Bad Request` — Validation failure
+- `404 Not Found`
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
+
+---
+
+### Reorder Sub-Tasks
+
+```
+PUT /tasks/{taskId}/subtasks/reorder
+```
+
+**Request Body:**
+```json
+{
+  "sub_task_ids": ["s3", "s1", "s2"]
+}
+```
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "id": "s3",
+    "task_id": "t1",
+    "title": "Third",
+    "completed": false,
+    "position": 0,
+    "created_at": "2026-02-16T14:03:00Z"
+  },
+  {
+    "id": "s1",
+    "task_id": "t1",
+    "title": "First",
+    "completed": true,
+    "position": 1,
+    "created_at": "2026-02-16T14:01:00Z"
+  },
+  {
+    "id": "s2",
+    "task_id": "t1",
+    "title": "Second",
+    "completed": false,
+    "position": 2,
+    "created_at": "2026-02-16T14:02:00Z"
+  }
+]
+```
+
+**Side Effect:** Parent task's `updated_at` is refreshed.
+
+**Errors:**
+- `400 Bad Request` — Empty reorder list (`sub_task_ids: List should have at least 1 item`)
+- `400 Bad Request` — Reorder list exceeds maximum (`sub_task_ids: List should have at most 20 items`)
+- `400 Bad Request` — Duplicate IDs in reorder list (`sub_task_ids: must not contain duplicates`)
+- `400 Bad Request` — Reorder IDs do not match existing task subtasks (`sub_task_ids: must include each existing sub-task exactly once`)
+- `404 Not Found`
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -280,7 +400,9 @@ DELETE /tasks/{taskId}/subtasks/{subTaskId}
 
 **Side Effect:** Parent task's `updated_at` is refreshed.
 
-**Error:** `404 Not Found`
+**Errors:**
+- `404 Not Found` — Task or sub-task not found
+- `503 Service Unavailable` — Transient database connectivity issue (`Retry-After: 5`)
 
 ---
 
@@ -461,6 +583,7 @@ All error responses follow this shape:
 | `403` | Forbidden (24-hour edit/delete window expired)                          |
 | `404` | Not Found (resource doesn't exist)                                      |
 | `409` | Conflict (e.g., deleting member with assigned tasks)                    |
+| `503` | Service Unavailable (transient DB connectivity issue; includes `Retry-After: 5`) |
 | `500` | Internal Server Error                                                   |
 
 ---
