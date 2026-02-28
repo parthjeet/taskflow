@@ -23,11 +23,11 @@ function SortableSubTaskItem({
   sub,
   taskId,
   onMutate,
-}: {
+}: Readonly<{
   sub: SubTask;
   taskId: string;
   onMutate: () => void;
-}) {
+}>) {
   const { toast } = useToast();
   const [completed, setCompleted] = useState(sub.completed);
   const [toggling, setToggling] = useState(false);
@@ -125,9 +125,18 @@ function SortableSubTaskItem({
           onBlur={saveEdit}
         />
       ) : (
-        <span
+      <span
           className={cn('text-sm flex-1 cursor-pointer hover:underline', completed && 'line-through text-muted-foreground')}
           onClick={() => { setEditing(true); setEditTitle(sub.title); }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setEditing(true);
+              setEditTitle(sub.title);
+            }
+          }}
         >
           {sub.title}
         </span>
@@ -144,7 +153,7 @@ function SortableSubTaskItem({
   );
 }
 
-export function SubTaskList({ taskId, subTasks, onMutate }: SubTaskListProps) {
+export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskListProps>) {
   const { toast } = useToast();
   const [newSub, setNewSub] = useState('');
   const [adding, setAdding] = useState(false);

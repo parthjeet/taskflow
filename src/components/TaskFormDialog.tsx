@@ -24,7 +24,7 @@ interface Props {
 const statuses: Status[] = ['To Do', 'In Progress', 'Blocked', 'Done'];
 const priorities: Priority[] = ['High', 'Medium', 'Low'];
 
-export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: Props) {
+export function TaskFormDialog({ open, onOpenChange, onSubmit, members, task }: Readonly<Props>) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [status, setStatus] = useState<Status>('To Do');
