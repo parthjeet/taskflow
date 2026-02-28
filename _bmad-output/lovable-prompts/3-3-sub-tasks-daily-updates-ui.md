@@ -394,7 +394,9 @@ Preserve these exact strings — existing tests depend on them:
 
 Source: `_bmad-output/test-artifacts/test-design-epic-3-story-3.3.md`
 
-### Critical (P0) — Must Pass
+> All tests are Vitest component/unit tests (`@testing-library/react` + `vitest` + `jsdom`). No E2E/Playwright at this stage.
+
+### Critical (P0) — Must Pass (100% pass rate, no exceptions)
 
 | ID | Scenario | Expected |
 |---|---|---|
@@ -413,7 +415,7 @@ Source: `_bmad-output/test-artifacts/test-design-epic-3-story-3.3.md`
 | CMP-012 | Existing test IDs preserved after extraction | All testids findable in DOM |
 | CMP-013 | **NEG:** Edit save returns 403 → destructive toast | Error message, no crash |
 
-### High (P1) — Should Pass
+### High (P1) — Should Pass (≥95% pass rate)
 
 | ID | Scenario | Expected |
 |---|---|---|
@@ -436,7 +438,72 @@ Source: `_bmad-output/test-artifacts/test-design-epic-3-story-3.3.md`
 | CMP-030 | All mutations call `load()` to refresh parent data | `onMutate` invoked |
 | CMP-031 | Keyboard drag-and-drop (Arrow + Space) triggers reorder | A11y works |
 
-### Negative Scenario Summary
+### Medium (P2) — Edge Cases & Boundary Conditions
+
+| ID | Scenario | Expected |
+|---|---|---|
+| CMP-032 | Zero sub-tasks: progress shows "0/0 completed", no drag handles | Empty state renders cleanly |
+| CMP-033 | Single sub-task: drag is no-op (no `reorderSubTasks` API call) | No unnecessary API call |
+| CMP-034 | Zero daily updates: shows "No updates yet." | Empty state text visible |
+| CMP-035 | Multiple rapid toggles on different sub-tasks do not interfere | Independent optimistic states |
+| CMP-036 | **NEG:** Drag operation API error → toast with error message | Error surfaced to user |
+| CMP-037 | After successful edit, "(edited)" badge appears without page reload | Badge renders reactively |
+| CMP-038 | **NEG:** localStorage has stale/invalid author ID → fallback to first active member | Graceful degradation |
+| CMP-039 | `editSubTask` mock: title trimmed, whitespace normalized | Mock contract correct |
+| CMP-040 | `reorderSubTasks` mock: reassigns 0-indexed positions | Position values correct |
+| CMP-041 | Inline edit: Escape cancels without API call, restores original | No side effects |
+| UNIT-002 | `toggleSubTask` returns updated `SubTask` (API contract alignment) | Return type matches interface |
+| UNIT-003 | `deleteSubTask` remains `Promise<void>` (204 semantics) | No breaking change |
+
+### Low (P3) — Nice-to-Have / Exploratory
+
+| ID | Scenario | Expected |
+|---|---|---|
+| CMP-042 | Sub-task toggle responds within 200ms (optimistic timing) | Perceived instant response |
+| CMP-043 | Screen reader announces drag-and-drop instructions | A11y narration works |
+| CMP-044 | Add sub-task via Enter key (not just button click) | Keyboard UX supported |
+| CMP-045 | `formatRelativeDate` renders human-readable timestamps | Utility output correct |
+
+### Negative Scenario Consolidated Matrix
+
+All 20 negative/error paths that MUST have corresponding test implementations:
+
+**Sub-Task Negatives:**
+
+| # | Scenario | Expected | Test ID |
+|---|---|---|---|
+| N1 | Toggle checkbox, API fails | Checkbox + progress revert, destructive toast | CMP-004 |
+| N2 | Add 21st sub-task (at max 20) | Toast: "Maximum of 20 sub-tasks per task", no add | UNIT-001 |
+| N3 | Add sub-task with empty title | Validation toast, input not cleared, no API call | CMP-016 |
+| N4 | Add sub-task with whitespace-only title | Validation toast, no API call | CMP-016 |
+| N5 | Add sub-task with title > 200 chars | Validation error at `MAX_SUBTASK_TITLE_LENGTH` | CMP-017 |
+| N6 | Inline edit: save empty title | Validation toast, revert to original, no `editSubTask` call | CMP-019 |
+| N7 | Inline edit: save whitespace-only title | Validation toast, revert to original | CMP-020 |
+| N8 | Inline edit: save title > 200 chars | Validation toast | CMP-021 |
+| N9 | Inline edit: Escape during edit | Cancel, restore original, no API call | CMP-041 |
+| N10 | Drag reorder, `reorderSubTasks` API fails | List reverts to pre-drag order, destructive toast | CMP-010 |
+| N11 | Drag reorder on single-item list | No `reorderSubTasks` API call (no-op) | CMP-033 |
+| N12 | Drag error produces toast | `toast({ variant: "destructive" })` with message | CMP-036 |
+
+**Daily Update Negatives:**
+
+| # | Scenario | Expected | Test ID |
+|---|---|---|---|
+| N13 | View update > 24h old | Edit/delete hidden; "Past edit window" Tooltip shown | CMP-007 |
+| N14 | Edit update, API returns 403 | Destructive toast with error message, content unchanged | CMP-013 |
+| N15 | Delete update, API returns 403 | Destructive toast with error message, update not removed | CMP-026 |
+| N16 | Add Update with empty content | Submit button disabled, no API call | CMP-027 |
+| N17 | Add Update > 1000 chars | `maxLength` on textarea prevents entry | CMP-028 |
+| N18 | Stale/invalid localStorage author ID | Falls back to first active member | CMP-038 |
+
+**Regression Negatives:**
+
+| # | Scenario | Expected | Test ID |
+|---|---|---|---|
+| N19 | After extraction, existing `data-testid` selectors still work | `add-subtask-btn`, `delete-subtask-{id}`, `confirm-delete-update`, `confirm-delete-task` findable | CMP-012 |
+| N20 | After extraction, `load()` refetch propagates through props | Mutations in child components trigger parent data refresh via `onMutate` | CMP-030 |
+
+### Error Handling Pattern (Mandatory)
 
 All error paths must use this pattern:
 ```typescript
@@ -447,6 +514,38 @@ try { /* mutation */ } catch (err) {
 ```
 
 Optimistic update rollbacks (toggle, reorder) must restore the **exact pre-mutation state** — including progress count for toggles and item order for reorders.
+
+### Test Data / Fixture Requirements
+
+Tests require these mock data configurations:
+- Mock tasks with **0, 1, 3+, and 20 sub-tasks** (for boundary testing of empty state, single-item no-op, normal flow, and max-limit rejection)
+- Mock daily updates with timestamps: **< 24h ago** (editable), **> 24h ago** (locked), **exactly 24h** boundary
+- Active and inactive team members for author dropdown testing (verify only active members appear in Select)
+- Use `vi.useFakeTimers()` for all 24-hour window boundary tests — do not rely on real clock
+
+### DnD Testing Guidance
+
+`@dnd-kit` drag simulation in Vitest/jsdom can be non-trivial. Two acceptable approaches:
+1. **Pointer event simulation:** Use `fireEvent.dragStart`/`dragEnd` or `@dnd-kit`'s documented test patterns
+2. **Callback-level testing:** Mock the `onDragEnd` handler directly — pass a synthetic `DragEndEvent` with `active.id` and `over.id`, then assert the state update and `reorderSubTasks` API call
+
+Either approach is acceptable. The callback-level approach is more reliable in jsdom.
+
+### Regression Requirements
+
+These existing test suites **MUST** continue passing after all changes:
+- `story-2-2-comprehensive.test.tsx` — comprehensive TaskDetail tests from Story 2.2
+- `task-detail-author-persistence.test.tsx` — localStorage author persistence tests
+
+Run the full existing suite after component extraction to verify no breakage.
+
+### Quality Gate
+
+- **P0**: 100% pass rate (no exceptions)
+- **P1**: ≥95% pass rate (waivers require triage documentation)
+- **P2/P3**: ≥90% (informational)
+- **All 20 negative scenarios (N1–N20)**: Must have corresponding test implementations
+- **R-005 regression** (component extraction): Existing test suite 100% green
 
 ---
 

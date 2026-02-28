@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -46,41 +46,55 @@ So that I can break down work and log progress directly from the UI.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Update API types, interface, and mock adapter (AC: #1, #2, #3, #4, #5, #6, #7, #8)
-  - [ ] 1.1 Add `position: number` to `SubTask` in `src/lib/api/types.ts`.
-  - [ ] 1.2 Add `editSubTask(taskId: string, subTaskId: string, data: { title: string }): Promise<SubTask>` and `reorderSubTasks(taskId: string, subTaskIds: string[]): Promise<SubTask[]>` to the `ApiClient` interface in `src/lib/api/client.ts`.
-  - [ ] 1.3 Implement `editSubTask` in `src/lib/api/adapters/mock.ts`: validate title 1–200 chars (use `MAX_SUBTASK_TITLE_LENGTH` from `constants.ts`), trim whitespace, reject empty, update task `updatedAt`.
-  - [ ] 1.4 Implement `reorderSubTasks` in `src/lib/api/adapters/mock.ts`: accept full ordered `subTaskIds` array, reassign `position` values (0-indexed), update task `updatedAt`, return all sub-tasks in new order.
-  - [ ] 1.5 Align sub-task method contracts in `src/lib/api/client.ts` and `src/lib/api/adapters/mock.ts` with `API_CONTRACT.md`: `toggleSubTask` returns updated `SubTask`; `deleteSubTask` remains `Promise<void>` (`204 No Content` semantics); all returned sub-task objects include `position`.
-  - [ ] 1.6 Verify existing `addDailyUpdate`, `editDailyUpdate`, `deleteDailyUpdate` mock methods correctly enforce 24h window and resolve `authorName`.
-- [ ] Task 2: Install drag-and-drop library (AC: #5)
-  - [ ] 2.1 Run `npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities` in ``.
-- [ ] Task 3: Build Sub-Tasks UI — extract `SubTaskList` component (AC: #1, #2, #3, #4, #5)
-  - [ ] 3.1 Create `src/components/SubTaskList.tsx` extracted from `src/pages/TaskDetail.tsx`.
-  - [ ] 3.2 Render completion progress text ("X/Y completed") with `<Progress>` bar.
-  - [ ] 3.3 Sub-task list: each row has drag handle (`GripVertical` icon), `<Checkbox>`, inline-editable title, delete button (hover-to-reveal).
-  - [ ] 3.4 Inline title editing: click title text → convert to `<Input>` → save on Enter/blur, cancel on Escape. Validate 1–200 chars, trim whitespace, reject empty. Call `apiClient.editSubTask()`.
-  - [ ] 3.5 Drag-and-drop reorder: wrap list in `<DndContext>` + `<SortableContext>` from `@dnd-kit/sortable`. Each sub-task row uses `useSortable`. On `onDragEnd`, compute new order and call `apiClient.reorderSubTasks(taskId, orderedIds)`.
-  - [ ] 3.6 Optimistic toggle: on checkbox click, immediately flip `completed` state in local state and update progress count, then call `apiClient.toggleSubTask()`. Revert on error.
-  - [ ] 3.7 "Add sub-task" input at bottom: Enter key or button to submit. Show `toast({ variant: "destructive" })` with error message if max 20 limit reached.
-  - [ ] 3.8 Keyboard-accessible drag-and-drop (enabled by default with `@dnd-kit`).
+- [x] Task 1: Update API types, interface, and mock adapter (AC: #1, #2, #3, #4, #5, #6, #7, #8)
+  - [x] 1.1 Add `position: number` to `SubTask` in `src/lib/api/types.ts`.
+  - [x] 1.2 Add `editSubTask(taskId: string, subTaskId: string, data: { title: string }): Promise<SubTask>` and `reorderSubTasks(taskId: string, subTaskIds: string[]): Promise<SubTask[]>` to the `ApiClient` interface in `src/lib/api/client.ts`.
+  - [x] 1.3 Implement `editSubTask` in `src/lib/api/adapters/mock.ts`: validate title 1–200 chars (use `MAX_SUBTASK_TITLE_LENGTH` from `constants.ts`), trim whitespace, reject empty, update task `updatedAt`.
+  - [x] 1.4 Implement `reorderSubTasks` in `src/lib/api/adapters/mock.ts`: accept full ordered `subTaskIds` array, reassign `position` values (0-indexed), update task `updatedAt`, return all sub-tasks in new order.
+  - [x] 1.5 Align sub-task method contracts in `src/lib/api/client.ts` and `src/lib/api/adapters/mock.ts` with `API_CONTRACT.md`: `toggleSubTask` returns updated `SubTask`; `deleteSubTask` remains `Promise<void>` (`204 No Content` semantics); all returned sub-task objects include `position`.
+  - [x] 1.6 Verify existing `addDailyUpdate`, `editDailyUpdate`, `deleteDailyUpdate` mock methods correctly enforce 24h window and resolve `authorName`.
+- [x] Task 2: Install drag-and-drop library (AC: #5)
+  - [x] 2.1 Run `npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities` in ``.
+- [x] Task 3: Build Sub-Tasks UI — extract `SubTaskList` component (AC: #1, #2, #3, #4, #5)
+  - [x] 3.1 Create `src/components/SubTaskList.tsx` extracted from `src/pages/TaskDetail.tsx`.
+  - [x] 3.2 Render completion progress text ("X/Y completed") with `<Progress>` bar.
+  - [x] 3.3 Sub-task list: each row has drag handle (`GripVertical` icon), `<Checkbox>`, inline-editable title, delete button (hover-to-reveal).
+  - [x] 3.4 Inline title editing: click title text → convert to `<Input>` → save on Enter/blur, cancel on Escape. Validate 1–200 chars, trim whitespace, reject empty. Call `apiClient.editSubTask()`.
+  - [x] 3.5 Drag-and-drop reorder: wrap list in `<DndContext>` + `<SortableContext>` from `@dnd-kit/sortable`. Each sub-task row uses `useSortable`. On `onDragEnd`, compute new order and call `apiClient.reorderSubTasks(taskId, orderedIds)`.
+  - [x] 3.6 Optimistic toggle: on checkbox click, immediately flip `completed` state in local state and update progress count, then call `apiClient.toggleSubTask()`. Revert on error.
+  - [x] 3.7 "Add sub-task" input at bottom: Enter key or button to submit. Show `toast({ variant: "destructive" })` with error message if max 20 limit reached.
+  - [x] 3.8 Keyboard-accessible drag-and-drop (enabled by default with `@dnd-kit`).
 - [ ] Task 4: Build Daily Updates UI — extract `DailyUpdateFeed` component (AC: #6, #7, #8, #9, #10)
-  - [ ] 4.1 Create `src/components/DailyUpdateFeed.tsx` extracted from `src/pages/TaskDetail.tsx`.
-  - [ ] 4.2 Display reverse chronological feed: each update shows author name, `formatRelativeDate(createdAt)` timestamp, content text, and `"(edited)"` badge when `edited === true`.
+  - [x] 4.1 Create `src/components/DailyUpdateFeed.tsx` extracted from `src/pages/TaskDetail.tsx`.
+  - [x] 4.2 Display reverse chronological feed: each update shows author name, `formatRelativeDate(createdAt)` timestamp, content text, and `"(edited)"` badge when `edited === true`.
   - [ ] 4.3 For updates where `isWithin24Hours(createdAt)` is true: show Edit and Delete buttons on hover (`opacity-0 group-hover:opacity-100`).
   - [ ] 4.4 For updates where `isWithin24Hours(createdAt)` is false: hide Edit/Delete buttons entirely, and show a `<Tooltip>` from shadcn/ui wrapping a small `<span className="text-xs text-muted-foreground italic">Past edit window</span>` label.
-  - [ ] 4.5 "Add Update" dialog: author `<Select>` dropdown populated from `members` prop (parent still loads via `apiClient.getMembers()`, active members only), content `<Textarea>` (max 1000 chars). Pre-select last-used author from `localStorage` key `taskflow-last-author` (existing key; do not rename). Save selected author to localStorage on submit.
-  - [ ] 4.6 Edit flow: inline textarea replaces content, save calls `apiClient.editDailyUpdate()`, sets `"(edited)"` indicator. Handle 403 response gracefully (show destructive toast with error message).
-  - [ ] 4.7 Delete flow: `<AlertDialog>` confirmation, then `apiClient.deleteDailyUpdate()`. Handle 403 response gracefully.
+  - [x] 4.5 "Add Update" dialog: author `<Select>` dropdown populated from `members` prop (parent still loads via `apiClient.getMembers()`, active members only), content `<Textarea>` (max 1000 chars). Pre-select last-used author from `localStorage` key `taskflow-last-author` (existing key; do not rename). Save selected author to localStorage on submit.
+  - [x] 4.6 Edit flow: inline textarea replaces content, save calls `apiClient.editDailyUpdate()`, sets `"(edited)"` indicator. Handle 403 response gracefully (show destructive toast with error message).
+  - [x] 4.7 Delete flow: `<AlertDialog>` confirmation, then `apiClient.deleteDailyUpdate()`. Handle 403 response gracefully.
 - [ ] Task 5: Wire up components in `TaskDetail.tsx`
   - [ ] 5.1 Replace inline sub-task and daily update sections in `src/pages/TaskDetail.tsx` with `<SubTaskList>` and `<DailyUpdateFeed>` components.
-  - [ ] 5.2 Pass task data, active members, and `load()` refetch callback as props. Continue using existing `apiClient` + `useEffect` + manual `load()` pattern (consistent with Story 2.2 — TanStack Query migration is deferred to a separate story).
-  - [ ] 5.3 All mutations call `load()` after success to refresh parent task data (including `updatedAt`).
+  - [x] 5.2 Pass task data, active members, and `load()` refetch callback as props. Continue using existing `apiClient` + `useEffect` + manual `load()` pattern (consistent with Story 2.2 — TanStack Query migration is deferred to a separate story).
+  - [x] 5.3 All mutations call `load()` after success to refresh parent task data (including `updatedAt`).
 - [ ] Task 6: Add/Update frontend tests for Story 3.3 behavior (AC: #1, #2, #3, #4, #5, #6, #7, #8, #9, #10)
-  - [ ] 6.1 Update existing TaskDetail tests to pass after extraction while preserving current behavior and selectors (`taskflow-last-author`, `data-testid="add-subtask-btn"`, `data-testid="delete-subtask-{id}"`, existing confirm-delete test IDs).
+  - [x] 6.1 Update existing TaskDetail tests to pass after extraction while preserving current behavior and selectors (`taskflow-last-author`, `data-testid="add-subtask-btn"`, `data-testid="delete-subtask-{id}"`, existing confirm-delete test IDs).
   - [ ] 6.2 Add tests for sub-task inline edit and drag reorder flows (including optimistic path + error path rollback).
   - [ ] 6.3 Add tests for daily update 24h gating UI (`Past edit window` indicator), edit/delete 403 error toasts, and newest-first rendering.
-  - [ ] 6.4 Run targeted frontend tests for touched flows before marking story complete.
+  - [x] 6.4 Run targeted frontend tests for touched flows before marking story complete.
+
+### Review Follow-ups (AI)
+
+- [ ] [AI-Review][CRITICAL] Remove dead `handleAddSubTask` function and its undeclared variable references (`newSub`, `addingSubTask`, `setAddingSubTask`, `setNewSub`) from `src/pages/TaskDetail.tsx:82-94` — causes `tsc` compilation failure
+- [ ] [AI-Review][CRITICAL] Remove unused imports (`MAX_DAILY_UPDATE_CONTENT_LENGTH`, `MAX_SUBTASK_TITLE_LENGTH`) at `src/pages/TaskDetail.tsx:14` and unused `LAST_AUTHOR_KEY` constant at `src/pages/TaskDetail.tsx:20`
+- [ ] [AI-Review][HIGH] Add keyboard accessibility to sub-task inline title edit `<span>` in `src/components/SubTaskList.tsx:128-133` — add `role="button"`, `tabIndex={0}`, and `onKeyDown` (Enter/Space triggers edit mode)
+- [ ] [AI-Review][HIGH] Write Story 3.3 tests: sub-task inline edit + drag reorder (optimistic + error rollback) per Task 6.2
+- [ ] [AI-Review][HIGH] Write Story 3.3 tests: daily update 24h gating UI ("Past edit window" indicator), edit/delete 403 error toasts, newest-first rendering per Task 6.3
+- [ ] [AI-Review][MEDIUM] Add hover-to-reveal for daily update Edit/Delete buttons (`opacity-0 group-hover:opacity-100`) in `src/components/DailyUpdateFeed.tsx` — currently always visible, story Task 4.3 requires hover pattern
+- [ ] [AI-Review][MEDIUM] Add `italic` class to "Past edit window" span in `src/components/DailyUpdateFeed.tsx:158` per story Task 4.4 spec
+- [ ] [AI-Review][MEDIUM] Fix optional chaining lint warnings in `src/lib/api/adapters/mock.ts` — lines 263, 312, 421: `!member || !member.active` → `!member?.active`
+- [ ] [AI-Review][MEDIUM] Update story File Map to document additional changed files: `TaskFormDialog.tsx`, `mock.smoke.test.ts`, `no-direct-mock-adapter-imports.test.ts`, `tsconfig.app.json`, `tsconfig.json`
+- [ ] [AI-Review][LOW] Mark component props as `Readonly<>` in `SubTaskList.tsx`, `DailyUpdateFeed.tsx`, `TaskFormDialog.tsx` per ESLint rule
+- [ ] [AI-Review][LOW] Restore trailing newlines in `tsconfig.json` and `tsconfig.app.json`
 
 ## Dev Notes
 
@@ -156,8 +170,35 @@ So that I can break down work and log progress directly from the UI.
 
 ### Agent Model Used
 
+Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- 2026-02-28: Code review completed. All 10 ACs functionally implemented. 2 CRITICAL, 3 HIGH, 4 MEDIUM, 2 LOW issues found. Action items created under "Review Follow-ups (AI)". Story status set to in-progress pending fixes.
+- Key blockers: dead code in TaskDetail.tsx causes `tsc` compilation failure (C1, C2); missing test coverage for 3.3-specific UI flows (H2); sub-task title edit not keyboard-accessible (H1).
+
+### Change Log
+
+| Date | Author | Changes |
+|---|---|---|
+| 2026-02-28 | AI Code Review | Reviewed Lovable AI implementation. 11 action items created. Status → in-progress. |
+
 ### File List
+
+| File | Action | Notes |
+|---|---|---|
+| `src/lib/api/types.ts` | Modified | Added `position: number` to SubTask |
+| `src/lib/api/client.ts` | Modified | Added `editSubTask`, `reorderSubTasks` to ApiClient interface |
+| `src/lib/api/adapters/mock.ts` | Modified | Implemented `editSubTask`, `reorderSubTasks`, aligned contracts |
+| `src/components/SubTaskList.tsx` | Created | Extracted sub-task checklist with DnD, inline editing, progress |
+| `src/components/DailyUpdateFeed.tsx` | Created | Extracted daily updates feed with 24h gating |
+| `src/pages/TaskDetail.tsx` | Modified | Replaced inline sections with extracted components (has dead code) |
+| `src/components/TaskFormDialog.tsx` | Modified | (undocumented in story) |
+| `src/lib/api/adapters/mock.smoke.test.ts` | Modified | Added subtask edit/reorder/24h smoke tests |
+| `src/test/no-direct-mock-adapter-imports.test.ts` | Modified | (undocumented in story) |
+| `src/test/story-2-2-comprehensive.test.tsx` | Modified | Added race condition tests |
+| `package.json` | Modified | Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities |
+| `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
+| `tsconfig.json` | Modified | Reformatted |
