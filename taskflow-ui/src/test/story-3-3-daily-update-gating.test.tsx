@@ -104,6 +104,22 @@ describe('DailyUpdateFeed — 24h gating', () => {
 });
 
 describe('DailyUpdateFeed — edit flow', () => {
+  it('CMP-057: save with unchanged content is a no-op (no API call)', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(
+      makeUpdate({ id: 'u1', content: 'Recent update', edited: true }),
+    );
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(editSpy).not.toHaveBeenCalled();
+    });
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(screen.queryByDisplayValue('Recent update')).not.toBeInTheDocument();
+  });
+
   it('CMP-022: edit flow with textarea, save, calls editDailyUpdate', async () => {
     vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u1', content: 'Updated content', edited: true }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
@@ -189,6 +205,24 @@ describe('DailyUpdateFeed — edit flow', () => {
 });
 
 describe('DailyUpdateFeed — delete flow', () => {
+  it('CMP-058: task switch resets delete dialog state', () => {
+    const deleteSpy = vi.spyOn(apiClient, 'deleteDailyUpdate').mockResolvedValue(undefined);
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Delete'));
+    expect(screen.getByText('Delete Update')).toBeInTheDocument();
+    expect(screen.getByTestId('confirm-delete-update')).toBeInTheDocument();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByTestId('confirm-delete-update')).not.toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
   it('CMP-025: delete confirmation dialog calls deleteDailyUpdate', async () => {
     vi.spyOn(apiClient, 'deleteDailyUpdate').mockResolvedValue(undefined);
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
@@ -217,6 +251,21 @@ describe('DailyUpdateFeed — delete flow', () => {
 });
 
 describe('DailyUpdateFeed — add update', () => {
+  it('CMP-059: no active members shows disabled placeholder and keeps Add disabled', async () => {
+    const inactiveMembers: TeamMember[] = members.map(member => ({ ...member, active: false }));
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={inactiveMembers} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+
+    const authorSelectTrigger = screen.getByRole('combobox');
+    expect(authorSelectTrigger).toHaveTextContent('Select author');
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDisabled();
+  });
+
   it('CMP-008: new update calls addDailyUpdate + saves author to localStorage', async () => {
     vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);

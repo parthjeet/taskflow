@@ -198,6 +198,7 @@ describe('SubTaskList — inline edit', () => {
     const span = screen.getByText('First');
     expect(span).toHaveAttribute('role', 'button');
     expect(span).toHaveAttribute('tabIndex', '0');
+    expect(span).toHaveAttribute('aria-label', 'Edit sub-task: First');
 
     fireEvent.keyDown(span, { key: 'Enter' });
     expect(screen.getByDisplayValue('First')).toBeInTheDocument();

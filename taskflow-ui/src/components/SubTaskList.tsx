@@ -178,6 +178,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
             setEditTitle(sub.title);
           }}
           role="button"
+          aria-label={`Edit sub-task: ${sub.title}`}
           tabIndex={0}
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ' ') {
