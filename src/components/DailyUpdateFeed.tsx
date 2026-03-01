@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { apiClient } from '@/lib/api';
 import { MAX_DAILY_UPDATE_CONTENT_LENGTH } from '@/lib/api/constants';
 import { DailyUpdate, TeamMember } from '@/types';
+import { useSafeMutate } from '@/hooks/useSafeMutate';
 import { useToast } from '@/hooks/use-toast';
 import { formatRelativeDate, isWithin24Hours } from '@/lib/date-utils';
 import { Plus, Loader2 } from 'lucide-react';
@@ -27,16 +28,12 @@ interface DailyUpdateFeedProps {
 
 export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Readonly<DailyUpdateFeedProps>) {
   const { toast } = useToast();
-  // Safe onMutate wrapper — silently absorbs parent refresh failures so they
-  // never surface as unhandled promise rejections or unexpected error toasts.
-  const triggerMutate = useCallback(() => {
-    void Promise.resolve(onMutate()).catch(() => {
-      // Refresh failures are non-critical for local optimistic state.
-    });
-  }, [onMutate]);
+  const triggerMutate = useSafeMutate(onMutate);
   const [addingUpdate, setAddingUpdate] = useState(false);
   const [updateAuthor, setUpdateAuthor] = useState('');
+  const updateAuthorRef = useRef('');
   const [updateContent, setUpdateContent] = useState('');
+  const updateContentRef = useRef('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
@@ -54,7 +51,9 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   useEffect(() => {
     setAddingUpdate(false);
     setUpdateAuthor('');
+    updateAuthorRef.current = '';
     setUpdateContent('');
+    updateContentRef.current = '';
     setUpdateLoading(false);
     setEditingUpdateId(null);
     setEditingContent('');
@@ -68,15 +67,20 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     const stored = localStorage.getItem(LAST_AUTHOR_KEY);
     const validId = stored && activeMembers.some(m => m.id === stored) ? stored : (activeMembers[0]?.id || '');
     setUpdateAuthor(validId);
+    updateAuthorRef.current = validId;
     setUpdateContent('');
+    updateContentRef.current = '';
   }, [activeMembers]);
 
   const handleAddUpdate = useCallback(async () => {
     if (updateLoading) return;
+    const authorId = updateAuthorRef.current;
+    const normalizedContent = updateContentRef.current.trim();
+    if (!authorId || !normalizedContent) return;
     setUpdateLoading(true);
     try {
-      await apiClient.addDailyUpdate(taskId, { authorId: updateAuthor, content: updateContent.trim() });
-      localStorage.setItem(LAST_AUTHOR_KEY, updateAuthor);
+      await apiClient.addDailyUpdate(taskId, { authorId, content: normalizedContent });
+      localStorage.setItem(LAST_AUTHOR_KEY, authorId);
       toast({ title: 'Update added' });
       setAddingUpdate(false);
       triggerMutate();
@@ -86,7 +90,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     } finally {
       setUpdateLoading(false);
     }
-  }, [taskId, updateAuthor, updateContent, updateLoading, triggerMutate, toast]);
+  }, [taskId, updateLoading, triggerMutate, toast]);
 
   const handleEditSave = useCallback(async (updateId: string, currentUpdateContent: string) => {
     if (editUpdateLoading) return;
@@ -233,7 +237,13 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Author</Label>
-              <Select value={updateAuthor} onValueChange={setUpdateAuthor}>
+              <Select
+                value={updateAuthor}
+                onValueChange={value => {
+                  updateAuthorRef.current = value;
+                  setUpdateAuthor(value);
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Select author" /></SelectTrigger>
                 <SelectContent>
                   {activeMembers.length === 0 ? (
@@ -248,7 +258,10 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
               <Label>Update</Label>
               <Textarea
                 value={updateContent}
-                onChange={e => setUpdateContent(e.target.value)}
+                onChange={e => {
+                  updateContentRef.current = e.target.value;
+                  setUpdateContent(e.target.value);
+                }}
                 placeholder="What's the latest?"
                 rows={3}
                 maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}

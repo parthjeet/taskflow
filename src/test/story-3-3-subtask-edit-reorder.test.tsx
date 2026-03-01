@@ -100,6 +100,36 @@ describe('SubTaskList — inline edit', () => {
     });
   });
 
+  it('CMP-062: Enter + blur-during-await + unmount-blur only saves once', async () => {
+    const pendingEdit = deferred<SubTask>();
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockImplementation(() => pendingEdit.promise);
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('First'));
+    const input = screen.getByDisplayValue('First');
+    fireEvent.change(input, { target: { value: 'Updated once' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(editSpy).toHaveBeenCalledTimes(1);
+      expect(editSpy).toHaveBeenCalledWith('t1', 's1', { title: 'Updated once' });
+    });
+
+    // Simulate user clicking away while the save request is still in-flight.
+    fireEvent.blur(input);
+
+    pendingEdit.resolve({ ...sub1, title: 'Updated once' });
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+
+    // Simulate the browser blur fired when the input unmounts.
+    fireEvent.blur(input);
+    await new Promise(r => setTimeout(r, 0));
+
+    expect(editSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('CMP-054: Escape then browser-blur does NOT save (production blur guard)', async () => {
     // Real browsers fire blur when the focused <Input> is removed from the DOM.
     // This test explicitly fires blur after Escape to verify the guard suppresses it.
