@@ -43,10 +43,15 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   const [deletingUpdate, setDeletingUpdate] = useState(false);
 
   const activeMembers = useMemo(() => members.filter(m => m.active), [members]);
+  const activeMembersRef = useRef(activeMembers);
   const sortedUpdates = useMemo(
     () => [...dailyUpdates].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [dailyUpdates],
   );
+
+  useEffect(() => {
+    activeMembersRef.current = activeMembers;
+  }, [activeMembers]);
 
   useEffect(() => {
     setAddingUpdate(false);
@@ -65,12 +70,15 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   const openAddDialog = useCallback(() => {
     setAddingUpdate(true);
     const stored = localStorage.getItem(LAST_AUTHOR_KEY);
-    const validId = stored && activeMembers.some(m => m.id === stored) ? stored : (activeMembers[0]?.id || '');
+    const currentActiveMembers = activeMembersRef.current;
+    const validId = stored && currentActiveMembers.some(m => m.id === stored)
+      ? stored
+      : (currentActiveMembers[0]?.id || '');
     setUpdateAuthor(validId);
     updateAuthorRef.current = validId;
     setUpdateContent('');
     updateContentRef.current = '';
-  }, [activeMembers]);
+  }, []);
 
   const handleAddUpdate = useCallback(async () => {
     if (updateLoading) return;

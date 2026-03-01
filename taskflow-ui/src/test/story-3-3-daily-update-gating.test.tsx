@@ -244,6 +244,25 @@ describe('DailyUpdateFeed — delete flow', () => {
 });
 
 describe('DailyUpdateFeed — add update', () => {
+  it('CMP-064: add dialog resolves author from latest active members after members prop change', () => {
+    localStorage.setItem('taskflow-last-author', 'm1');
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    const updatedMembers: TeamMember[] = [
+      { ...members[0], active: false },
+      members[1],
+      members[2],
+    ];
+    rerender(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={updatedMembers} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Add Update'));
+    expect(screen.getByRole('combobox')).toHaveTextContent('Bob');
+  });
+
   it('CMP-059: no active members shows disabled placeholder and keeps Add disabled', async () => {
     const inactiveMembers: TeamMember[] = members.map(member => ({ ...member, active: false }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={inactiveMembers} onMutate={onMutate} />);

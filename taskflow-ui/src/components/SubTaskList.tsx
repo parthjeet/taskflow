@@ -222,6 +222,13 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const [reordering, setReordering] = useState(false);
   const isDraggingRef = useRef(false);
   const triggerMutate = useSafeMutate(onMutate);
+  const awaitableTriggerMutate = useCallback(async () => {
+    try {
+      await onMutate();
+    } catch {
+      // Keep UX stable when background refresh fails after successful reorder.
+    }
+  }, [onMutate]);
 
   // Keep local items in sync with prop (unless actively reordering)
   const sorted = useMemo(
@@ -281,11 +288,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
         return;
       }
 
-      try {
-        await onMutate();
-      } catch {
-        // Keep UX stable when background refresh fails after successful reorder.
-      }
+      await awaitableTriggerMutate();
 
       setReordering(false);
     } finally {
@@ -294,7 +297,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
       // occurs between setReordering(true) and the normal setReordering(false) paths.
       setReordering(false);
     }
-  }, [sorted, taskId, onMutate, toast]);
+  }, [sorted, taskId, awaitableTriggerMutate, toast]);
 
   return (
     <div className="space-y-3">
@@ -312,7 +315,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
         <SortableContext items={displayItems.map(s => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {displayItems.map(sub => (
-              <SortableSubTaskItem key={sub.id} sub={sub} taskId={taskId} onMutate={onMutate} />
+              <SortableSubTaskItem key={sub.id} sub={sub} taskId={taskId} onMutate={triggerMutate} />
             ))}
           </div>
         </SortableContext>
