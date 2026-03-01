@@ -136,8 +136,8 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 7 (AI)
 
-- [ ] [AI-Review-R7][LOW] No test exercises the Promise branch of `await onMutate()` in `handleDragEnd` — current mock `onMutate = vi.fn()` returns `undefined` so `await undefined` resolves trivially; the R6 visual-flash fix (delaying `setReordering(false)` until parent refresh completes) is never stress-tested. Add a test that passes an async `onMutate` spy and asserts `reorderSubTasks` is called *before* `onMutate` resolves. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
-- [ ] [AI-Review-R7][LOW] `handleDragEnd` catch block is shared between `reorderSubTasks` failure and `onMutate` failure — if `reorderSubTasks` succeeds but `await onMutate()` rejects, a destructive toast fires as if the reorder failed (misleading UX since the adapter already persisted the new order). Consider wrapping `await onMutate()` in its own try/catch that silently retries or logs without a destructive toast. `src/components/SubTaskList.tsx` lines 214-222.
+- [x] [AI-Review-R7][LOW] No test exercises the Promise branch of `await onMutate()` in `handleDragEnd` — current mock `onMutate = vi.fn()` returns `undefined` so `await undefined` resolves trivially; the R6 visual-flash fix (delaying `setReordering(false)` until parent refresh completes) is never stress-tested. Add a test that passes an async `onMutate` spy and asserts `reorderSubTasks` is called *before* `onMutate` resolves. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [x] [AI-Review-R7][LOW] `handleDragEnd` catch block is shared between `reorderSubTasks` failure and `onMutate` failure — if `reorderSubTasks` succeeds but `await onMutate()` rejects, a destructive toast fires as if the reorder failed (misleading UX since the adapter already persisted the new order). Consider wrapping `await onMutate()` in its own try/catch that silently retries or logs without a destructive toast. `src/components/SubTaskList.tsx` lines 214-222.
 
 ## Dev Notes
 
@@ -238,6 +238,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label added), M2 (CMP-DEL-001/002 delete flow tests added). L1 (confirmation dialog) intentionally skipped — spec allows it. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review.
 - 2026-03-01: Code review round 6. All 10 ACs verified implemented. All R1–R5 follow-ups verified resolved. `tsc --noEmit` clean. 173/173 tests pass (12 files). 0 HIGH, 1 MEDIUM (handleDragEnd visual flash), 2 LOW (package-lock.json File Map gap, missing same-title no-op test). 3 action items created under "Review Follow-ups Round 6 (AI)". Status → done (all items non-blocking polish deferred to backlog).
 - 2026-03-01: R6 remediation completed. Fixed reorder success-path visual flash by awaiting `onMutate()` before clearing `reordering`, widened `onMutate` prop type to `() => void | Promise<void>` in `SubTaskList` and `DailyUpdateFeed`, added CMP-042 same-title no-op test, and reconciled `package-lock.json` in File List. `npx tsc --noEmit` clean. `npm run test` passes 174/174 tests (12 files). Status → done.
+- 2026-03-01: R7 remediation completed. Added CMP-043 to cover async `onMutate` Promise path in drag reorder and CMP-044 to verify no destructive toast when post-reorder refresh fails. Split `handleDragEnd` error handling so refresh failures do not surface as reorder failures. `npx tsc --noEmit` clean. `npm run test` passes 176/176 tests (12 files). Status → done.
 
 ### Change Log
 
@@ -254,6 +255,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | Dev Agent (Copilot) | R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label), M2 (CMP-DEL-001/002 delete flow tests). L1 (confirmation dialog) skipped per spec — acceptable. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review. |
 | 2026-03-01 | AI Code Review (R6) | Round 6 review: All ACs/prior follow-ups verified. 0 HIGH, 1 MEDIUM (handleDragEnd visual flash on success path), 2 LOW (package-lock.json File Map, same-title no-op test). 3 action items created. Status → done (non-blocking polish deferred). |
 | 2026-03-01 | Dev Agent (Codex) | R6 remediation completed: fixed reorder visual flash and awaited parent mutate callback, widened `onMutate` prop types to `() => void | Promise<void>`, added CMP-042 no-op edit test, and added `package-lock.json` to File List. `npx tsc --noEmit` clean; `npm run test` 174/174 passing. Status → done. |
+| 2026-03-01 | Dev Agent (Codex) | R7 remediation completed: split reorder vs refresh error handling in `handleDragEnd` and added CMP-043/CMP-044 tests to cover async `onMutate` success and failure paths. `npx tsc --noEmit` clean; `npm run test` 176/176 passing. Status → done. |
 
 ### File List
 
@@ -274,5 +276,5 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
 | `bun.lock` | Modified | Lockfile updates from bun dependency install |
-| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 23 tests for sub-task inline edit + drag reorder/delete |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 25 tests for sub-task inline edit + drag reorder/delete |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 16 tests for daily update 24h gating + error toasts |
