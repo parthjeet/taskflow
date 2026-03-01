@@ -286,6 +286,23 @@ describe('DailyUpdateFeed — add update', () => {
       expect(onMutate).toHaveBeenCalled();
     });
   });
+
+  it('CMP-055: add success with failing onMutate does not show destructive toast', async () => {
+    // Parity test with SubTaskList CMP-050 — DailyUpdateFeed now uses triggerMutate wrapper.
+    vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
+    const failingOnMutate = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={failingOnMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'New update content' } });
+    fireEvent.click(screen.getAllByText('Add').find(el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'))!);
+
+    await waitFor(() => expect(apiClient.addDailyUpdate).toHaveBeenCalled());
+    await waitFor(() => expect(failingOnMutate).toHaveBeenCalledTimes(1));
+    expect(mockToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive', description: 'Refresh failed' }),
+    );
+  });
 });
 
 describe('DailyUpdateFeed — test IDs preserved', () => {

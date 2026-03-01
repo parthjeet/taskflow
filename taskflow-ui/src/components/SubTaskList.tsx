@@ -127,7 +127,9 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
       return;
     }
     if (e.key === 'Escape') {
-      skipBlurAfterEnterRef.current = false;
+      // Also suppress the browser blur that fires when Input unmounts while focused.
+      // Without this, real browsers would call saveEdit() with the stale user-typed value.
+      skipBlurAfterEnterRef.current = true;
       setEditTitle(sub.title);
       setEditing(false);
     }
