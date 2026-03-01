@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: review
+Status: done
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -128,6 +128,12 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R5][MEDIUM] No component-level test for sub-task delete flow — CMP-012 only checks `delete-subtask-{id}` testid existence. Need test that clicks delete button, asserts `apiClient.deleteSubTask` called with correct args, and `onMutate` fires. Also test error path (destructive toast on failure). `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 - [x] [AI-Review-R5][LOW] Sub-task delete has no confirmation dialog — UX inconsistency with `DailyUpdateFeed` which uses `AlertDialog` confirmation. Accidental sub-task deletion has no recovery path. Story spec doesn't require it, but pattern divergence is a UX gap. `src/components/SubTaskList.tsx` — **Skipped (acceptable per spec): story does not require confirmation dialog; documented as future improvement.**
 
+### Review Follow-ups Round 6 (AI)
+
+- [ ] [AI-Review-R6][MEDIUM] `handleDragEnd` visual flash on successful reorder — `setReordering(false)` in `finally` runs immediately after the unawaited `onMutate()`, reverting `displayItems` to pre-drag `sorted` before parent data refresh arrives (~300-500ms gap). Items visibly jump back to old order then forward to correct order. Fix: split `finally` into try/catch paths — on success `await onMutate()` before `setReordering(false)`, on error clear immediately for optimistic revert. Update `onMutate` prop type to `() => void | Promise<void>` in `SubTaskListProps` and `DailyUpdateFeedProps`. `src/components/SubTaskList.tsx:203-213`
+- [ ] [AI-Review-R6][LOW] `package-lock.json` present in git diff but absent from story File Map and File List — minor documentation gap (project uses bun, npm lockfile is a residual artifact).
+- [ ] [AI-Review-R6][LOW] No test for "edit to same title" no-op path — `saveEdit` in `SubTaskList.tsx:98-101` short-circuits without API call when trimmed title equals original. Should have explicit test asserting `editSubTask` is NOT called. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -225,6 +231,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: R4 remediation validated. Lovable AI completed all 7/7 R4 follow-ups: M1 (CMP-009 test rewritten with captured onDragEnd), M2 (editDailyUpdate returns Promise<DailyUpdate>), M3 (CMP-010 reorder error rollback test), M4 (UNIT-001 max-20 component test), M5 (keyboard-visible buttons via focus/group-focus-within), L1 (reorder empty/max validation), L2 (SortableSubTaskItem wrapped in React.memo). `tsc --noEmit` clean. 170/170 tests pass (12 files). Status → review.
 - 2026-03-01: Code review round 5. All 10 ACs verified implemented. All R1/R2/R3/R4 follow-ups verified resolved. `tsc --noEmit` clean. 170/170 tests pass (12 files). 0 HIGH, 2 MEDIUM, 1 LOW new issues found. 3 action items created under "Review Follow-ups Round 5 (AI)". Status → done (remaining items are non-blocking polish).
 - 2026-03-01: R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label added), M2 (CMP-DEL-001/002 delete flow tests added). L1 (confirmation dialog) intentionally skipped — spec allows it. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review.
+- 2026-03-01: Code review round 6. All 10 ACs verified implemented. All R1–R5 follow-ups verified resolved. `tsc --noEmit` clean. 173/173 tests pass (12 files). 0 HIGH, 1 MEDIUM (handleDragEnd visual flash), 2 LOW (package-lock.json File Map gap, missing same-title no-op test). 3 action items created under "Review Follow-ups Round 6 (AI)". Status → done (all items non-blocking polish deferred to backlog).
 
 ### Change Log
 
@@ -239,6 +246,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | Dev Agent (Copilot) | R4 remediation validation: all 7/7 items done by Lovable (M1,M2,M3,M4,M5,L1,L2). `tsc --noEmit` clean. 170/170 tests pass. Status → review. |
 | 2026-03-01 | AI Code Review (R5) | Round 5 review: All ACs implemented. All prior follow-ups resolved. 0 HIGH, 2 MEDIUM (delete button aria-label, delete flow test gap), 1 LOW (no delete confirmation dialog). 3 action items created. Status → done. |
 | 2026-03-01 | Dev Agent (Copilot) | R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label), M2 (CMP-DEL-001/002 delete flow tests). L1 (confirmation dialog) skipped per spec — acceptable. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review. |
+| 2026-03-01 | AI Code Review (R6) | Round 6 review: All ACs/prior follow-ups verified. 0 HIGH, 1 MEDIUM (handleDragEnd visual flash on success path), 2 LOW (package-lock.json File Map, same-title no-op test). 3 action items created. Status → done (non-blocking polish deferred). |
 
 ### File List
 
