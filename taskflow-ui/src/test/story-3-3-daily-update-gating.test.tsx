@@ -49,10 +49,12 @@ describe('DailyUpdateFeed — rendering order', () => {
   it('CMP-005: renders newest-first with author, timestamp, content, "(edited)"', () => {
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[oldUpdate, recentUpdate, editedUpdate]} members={members} onMutate={onMutate} />);
 
-    const items = screen.getAllByText(/update/i);
-    const recentIdx = items.findIndex(el => el.textContent?.includes('Recent'));
-    const oldIdx = items.findIndex(el => el.textContent?.includes('Old'));
-    expect(recentIdx).toBeLessThan(oldIdx);
+    const updateContents = screen.getAllByText(/^(Recent update|Edited update|Old update)$/);
+    expect(updateContents.map(el => el.textContent)).toEqual([
+      'Recent update',
+      'Edited update',
+      'Old update',
+    ]);
 
     // "(edited)" indicator
     expect(screen.getByText('(edited)')).toBeInTheDocument();
@@ -258,7 +260,7 @@ describe('DailyUpdateFeed — add update', () => {
   });
 
   it('CMP-008: new update calls addDailyUpdate + saves author to localStorage', async () => {
-    vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
 
     fireEvent.click(screen.getByText('Add Update'));
@@ -268,7 +270,7 @@ describe('DailyUpdateFeed — add update', () => {
     fireEvent.change(textarea, { target: { value: 'New update content' } });
     fireEvent.click(screen.getByText('Add'));
 
-    await waitFor(() => expect(apiClient.addDailyUpdate).toHaveBeenCalled());
+    await waitFor(() => expect(addSpy).toHaveBeenCalledWith('t1', { authorId: 'm1', content: 'New update content' }));
     expect(localStorage.getItem('taskflow-last-author')).toBeTruthy();
     expect(onMutate).toHaveBeenCalled();
   });

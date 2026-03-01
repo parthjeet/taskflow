@@ -10,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { apiClient } from '@/lib/api';
 import { MAX_SUBTASK_TITLE_LENGTH } from '@/lib/api/constants';
 import { SubTask } from '@/types';
+import { useSafeMutate } from '@/hooks/useSafeMutate';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { GripVertical, Plus, X, Loader2 } from 'lucide-react';
@@ -42,11 +43,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const triggerMutate = useCallback(() => {
-    void Promise.resolve(onMutate()).catch(() => {
-      // Refresh failures are non-critical for local optimistic state.
-    });
-  }, [onMutate]);
+  const triggerMutate = useSafeMutate(onMutate);
 
   useEffect(() => {
     if (!toggling && completed !== sub.completed) {
@@ -142,7 +139,6 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 
   const handleEditBlur = useCallback((_e: FocusEvent<HTMLInputElement>) => {
     if (skipBlurAfterEnterRef.current) {
-      skipBlurAfterEnterRef.current = false;
       return;
     }
     void saveEdit();
@@ -213,11 +209,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const [items, setItems] = useState<SubTask[]>([]);
   const [reordering, setReordering] = useState(false);
   const isDraggingRef = useRef(false);
-  const triggerMutate = useCallback(() => {
-    void Promise.resolve(onMutate()).catch(() => {
-      // Refresh failures are non-critical for local optimistic state.
-    });
-  }, [onMutate]);
+  const triggerMutate = useSafeMutate(onMutate);
 
   // Keep local items in sync with prop (unless actively reordering)
   const sorted = useMemo(

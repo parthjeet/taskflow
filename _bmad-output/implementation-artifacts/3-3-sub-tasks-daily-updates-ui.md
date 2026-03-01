@@ -190,10 +190,10 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 15 (AI)
 
-- [ ] [AI-Review-R15][LOW] `handleAddUpdate` in `DailyUpdateFeed.tsx` includes `updateContent` and `updateAuthor` in its `useCallback` dep array, causing per-keystroke callback recreation in the Add dialog textarea — asymmetric with the `editContentRef` optimization applied to `handleEditSave` in R14. Introduce `updateContentRef` and `updateAuthorRef`; remove the two state deps. `src/components/DailyUpdateFeed.tsx:75`
-- [ ] [AI-Review-R15][LOW] `triggerMutate` safe-refresh wrapper is copy-pasted identically in `SortableSubTaskItem`, `SubTaskList`, and `DailyUpdateFeed` (three separate `useCallback(() => void Promise.resolve(onMutate()).catch(…), [onMutate])` declarations). Extract to `src/hooks/useSafeMutate.ts` and import from all three sites to eliminate the duplication. `src/components/SubTaskList.tsx:46,170`, `src/components/DailyUpdateFeed.tsx:33`
-- [ ] [AI-Review-R15][LOW] CMP-005 ordering test uses `screen.getAllByText(/update/i)` which also matches the "Add Update" button text — ordering assertion would silently pass even if the button appears between update rows. Replace with a more targeted selector (e.g., role-scoped queries on content paragraphs) to isolate the update list items. `src/test/story-3-3-daily-update-gating.test.tsx:55`
-- [ ] [AI-Review-R15][LOW] Enter-during-await double-save edge case not covered by a test: if Enter is pressed and the user clicks elsewhere while the API call is in-flight, the intermediate blur consumes `skipBlurAfterEnterRef` (resets it to `false`). When `setEditing(false)` then unmounts the `<Input>`, the resulting browser blur fires `handleEditBlur` with `skipBlurAfterEnterRef === false` AND `savingRef.current === false` (cleared by `finally`), so `saveEdit` runs a second time making a duplicate `editSubTask` call. Add CMP-062 to assert `editSubTask` called exactly once when Enter + blur-during-await + unmount-blur are all fired. `src/components/SubTaskList.tsx:91`, `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [x] [AI-Review-R15][LOW] `handleAddUpdate` in `DailyUpdateFeed.tsx` includes `updateContent` and `updateAuthor` in its `useCallback` dep array, causing per-keystroke callback recreation in the Add dialog textarea — asymmetric with the `editContentRef` optimization applied to `handleEditSave` in R14. Implemented `updateContentRef` and `updateAuthorRef`; removed state deps from callback. `src/components/DailyUpdateFeed.tsx`
+- [x] [AI-Review-R15][LOW] `triggerMutate` safe-refresh wrapper is copy-pasted identically in `SortableSubTaskItem`, `SubTaskList`, and `DailyUpdateFeed` (three separate `useCallback(() => void Promise.resolve(onMutate()).catch(…), [onMutate])` declarations). Extracted `useSafeMutate` hook and imported in all three sites. `src/hooks/useSafeMutate.ts`, `src/components/SubTaskList.tsx`, `src/components/DailyUpdateFeed.tsx`
+- [x] [AI-Review-R15][LOW] CMP-005 ordering test uses `screen.getAllByText(/update/i)` which also matches the "Add Update" button text — ordering assertion would silently pass even if the button appears between update rows. Replaced with a targeted exact-content selector for update row paragraphs. `src/test/story-3-3-daily-update-gating.test.tsx`
+- [x] [AI-Review-R15][LOW] Enter-during-await double-save edge case not covered by a test: if Enter is pressed and the user clicks elsewhere while the API call is in-flight, the intermediate blur consumes `skipBlurAfterEnterRef` (resets it to `false`). When `setEditing(false)` then unmounts the `<Input>`, the resulting browser blur fires `handleEditBlur` with `skipBlurAfterEnterRef === false` AND `savingRef.current === false` (cleared by `finally`), so `saveEdit` runs a second time making a duplicate `editSubTask` call. Fixed blur-guard persistence and added CMP-062 to assert single save across Enter + blur-during-await + unmount-blur. `src/components/SubTaskList.tsx`, `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 
 ## Dev Notes
 
@@ -262,6 +262,7 @@ So that I can break down work and log progress directly from the UI.
 | `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Create | Tests for sub-task inline edit + drag reorder (Task 6.2) |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Create | Tests for daily update 24h gating + error toasts (Task 6.3) |
 | `src/test/test-utils.ts` | Create | Shared deferred promise helper for Story 3.3 tests |
+| `src/hooks/useSafeMutate.ts` | Create | Shared safe mutate wrapper for refresh callbacks |
 
 ### References
 
@@ -310,6 +311,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: Code review round 14. All 10 ACs verified implemented. All R1–R13 follow-ups verified resolved. `tsc --noEmit` clean. 191/191 tests pass (12 files). 0 HIGH, 1 MEDIUM (Add-dialog state cluster not reset on `taskId` change — `addingUpdate`/`updateLoading`/`updateContent`/`updateAuthor` missing from taskId-change useEffect), 3 LOW (duplicate `deferred<T>()` helper in both story-3-3 test files; no test for `active.id === over.id` drag no-op guard; `handleEditSave` per-keystroke callback recreation asymmetric with SubTaskList R12 ref optimisation). 4 action items created under "Review Follow-ups Round 14 (AI)". Status → done (non-blocking polish).
 - 2026-03-01: R14 remediation completed. Added task-switch reset coverage for add-dialog state cluster (CMP-060), extracted shared `deferred<T>()` helper to `src/test/test-utils.ts`, added same-position drag no-op coverage (CMP-061), and refactored `DailyUpdateFeed.handleEditSave` to use ref-backed edit content to avoid per-keystroke callback recreation. `npx tsc --noEmit` clean; targeted Story 3.3 suites 58/58 passing. Status → done.
 - 2026-03-01: Code review round 15. All 10 ACs verified implemented. All R1–R14 follow-ups verified resolved. `tsc --noEmit` clean. 193/193 tests pass (12 files). 0 HIGH, 0 MEDIUM, 4 LOW (handleAddUpdate per-keystroke callback recreation; triggerMutate boilerplate in 3 components; CMP-005 fragile regex selector; Enter-during-await double-save edge case not covered by test). 4 action items created under "Review Follow-ups Round 15 (AI)". Status → done (all items non-blocking polish).
+- 2026-03-01: R15 remediation completed. Refactored add-update submit path to use `updateAuthorRef`/`updateContentRef`, extracted shared `useSafeMutate` hook and applied it in all three call sites, strengthened CMP-005 ordering selector to exclude non-row text, and fixed Enter+blur-in-flight duplicate-save edge case with CMP-062 regression coverage. `npx tsc --noEmit` clean; targeted Story 3.3 suites 59/59 and full `npm run test` 194/194 passing. Status → done.
 
 ### Change Log
 
@@ -341,6 +343,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | AI Code Review (R14) | Round 14 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 191/191 tests pass. 0 HIGH, 1 MEDIUM (Add-dialog state not reset on taskId change), 3 LOW (duplicate deferred helper, missing same-position drag no-op test, handleEditSave per-keystroke callback churn). 4 action items created under "Review Follow-ups Round 14 (AI)". Status → done (non-blocking polish). |
 | 2026-03-01 | Dev Agent (Codex) | R14 remediation completed: reset add-dialog state cluster on task switch, added CMP-060 and CMP-061 regressions, extracted shared `deferred<T>()` helper to `src/test/test-utils.ts`, and refactored `DailyUpdateFeed.handleEditSave` to use ref-backed content. `npx tsc --noEmit` clean; targeted Story 3.3 suites 58/58 passing. Status → done. |
 | 2026-03-01 | AI Code Review (R15) | Round 15 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 193/193 tests pass. 0 HIGH, 0 MEDIUM, 4 LOW (handleAddUpdate per-keystroke callback recreation; triggerMutate triplicate boilerplate; CMP-005 fragile /update/i selector; Enter-during-await double-save unguarded). 4 action items created under "Review Follow-ups Round 15 (AI)". Status → done. |
+| 2026-03-01 | Dev Agent (Codex) | R15 remediation completed: ref-backed add-update callback optimization, shared `useSafeMutate` hook extraction, targeted CMP-005 selector hardening, and CMP-062 edge-case coverage with blur-guard fix in sub-task inline edit flow. `npx tsc --noEmit` clean; targeted Story 3.3 suites 59/59; full `npm run test` 194/194 passing. Status → done. |
 
 ### File List
 
@@ -361,6 +364,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
 | `bun.lock` | Modified | Lockfile updates from bun dependency install |
-| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 34 tests for sub-task inline edit + drag reorder/delete |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 35 tests for sub-task inline edit + drag reorder/delete |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 24 tests for daily update 24h gating + error toasts |
 | `src/test/test-utils.ts` | Created | Shared test helper utilities (`deferred`) |
+| `src/hooks/useSafeMutate.ts` | Created | Shared hook for safe refresh callbacks |
