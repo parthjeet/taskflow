@@ -195,6 +195,13 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R15][LOW] CMP-005 ordering test uses `screen.getAllByText(/update/i)` which also matches the "Add Update" button text — ordering assertion would silently pass even if the button appears between update rows. Replaced with a targeted exact-content selector for update row paragraphs. `src/test/story-3-3-daily-update-gating.test.tsx`
 - [x] [AI-Review-R15][LOW] Enter-during-await double-save edge case not covered by a test: if Enter is pressed and the user clicks elsewhere while the API call is in-flight, the intermediate blur consumes `skipBlurAfterEnterRef` (resets it to `false`). When `setEditing(false)` then unmounts the `<Input>`, the resulting browser blur fires `handleEditBlur` with `skipBlurAfterEnterRef === false` AND `savingRef.current === false` (cleared by `finally`), so `saveEdit` runs a second time making a duplicate `editSubTask` call. Fixed blur-guard persistence and added CMP-062 to assert single save across Enter + blur-during-await + unmount-blur. `src/components/SubTaskList.tsx`, `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 
+### Review Follow-ups Round 16 (AI)
+
+- [x] [AI-Review-R16][LOW] `SubTaskList.handleAdd` per-keystroke `newSub` callback recreation — parity gap with R15 `DailyUpdateFeed.handleAddUpdate` ref-optimization. Added `newSubRef`, removed `newSub` from `handleAdd` deps, synced ref in onChange and onKeyDown. `src/components/SubTaskList.tsx`
+- [x] [AI-Review-R16][LOW] `SortableSubTaskItem.editTitle`/`editTitleRef` not synced when `sub.title` prop changes while not in editing mode — stale pre-population on next click-to-edit. Added `useEffect(() => { if (!editing) { ... } }, [sub.title, editing])` parity with the R9 `completed` sync effect. `src/components/SubTaskList.tsx`
+- [x] [AI-Review-R16][LOW] `useSafeMutate` missing explicit return type annotation — annotated return type as `() => void`. `src/hooks/useSafeMutate.ts`
+- [x] [AI-Review-R16][LOW] `handleDragEnd` outer `finally` only resets `isDraggingRef` — if an unexpected throw occurs after `setReordering(true)` and before the normal `setReordering(false)` paths, the sub-task list freezes in optimistic order forever. Added `setReordering(false)` to outer `finally` as defense-in-depth safety net. `src/components/SubTaskList.tsx`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -344,6 +351,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | Dev Agent (Codex) | R14 remediation completed: reset add-dialog state cluster on task switch, added CMP-060 and CMP-061 regressions, extracted shared `deferred<T>()` helper to `src/test/test-utils.ts`, and refactored `DailyUpdateFeed.handleEditSave` to use ref-backed content. `npx tsc --noEmit` clean; targeted Story 3.3 suites 58/58 passing. Status → done. |
 | 2026-03-01 | AI Code Review (R15) | Round 15 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 193/193 tests pass. 0 HIGH, 0 MEDIUM, 4 LOW (handleAddUpdate per-keystroke callback recreation; triggerMutate triplicate boilerplate; CMP-005 fragile /update/i selector; Enter-during-await double-save unguarded). 4 action items created under "Review Follow-ups Round 15 (AI)". Status → done. |
 | 2026-03-01 | Dev Agent (Codex) | R15 remediation completed: ref-backed add-update callback optimization, shared `useSafeMutate` hook extraction, targeted CMP-005 selector hardening, and CMP-062 edge-case coverage with blur-guard fix in sub-task inline edit flow. `npx tsc --noEmit` clean; targeted Story 3.3 suites 59/59; full `npm run test` 194/194 passing. Status → done. |
+| 2026-03-01 | AI Code Review (R16) | Round 16 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 194/194 tests pass. 0 HIGH, 0 MEDIUM, 4 LOW (handleAdd per-keystroke callback churn / R15 parity gap; editTitle not synced on sub.title prop change while not editing; useSafeMutate missing return type; handleDragEnd outer finally missing setReordering safety-net). All 4 items auto-fixed inline. Status → done. |
 
 ### File List
 
