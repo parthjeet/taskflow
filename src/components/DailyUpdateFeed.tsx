@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -42,6 +42,11 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     () => [...dailyUpdates].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [dailyUpdates],
   );
+
+  useEffect(() => {
+    setEditingUpdateId(null);
+    setEditingContent('');
+  }, [taskId]);
 
   const openAddDialog = useCallback(() => {
     setAddingUpdate(true);

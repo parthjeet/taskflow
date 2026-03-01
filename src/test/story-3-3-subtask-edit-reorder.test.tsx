@@ -421,6 +421,51 @@ describe('SubTaskList — add', () => {
       );
     });
   });
+
+  it('CMP-049: second submit is ignored while add request is in flight', async () => {
+    const pending = deferred<SubTask>();
+    const addSpy = vi.spyOn(apiClient, 'addSubTask').mockImplementation(() => pending.promise);
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    const input = screen.getByPlaceholderText('Add sub-task...');
+    const addButton = screen.getByTestId('add-subtask-btn');
+
+    fireEvent.change(input, { target: { value: 'In-flight sub-task' } });
+    fireEvent.click(addButton);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(addButton).toBeDisabled();
+
+    fireEvent.click(addButton);
+    fireEvent.keyDown(input, { key: 'Enter' });
+    expect(addSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve(makeSub({ id: 's99', title: 'In-flight sub-task', position: 1 }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalled();
+    });
+  });
+
+  it('CMP-050: add success with failing onMutate does not show destructive toast', async () => {
+    vi.spyOn(apiClient, 'addSubTask').mockResolvedValue(makeSub({ id: 's100', title: 'Safe refresh', position: 1 }));
+    const failingOnMutate = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={failingOnMutate} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Add sub-task...'), { target: { value: 'Safe refresh' } });
+    fireEvent.click(screen.getByTestId('add-subtask-btn'));
+
+    await waitFor(() => {
+      expect(apiClient.addSubTask).toHaveBeenCalledWith('t1', { title: 'Safe refresh' });
+    });
+    await waitFor(() => {
+      expect(failingOnMutate).toHaveBeenCalledTimes(1);
+    });
+    expect(mockToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive', description: 'Refresh failed' }),
+    );
+  });
 });
 
 describe('SubTaskList — delete', () => {

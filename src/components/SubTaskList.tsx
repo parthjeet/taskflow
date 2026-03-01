@@ -39,12 +39,17 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
+  const triggerMutate = useCallback(() => {
+    void Promise.resolve(onMutate()).catch(() => {
+      // Refresh failures are non-critical for local optimistic state.
+    });
+  }, [onMutate]);
 
   useEffect(() => {
-    if (!toggling) {
+    if (!toggling && completed !== sub.completed) {
       setCompleted(sub.completed);
     }
-  }, [sub.completed, toggling]);
+  }, [sub.completed, toggling, completed]);
 
   const handleToggle = useCallback(async () => {
     if (toggling) return;
@@ -53,7 +58,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     setCompleted(!prev);
     try {
       await apiClient.toggleSubTask(taskId, sub.id);
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       setCompleted(prev);
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -61,7 +66,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     } finally {
       setToggling(false);
     }
-  }, [toggling, completed, taskId, sub.id, onMutate, toast]);
+  }, [toggling, completed, taskId, sub.id, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deleting) return;
@@ -69,14 +74,14 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     try {
       await apiClient.deleteSubTask(taskId, sub.id);
       toast({ title: 'Sub-task removed' });
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setDeleting(false);
     }
-  }, [deleting, taskId, sub.id, onMutate, toast]);
+  }, [deleting, taskId, sub.id, triggerMutate, toast]);
 
   const saveEdit = useCallback(async () => {
     if (savingRef.current) return;
@@ -101,7 +106,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
       }
       try {
         await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
-        void onMutate();
+        triggerMutate();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -110,7 +115,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     } finally {
       savingRef.current = false;
     }
-  }, [editTitle, sub.title, sub.id, taskId, onMutate, toast]);
+  }, [editTitle, sub.title, sub.id, taskId, triggerMutate, toast]);
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 group">
@@ -169,6 +174,11 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const [items, setItems] = useState<SubTask[]>([]);
   const [reordering, setReordering] = useState(false);
   const isDraggingRef = useRef(false);
+  const triggerMutate = useCallback(() => {
+    void Promise.resolve(onMutate()).catch(() => {
+      // Refresh failures are non-critical for local optimistic state.
+    });
+  }, [onMutate]);
 
   // Keep local items in sync with prop (unless actively reordering)
   const sorted = useMemo(
@@ -193,14 +203,14 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
     try {
       await apiClient.addSubTask(taskId, { title });
       setNewSub('');
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setAdding(false);
     }
-  }, [newSub, adding, taskId, onMutate, toast]);
+  }, [newSub, adding, taskId, triggerMutate, toast]);
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
