@@ -33,7 +33,7 @@ export interface ApiClient {
 
   // Daily Updates
   addDailyUpdate(taskId: string, data: { authorId: string; content: string }): Promise<DailyUpdate>;
-  editDailyUpdate(taskId: string, updateId: string, data: { content: string }): Promise<void>;
+  editDailyUpdate(taskId: string, updateId: string, data: { content: string }): Promise<DailyUpdate>;
   deleteDailyUpdate(taskId: string, updateId: string): Promise<void>;
 
   // Team Members

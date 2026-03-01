@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, memo } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -19,7 +19,7 @@ interface SubTaskListProps {
   onMutate: () => void;
 }
 
-function SortableSubTaskItem({
+const SortableSubTaskItem = memo(function SortableSubTaskItem({
   sub,
   taskId,
   onMutate,
@@ -149,7 +149,7 @@ function SortableSubTaskItem({
         </span>
       )}
       <Button
-        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100"
+        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 focus:opacity-100"
         data-testid={`delete-subtask-${sub.id}`}
         disabled={deleting}
         onClick={handleDelete}
@@ -158,7 +158,7 @@ function SortableSubTaskItem({
       </Button>
     </div>
   );
-}
+});
 
 export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskListProps>) {
   const { toast } = useToast();

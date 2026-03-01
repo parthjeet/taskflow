@@ -395,6 +395,12 @@ export class MockApiClient implements ApiClient {
     const task = tasks.find(t => t.id === taskId);
     if (!task) throw new Error('Task not found');
     const existingIds = new Set(task.subTasks.map(s => s.id));
+    if (subTaskIds.length === 0) {
+      throw new Error('sub_task_ids: List should have at least 1 item');
+    }
+    if (subTaskIds.length > 20) {
+      throw new Error('sub_task_ids: List should have at most 20 items');
+    }
     if (new Set(subTaskIds).size !== subTaskIds.length) {
       throw new Error('sub_task_ids: must not contain duplicates');
     }
@@ -431,7 +437,7 @@ export class MockApiClient implements ApiClient {
     return update;
   }
 
-  async editDailyUpdate(taskId: string, updateId: string, data: { content: string }): Promise<void> {
+  async editDailyUpdate(taskId: string, updateId: string, data: { content: string }): Promise<DailyUpdate> {
     await delay();
     const tasks = getTasks();
     const task = tasks.find(t => t.id === taskId);
@@ -445,6 +451,7 @@ export class MockApiClient implements ApiClient {
     upd.edited = true;
     task.updatedAt = upd.updatedAt;
     saveTasks(tasks);
+    return { ...upd };
   }
 
   async deleteDailyUpdate(taskId: string, updateId: string): Promise<void> {

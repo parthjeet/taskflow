@@ -95,7 +95,7 @@ describe('DailyUpdateFeed — 24h gating', () => {
 
 describe('DailyUpdateFeed — edit flow', () => {
   it('CMP-022: edit flow with textarea, save, calls editDailyUpdate', async () => {
-    vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(undefined);
+    vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u1', content: 'Updated content', edited: true }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
 
     fireEvent.click(screen.getByText('Edit'));
@@ -124,7 +124,7 @@ describe('DailyUpdateFeed — edit flow', () => {
 
   it('CMP-037: "(edited)" badge appears after edit', async () => {
     const updatedList = [{ ...recentUpdate, edited: true, content: 'Changed' }];
-    vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(undefined);
+    vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u1', content: 'Changed', edited: true }));
     const { rerender } = render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
 
     fireEvent.click(screen.getByText('Edit'));
