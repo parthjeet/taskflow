@@ -471,6 +471,30 @@ describe('SubTaskList — optimistic toggle', () => {
       expect.objectContaining({ variant: 'destructive', description: 'Network error' }),
     ));
   });
+
+  it('CMP-063: second toggle click is ignored while request is in flight', async () => {
+    const pending = deferred<SubTask>();
+    const toggleSpy = vi.spyOn(apiClient, 'toggleSubTask').mockImplementation(() => pending.promise);
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    const checkbox = screen.getByRole('checkbox');
+    fireEvent.click(checkbox);
+
+    await waitFor(() => {
+      expect(toggleSpy).toHaveBeenCalledTimes(1);
+    });
+    await waitFor(() => {
+      expect(checkbox).toBeDisabled();
+    });
+
+    fireEvent.click(checkbox);
+    expect(toggleSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve({ ...sub1, completed: true });
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe('SubTaskList — add', () => {
