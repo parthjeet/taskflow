@@ -183,10 +183,10 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 14 (AI)
 
-- [ ] [AI-Review-R14][MEDIUM] Add-dialog state cluster not reset on `taskId` change — `DailyUpdateFeed` `taskId`-change `useEffect` resets edit/delete state (R13) but omits `addingUpdate`, `updateContent`, `updateAuthor`, `updateLoading`. If component is reused across tasks while Add dialog is open or a submit is in-flight, stale dialog state and in-flight spinner persist into the new task context. Add all four state resets to the `taskId`-change effect and add CMP-060 regression coverage. `src/components/DailyUpdateFeed.tsx:53-58`
-- [ ] [AI-Review-R14][LOW] Duplicate `deferred<T>()` test helper copy-pasted verbatim across both story-3-3 test files — identical 10-line utility exists at `story-3-3-subtask-edit-reorder.test.tsx:42-52` and `story-3-3-daily-update-gating.test.tsx:24-33`. Extract to `src/test/test-utils.ts`; import from both files to eliminate drift risk. `src/test/story-3-3-subtask-edit-reorder.test.tsx:42`, `src/test/story-3-3-daily-update-gating.test.tsx:24`
-- [ ] [AI-Review-R14][LOW] No regression test for `active.id === over.id` same-position drag no-op — `CMP-046` covers the `over: null` guard branch; the adjacent `active.id === over.id` branch in the same guard has zero coverage. Add `CMP-061`: fire `capturedOnDragEnd` with `active: { id: 's1' }, over: { id: 's1' }` and assert `reorderSubTasks` not called. `src/components/SubTaskList.tsx:256`, `src/test/story-3-3-subtask-edit-reorder.test.tsx`
-- [ ] [AI-Review-R14][LOW] `DailyUpdateFeed.handleEditSave` recreated per keystroke — depends on `editingContent` state in `useCallback` dep-array, causing recreation on every change event in the edit `<Textarea>`. Asymmetric with `SubTaskList`'s `editTitleRef` ref-driven optimization introduced in R12. Mirror the `editContentRef = useRef('')` pattern: sync the ref on each `onChange`, read `editContentRef.current` inside `handleEditSave` so `editingContent` is removed from deps. `src/components/DailyUpdateFeed.tsx:86-103`
+- [x] [AI-Review-R14][MEDIUM] Add-dialog state cluster not reset on `taskId` change — `DailyUpdateFeed` `taskId`-change `useEffect` resets edit/delete state (R13) but omits `addingUpdate`, `updateContent`, `updateAuthor`, `updateLoading`. If component is reused across tasks while Add dialog is open or a submit is in-flight, stale dialog state and in-flight spinner persist into the new task context. Added all four state resets and CMP-060 regression coverage. `src/components/DailyUpdateFeed.tsx`, `src/test/story-3-3-daily-update-gating.test.tsx`
+- [x] [AI-Review-R14][LOW] Duplicate `deferred<T>()` test helper copy-pasted verbatim across both story-3-3 test files — identical 10-line utility exists at `story-3-3-subtask-edit-reorder.test.tsx:42-52` and `story-3-3-daily-update-gating.test.tsx:24-33`. Extracted to `src/test/test-utils.ts`; imported from both files. `src/test/test-utils.ts`, `src/test/story-3-3-subtask-edit-reorder.test.tsx`, `src/test/story-3-3-daily-update-gating.test.tsx`
+- [x] [AI-Review-R14][LOW] No regression test for `active.id === over.id` same-position drag no-op — `CMP-046` covers the `over: null` guard branch; the adjacent `active.id === over.id` branch in the same guard has zero coverage. Added CMP-061 and asserted no reorder call. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [x] [AI-Review-R14][LOW] `DailyUpdateFeed.handleEditSave` recreated per keystroke — depends on `editingContent` state in `useCallback` dep-array, causing recreation on every change event in the edit `<Textarea>`. Asymmetric with `SubTaskList`'s `editTitleRef` ref-driven optimization introduced in R12. Implemented `editContentRef` ref-driven save path and removed `editingContent` from callback deps. `src/components/DailyUpdateFeed.tsx`
 
 ## Dev Notes
 
@@ -254,6 +254,7 @@ So that I can break down work and log progress directly from the UI.
 | `bun.lock` | Modify | Lockfile updates from bun dependency install |
 | `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Create | Tests for sub-task inline edit + drag reorder (Task 6.2) |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Create | Tests for daily update 24h gating + error toasts (Task 6.3) |
+| `src/test/test-utils.ts` | Create | Shared deferred promise helper for Story 3.3 tests |
 
 ### References
 
@@ -300,6 +301,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: Code review round 13. All 10 ACs verified implemented. All R1–R12 follow-ups verified resolved. `tsc --noEmit` clean. 188/188 tests pass (12 files). 0 HIGH, 1 MEDIUM (`DailyUpdateFeed.handleEditSave` missing same-content no-op guard — spurious `(edited)` badge on no-change edits), 4 LOW (`deleteUpdateId` not reset on `taskId` change, title span missing `aria-label` edit hint, `reorderSubTasks` mock in-place mutation, missing empty-members test). 5 action items created under "Review Follow-ups Round 13 (AI)". Status → done (non-blocking polish items).
 - 2026-03-01: R13 remediation completed. Added unchanged-edit no-op guard in `DailyUpdateFeed.handleEditSave`, reset delete-dialog state on `taskId` change, added sub-task title edit `aria-label`, updated mock reorder to use copied objects, and added CMP-057/058/059 regression coverage. `npx tsc --noEmit` clean; targeted Story 3.3 suites 56/56; full `npm run test` 191/191 passing. Status → done.
 - 2026-03-01: Code review round 14. All 10 ACs verified implemented. All R1–R13 follow-ups verified resolved. `tsc --noEmit` clean. 191/191 tests pass (12 files). 0 HIGH, 1 MEDIUM (Add-dialog state cluster not reset on `taskId` change — `addingUpdate`/`updateLoading`/`updateContent`/`updateAuthor` missing from taskId-change useEffect), 3 LOW (duplicate `deferred<T>()` helper in both story-3-3 test files; no test for `active.id === over.id` drag no-op guard; `handleEditSave` per-keystroke callback recreation asymmetric with SubTaskList R12 ref optimisation). 4 action items created under "Review Follow-ups Round 14 (AI)". Status → done (non-blocking polish).
+- 2026-03-01: R14 remediation completed. Added task-switch reset coverage for add-dialog state cluster (CMP-060), extracted shared `deferred<T>()` helper to `src/test/test-utils.ts`, added same-position drag no-op coverage (CMP-061), and refactored `DailyUpdateFeed.handleEditSave` to use ref-backed edit content to avoid per-keystroke callback recreation. `npx tsc --noEmit` clean; targeted Story 3.3 suites 58/58 passing. Status → done.
 
 ### Change Log
 
@@ -329,6 +331,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | AI Code Review (R13) | Round 13 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 188/188 tests pass. 0 HIGH, 1 MEDIUM (`handleEditSave` same-content no-op guard missing), 4 LOW (`deleteUpdateId` taskId-reset gap, title span aria-label, mock in-place mutation, empty-members test). 5 action items created. Status → done (non-blocking polish). |
 | 2026-03-01 | Dev Agent (Codex) | R13 remediation completed: fixed unchanged-edit no-op in `DailyUpdateFeed`, reset stale delete dialog state on task switch, added title edit action `aria-label`, removed in-place mock reorder mutation, and added CMP-057/CMP-058/CMP-059 coverage. `npx tsc --noEmit` clean; targeted Story 3.3 suites 56/56; full `npm run test` 191/191 passing. Status → done. |
 | 2026-03-01 | AI Code Review (R14) | Round 14 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 191/191 tests pass. 0 HIGH, 1 MEDIUM (Add-dialog state not reset on taskId change), 3 LOW (duplicate deferred helper, missing same-position drag no-op test, handleEditSave per-keystroke callback churn). 4 action items created under "Review Follow-ups Round 14 (AI)". Status → done (non-blocking polish). |
+| 2026-03-01 | Dev Agent (Codex) | R14 remediation completed: reset add-dialog state cluster on task switch, added CMP-060 and CMP-061 regressions, extracted shared `deferred<T>()` helper to `src/test/test-utils.ts`, and refactored `DailyUpdateFeed.handleEditSave` to use ref-backed content. `npx tsc --noEmit` clean; targeted Story 3.3 suites 58/58 passing. Status → done. |
 
 ### File List
 
@@ -349,5 +352,6 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
 | `bun.lock` | Modified | Lockfile updates from bun dependency install |
-| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 33 tests for sub-task inline edit + drag reorder/delete |
-| `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 23 tests for daily update 24h gating + error toasts |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 34 tests for sub-task inline edit + drag reorder/delete |
+| `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 24 tests for daily update 24h gating + error toasts |
+| `src/test/test-utils.ts` | Created | Shared test helper utilities (`deferred`) |

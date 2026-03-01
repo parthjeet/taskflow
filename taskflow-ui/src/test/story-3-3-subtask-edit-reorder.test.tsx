@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { SubTaskList } from '@/components/SubTaskList';
 import { apiClient } from '@/lib/api';
 import { SubTask } from '@/types';
+import { deferred } from '@/test/test-utils';
 import type { DragEndEvent } from '@dnd-kit/core';
 import type { ReactElement, ReactNode } from 'react';
 
@@ -32,16 +33,6 @@ vi.mock('@dnd-kit/core', async () => {
 
 function makeSub(overrides: Partial<SubTask> & { id: string; title: string }): SubTask {
   return { completed: false, position: 0, createdAt: new Date().toISOString(), ...overrides };
-}
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
 }
 
 function getDeleteButtonOrder() {
@@ -260,6 +251,24 @@ describe('SubTaskList — drag reorder', () => {
       await capturedOnDragEnd!({
         active: { id: 's1' },
         over: null,
+      } as unknown as DragEndEvent);
+    });
+
+    expect(reorderSpy).not.toHaveBeenCalled();
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  it('CMP-061: dropping onto same position is a no-op', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([sub1, sub2, sub3]);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={onMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    await act(async () => {
+      await capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's1' },
       } as unknown as DragEndEvent);
     });
 

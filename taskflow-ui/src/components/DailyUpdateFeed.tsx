@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -40,6 +40,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   const [updateLoading, setUpdateLoading] = useState(false);
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const editContentRef = useRef('');
   const [editUpdateLoading, setEditUpdateLoading] = useState(false);
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState(false);
@@ -51,8 +52,13 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   );
 
   useEffect(() => {
+    setAddingUpdate(false);
+    setUpdateAuthor('');
+    setUpdateContent('');
+    setUpdateLoading(false);
     setEditingUpdateId(null);
     setEditingContent('');
+    editContentRef.current = '';
     setDeleteUpdateId(null);
     setDeletingUpdate(false);
   }, [taskId]);
@@ -84,11 +90,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
 
   const handleEditSave = useCallback(async (updateId: string, currentUpdateContent: string) => {
     if (editUpdateLoading) return;
-    const normalizedContent = editingContent.trim();
+    const normalizedContent = editContentRef.current.trim();
     if (!normalizedContent) return;
     if (normalizedContent === currentUpdateContent.trim()) {
       setEditingUpdateId(null);
       setEditingContent('');
+      editContentRef.current = '';
       return;
     }
     setEditUpdateLoading(true);
@@ -97,6 +104,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       toast({ title: 'Update edited' });
       setEditingUpdateId(null);
       setEditingContent('');
+      editContentRef.current = '';
       triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -104,7 +112,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     } finally {
       setEditUpdateLoading(false);
     }
-  }, [taskId, editingContent, editUpdateLoading, triggerMutate, toast]);
+  }, [taskId, editUpdateLoading, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deletingUpdate || !deleteUpdateId) return;
@@ -144,12 +152,26 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                   <div className="space-y-2">
                     <Textarea
                       value={editingContent}
-                      onChange={e => setEditingContent(e.target.value)}
+                      onChange={e => {
+                        editContentRef.current = e.target.value;
+                        setEditingContent(e.target.value);
+                      }}
                       rows={2}
                       maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
                     />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="outline" disabled={editUpdateLoading} onClick={() => { setEditingUpdateId(null); setEditingContent(''); }}>Cancel</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={editUpdateLoading}
+                        onClick={() => {
+                          setEditingUpdateId(null);
+                          setEditingContent('');
+                          editContentRef.current = '';
+                        }}
+                      >
+                        Cancel
+                      </Button>
                       <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={() => handleEditSave(upd.id, upd.content)}>
                         {editUpdateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Save
                       </Button>
@@ -168,7 +190,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                     {editable ? (
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <Button size="sm" variant="ghost" className="h-6 text-xs"
-                          onClick={() => { setEditingUpdateId(upd.id); setEditingContent(upd.content); }}>
+                          onClick={() => {
+                            setEditingUpdateId(upd.id);
+                            setEditingContent(upd.content);
+                            editContentRef.current = upd.content;
+                          }}
+                        >
                           Edit
                         </Button>
                         <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive hover:text-destructive"
