@@ -214,13 +214,20 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
 
     try {
       await apiClient.reorderSubTasks(taskId, orderedIds);
-      await onMutate();
-      setReordering(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
       setReordering(false);
+      return;
     }
+
+    try {
+      await onMutate();
+    } catch {
+      // Keep UX stable when background refresh fails after successful reorder.
+    }
+
+    setReordering(false);
   }, [sorted, taskId, onMutate, toast]);
 
   return (

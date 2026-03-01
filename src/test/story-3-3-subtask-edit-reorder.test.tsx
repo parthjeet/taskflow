@@ -34,6 +34,22 @@ function makeSub(overrides: Partial<SubTask> & { id: string; title: string }): S
   return { completed: false, position: 0, createdAt: new Date().toISOString(), ...overrides };
 }
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function getDeleteButtonOrder() {
+  return screen
+    .getAllByRole('button', { name: 'Delete sub-task' })
+    .map(button => button.getAttribute('data-testid'));
+}
+
 const sub1 = makeSub({ id: 's1', title: 'First', position: 0 });
 const sub2 = makeSub({ id: 's2', title: 'Second', position: 1 });
 const sub3 = makeSub({ id: 's3', title: 'Third', position: 2, completed: true });
@@ -180,6 +196,74 @@ describe('SubTaskList — drag reorder', () => {
         expect.objectContaining({ variant: 'destructive', description: 'Server error' }),
       );
     });
+  });
+
+  it('CMP-043: keeps optimistic order while awaiting async onMutate', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
+      { ...sub2, position: 0 },
+      { ...sub1, position: 1 },
+      { ...sub3, position: 2 },
+    ]);
+    const pendingMutate = deferred<void>();
+    const asyncOnMutate = vi.fn(() => pendingMutate.promise);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={asyncOnMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+    expect(getDeleteButtonOrder()).toEqual([
+      'delete-subtask-s1',
+      'delete-subtask-s2',
+      'delete-subtask-s3',
+    ]);
+
+    let dragPromise: Promise<void> = Promise.resolve();
+    await act(async () => {
+      dragPromise = capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's2' },
+      } as unknown as DragEndEvent);
+    });
+
+    await waitFor(() => {
+      expect(reorderSpy).toHaveBeenCalledWith('t1', ['s2', 's1', 's3']);
+    });
+    expect(asyncOnMutate).toHaveBeenCalledTimes(1);
+    expect(getDeleteButtonOrder()).toEqual([
+      'delete-subtask-s2',
+      'delete-subtask-s1',
+      'delete-subtask-s3',
+    ]);
+
+    pendingMutate.resolve();
+    await act(async () => {
+      await dragPromise;
+    });
+  });
+
+  it('CMP-044: onMutate refresh failure after successful reorder does not show destructive toast', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
+      { ...sub2, position: 0 },
+      { ...sub1, position: 1 },
+      { ...sub3, position: 2 },
+    ]);
+    const failingOnMutate = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={failingOnMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    await act(async () => {
+      await capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's2' },
+      } as unknown as DragEndEvent);
+    });
+
+    await waitFor(() => {
+      expect(reorderSpy).toHaveBeenCalledWith('t1', ['s2', 's1', 's3']);
+    });
+    expect(failingOnMutate).toHaveBeenCalledTimes(1);
+    expect(mockToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive', description: 'Refresh failed' }),
+    );
   });
 
   it('CMP-033: single sub-task list renders without drag issues', () => {
