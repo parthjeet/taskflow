@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DailyUpdateFeed } from '@/components/DailyUpdateFeed';
 import { apiClient } from '@/lib/api';
 import { DailyUpdate, TeamMember } from '@/types';
+import { deferred } from '@/test/test-utils';
 
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({
@@ -19,16 +20,6 @@ const now = Date.now();
 const oneHourAgo = new Date(now - 1 * 60 * 60 * 1000).toISOString();
 const twentyFiveHoursAgo = new Date(now - 25 * 60 * 60 * 1000).toISOString();
 const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
-
-function deferred<T>() {
-  let resolve!: (value: T | PromiseLike<T>) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
 
 function makeUpdate(overrides: Partial<DailyUpdate> & { id: string }): DailyUpdate {
   return {
@@ -331,6 +322,50 @@ describe('DailyUpdateFeed — add update', () => {
     expect(addSpy).toHaveBeenCalledTimes(1);
 
     pending.resolve(makeUpdate({ id: 'u99', content: 'In-flight update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalled();
+    });
+  });
+
+  it('CMP-060: task switch resets add-dialog state (open, content, author, loading)', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'Pending update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(addBtn).toBeDisabled();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByPlaceholderText("What's the latest?")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Add Update'));
+    const reopenedTextarea = screen.getByPlaceholderText("What's the latest?");
+    expect(reopenedTextarea).toHaveValue('');
+    fireEvent.change(reopenedTextarea, { target: { value: 'Fresh update' } });
+
+    const reopenedAddBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(reopenedAddBtn).toBeDefined();
+    expect(reopenedAddBtn).not.toBeDisabled();
+
+    pending.resolve(makeUpdate({ id: 'u60', content: 'Pending update' }));
     await waitFor(() => {
       expect(onMutate).toHaveBeenCalled();
     });
