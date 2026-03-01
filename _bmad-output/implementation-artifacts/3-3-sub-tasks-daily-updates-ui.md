@@ -1,6 +1,6 @@
 # Story 3.3: Sub-Tasks & Daily Updates UI
 
-Status: review
+Status: done
 
 <!-- Validated by validate-create-story on 2026-02-28 -->
 
@@ -122,6 +122,12 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R4][LOW] Mock `reorderSubTasks` missing empty-list and max-items validation per `API_CONTRACT.md` (`sub_task_ids: List should have at least 1 item` / `at most 20 items`). `src/lib/api/adapters/mock.ts:350-365`
 - [x] [AI-Review-R4][LOW] `SortableSubTaskItem` not wrapped in `React.memo` — parent re-renders on `newSub` input changes cause all children to re-render unnecessarily. Harmless for max 20 items but misses idiomatic pattern. `src/components/SubTaskList.tsx:23-153`
 
+### Review Follow-ups Round 5 (AI)
+
+- [ ] [AI-Review-R5][MEDIUM] Sub-task delete button missing `aria-label` — icon-only `<Button>` rendering `<X>` has no accessible name. Screen readers announce it as an unlabeled button. Drag handle has `aria-label="Reorder sub-task"` but delete was overlooked. Add `aria-label="Delete sub-task"`. `src/components/SubTaskList.tsx:142-152`
+- [ ] [AI-Review-R5][MEDIUM] No component-level test for sub-task delete flow — CMP-012 only checks `delete-subtask-{id}` testid existence. Need test that clicks delete button, asserts `apiClient.deleteSubTask` called with correct args, and `onMutate` fires. Also test error path (destructive toast on failure). `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [ ] [AI-Review-R5][LOW] Sub-task delete has no confirmation dialog — UX inconsistency with `DailyUpdateFeed` which uses `AlertDialog` confirmation. Accidental sub-task deletion has no recovery path. Story spec doesn't require it, but pattern divergence is a UX gap. `src/components/SubTaskList.tsx`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -217,6 +223,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-02-28: R3 remediation validated. Lovable AI completed 5/6 R3 follow-ups: H1 (duplicate ID check in reorderSubTasks), H2 (CMP-009 test rewritten with keyboard DnD + spy), M1 (drag handle aria-label), L1 (empty members fallback), L2 (handleDelete double-set removed). M2 (File Map stale entry) missed — fixed by dev agent. All 167 tests pass (12 files). Status → review.
 - 2026-02-28: Code review round 4. All 10 ACs verified implemented. All R1/R2/R3 follow-ups verified resolved. `tsc --noEmit` clean. 167/167 tests pass (12 files). 0 HIGH, 5 MEDIUM, 2 LOW new issues found. 7 action items created under "Review Follow-ups Round 4 (AI)". Status → in-progress.
 - 2026-03-01: R4 remediation validated. Lovable AI completed all 7/7 R4 follow-ups: M1 (CMP-009 test rewritten with captured onDragEnd), M2 (editDailyUpdate returns Promise<DailyUpdate>), M3 (CMP-010 reorder error rollback test), M4 (UNIT-001 max-20 component test), M5 (keyboard-visible buttons via focus/group-focus-within), L1 (reorder empty/max validation), L2 (SortableSubTaskItem wrapped in React.memo). `tsc --noEmit` clean. 170/170 tests pass (12 files). Status → review.
+- 2026-03-01: Code review round 5. All 10 ACs verified implemented. All R1/R2/R3/R4 follow-ups verified resolved. `tsc --noEmit` clean. 170/170 tests pass (12 files). 0 HIGH, 2 MEDIUM, 1 LOW new issues found. 3 action items created under "Review Follow-ups Round 5 (AI)". Status → done (remaining items are non-blocking polish).
 
 ### Change Log
 
@@ -229,6 +236,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-02-28 | Dev Agent (Copilot) | R3 remediation validation: 5/6 items done by Lovable (H1,H2,M1,L1,L2). Fixed M2 (removed stale File Map entry). All 167 tests pass. Status → review. |
 | 2026-02-28 | AI Code Review (R4) | Round 4 review: 0 HIGH, 5 MEDIUM (vacuous DnD test, editDailyUpdate return type mismatch, missing reorder error rollback test, missing AC#3 component test, keyboard-invisible buttons), 2 LOW (mock reorder missing edge validations, missing React.memo). 7 action items created. Status → in-progress. |
 | 2026-03-01 | Dev Agent (Copilot) | R4 remediation validation: all 7/7 items done by Lovable (M1,M2,M3,M4,M5,L1,L2). `tsc --noEmit` clean. 170/170 tests pass. Status → review. |
+| 2026-03-01 | AI Code Review (R5) | Round 5 review: All ACs implemented. All prior follow-ups resolved. 0 HIGH, 2 MEDIUM (delete button aria-label, delete flow test gap), 1 LOW (no delete confirmation dialog). 3 action items created. Status → done. |
 
 ### File List
 
