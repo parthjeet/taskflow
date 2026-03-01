@@ -77,6 +77,22 @@ describe('SubTaskList — inline edit', () => {
     expect(onMutate).toHaveBeenCalled();
   });
 
+  it('CMP-056: blur save uses latest typed title', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Blur Updated' });
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('First'));
+    const input = screen.getByDisplayValue('First');
+    fireEvent.change(input, { target: { value: 'Blur Updated' } });
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(editSpy).toHaveBeenCalledTimes(1);
+      expect(editSpy).toHaveBeenCalledWith('t1', 's1', { title: 'Blur Updated' });
+    });
+    expect(onMutate).toHaveBeenCalled();
+  });
+
   it('CMP-052: Enter then blur only saves once', async () => {
     const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Updated once' });
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
