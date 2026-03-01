@@ -202,6 +202,13 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R16][LOW] `useSafeMutate` missing explicit return type annotation — annotated return type as `() => void`. `src/hooks/useSafeMutate.ts`
 - [x] [AI-Review-R16][LOW] `handleDragEnd` outer `finally` only resets `isDraggingRef` — if an unexpected throw occurs after `setReordering(true)` and before the normal `setReordering(false)` paths, the sub-task list freezes in optimistic order forever. Added `setReordering(false)` to outer `finally` as defense-in-depth safety net. `src/components/SubTaskList.tsx`
 
+### Review Follow-ups Round 17 (AI)
+
+- [ ] [AI-Review-R17][LOW] `SubTaskList` passes raw `onMutate` prop to `SortableSubTaskItem` children instead of stable `triggerMutate` wrapper — defeats `React.memo` if parent passes an unstable function ref (e.g. inline arrow or un-memoised callback). Fix: `<SortableSubTaskItem … onMutate={triggerMutate} />` so all children depend on the stable safe-mutate wrapper. `src/components/SubTaskList.tsx:307`
+- [ ] [AI-Review-R17][LOW] `handleDragEnd` depends on raw `onMutate` in `useCallback` dep-array `[sorted, taskId, onMutate, toast]`, asymmetric with every other mutation path that goes through stable `triggerMutate`. `onMutate` is needed as `await`-able (R6 visual-flush guarantee) so `triggerMutate` (void) is not a drop-in. Backlog: introduce `awaitableTriggerMutate = useCallback(async () => { try { await onMutate(); } catch {} }, [onMutate])` and depend on that stable reference instead of raw `onMutate`. `src/components/SubTaskList.tsx:261`
+- [ ] [AI-Review-R17][LOW] Missing in-flight toggle double-click guard test — `toggling` state guard and `disabled={toggling}` checkbox exist but no test verifies a second rapid click is suppressed while the first `toggleSubTask` call is in-flight. Add CMP-063: spy on `apiClient.toggleSubTask` with deferred promise, fire two checkbox clicks, assert spy called exactly once. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [ ] [AI-Review-R17][LOW] `openAddDialog` in `DailyUpdateFeed` depends on `activeMembers` in `useCallback` deps, causing recreation on every `members` prop change (even when active-member list is unchanged). Inconsistent with R15 ref-optimization applied to other callbacks in the same file. Consider `activeMembersRef` pattern or snapshot `activeMembers` into a ref synced via `useEffect`. `src/components/DailyUpdateFeed.tsx:66`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
@@ -352,6 +359,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | AI Code Review (R15) | Round 15 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 193/193 tests pass. 0 HIGH, 0 MEDIUM, 4 LOW (handleAddUpdate per-keystroke callback recreation; triggerMutate triplicate boilerplate; CMP-005 fragile /update/i selector; Enter-during-await double-save unguarded). 4 action items created under "Review Follow-ups Round 15 (AI)". Status → done. |
 | 2026-03-01 | Dev Agent (Codex) | R15 remediation completed: ref-backed add-update callback optimization, shared `useSafeMutate` hook extraction, targeted CMP-005 selector hardening, and CMP-062 edge-case coverage with blur-guard fix in sub-task inline edit flow. `npx tsc --noEmit` clean; targeted Story 3.3 suites 59/59; full `npm run test` 194/194 passing. Status → done. |
 | 2026-03-01 | AI Code Review (R16) | Round 16 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 194/194 tests pass. 0 HIGH, 0 MEDIUM, 4 LOW (handleAdd per-keystroke callback churn / R15 parity gap; editTitle not synced on sub.title prop change while not editing; useSafeMutate missing return type; handleDragEnd outer finally missing setReordering safety-net). All 4 items auto-fixed inline. Status → done. |
+| 2026-03-01 | AI Code Review (R17) | Round 17 review: All ACs/prior follow-ups verified. `tsc --noEmit` clean. 194/194 tests pass. 0 git discrepancies. 0 HIGH, 0 MEDIUM, 4 LOW (`onMutate` passed raw to memo'd children defeating React.memo; `handleDragEnd` raw-`onMutate` dep asymmetry vs `triggerMutate`; missing `handleToggle` in-flight double-click guard test CMP-063; `openAddDialog` recreates on every `members` change). 4 action items created under "Review Follow-ups Round 17 (AI)". Status → done. |
 
 ### File List
 
