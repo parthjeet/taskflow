@@ -93,6 +93,25 @@ describe('SubTaskList — inline edit', () => {
     });
   });
 
+  it('CMP-054: Escape then browser-blur does NOT save (production blur guard)', async () => {
+    // Real browsers fire blur when the focused <Input> is removed from the DOM.
+    // This test explicitly fires blur after Escape to verify the guard suppresses it.
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Changed' });
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('First'));
+    const input = screen.getByDisplayValue('First');
+    fireEvent.change(input, { target: { value: 'Changed' } });
+    fireEvent.keyDown(input, { key: 'Escape' });
+    // Simulate the blur that real browsers fire during Input unmount
+    fireEvent.blur(input);
+
+    // Wait a tick to allow any async saveEdit to run if the guard is broken
+    await new Promise(r => setTimeout(r, 0));
+    expect(editSpy).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
   it('CMP-041: Escape cancels without API call', () => {
     const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Changed' });
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);

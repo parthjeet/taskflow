@@ -27,6 +27,13 @@ interface DailyUpdateFeedProps {
 
 export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Readonly<DailyUpdateFeedProps>) {
   const { toast } = useToast();
+  // Safe onMutate wrapper — silently absorbs parent refresh failures so they
+  // never surface as unhandled promise rejections or unexpected error toasts.
+  const triggerMutate = useCallback(() => {
+    void Promise.resolve(onMutate()).catch(() => {
+      // Refresh failures are non-critical for local optimistic state.
+    });
+  }, [onMutate]);
   const [addingUpdate, setAddingUpdate] = useState(false);
   const [updateAuthor, setUpdateAuthor] = useState('');
   const [updateContent, setUpdateContent] = useState('');
@@ -64,14 +71,14 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       localStorage.setItem(LAST_AUTHOR_KEY, updateAuthor);
       toast({ title: 'Update added' });
       setAddingUpdate(false);
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setUpdateLoading(false);
     }
-  }, [taskId, updateAuthor, updateContent, updateLoading, onMutate, toast]);
+  }, [taskId, updateAuthor, updateContent, updateLoading, triggerMutate, toast]);
 
   const handleEditSave = useCallback(async (updateId: string) => {
     if (editUpdateLoading) return;
@@ -82,14 +89,14 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       await apiClient.editDailyUpdate(taskId, updateId, { content: normalizedContent });
       toast({ title: 'Update edited' });
       setEditingUpdateId(null);
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setEditUpdateLoading(false);
     }
-  }, [taskId, editingContent, editUpdateLoading, onMutate, toast]);
+  }, [taskId, editingContent, editUpdateLoading, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deletingUpdate || !deleteUpdateId) return;
@@ -97,14 +104,14 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     try {
       await apiClient.deleteDailyUpdate(taskId, deleteUpdateId);
       toast({ title: 'Update deleted' });
-      void onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setDeletingUpdate(false);
     }
-  }, [deletingUpdate, deleteUpdateId, taskId, onMutate, toast]);
+  }, [deletingUpdate, deleteUpdateId, taskId, triggerMutate, toast]);
 
   return (
     <TooltipProvider>
