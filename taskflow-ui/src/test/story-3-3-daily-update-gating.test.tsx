@@ -128,6 +128,30 @@ describe('DailyUpdateFeed — edit flow', () => {
     expect(onMutate).toHaveBeenCalled();
   });
 
+  it('CMP-065: programmatic empty save shows validation toast and skips API call', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(
+      makeUpdate({ id: 'u1', content: 'Should not save', edited: true }),
+    );
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    const textarea = screen.getByDisplayValue('Recent update');
+    fireEvent.change(textarea, { target: { value: '   ' } });
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          description: 'Update content is required',
+        }),
+      );
+    });
+    expect(editSpy).not.toHaveBeenCalled();
+    expect(onMutate).not.toHaveBeenCalled();
+  });
+
   it('CMP-013: edit save error → destructive toast', async () => {
     vi.spyOn(apiClient, 'editDailyUpdate').mockRejectedValue(new Error('Updates can only be edited within 24 hours.'));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
@@ -345,6 +369,32 @@ describe('DailyUpdateFeed — add update', () => {
     pending.resolve(makeUpdate({ id: 'u99', content: 'In-flight update' }));
     await waitFor(() => {
       expect(onMutate).toHaveBeenCalled();
+    });
+  });
+
+  it('CMP-066: rapid double-click submit only fires one add request', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'Rapid click update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+
+    fireEvent.click(addBtn!);
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+
+    pending.resolve(makeUpdate({ id: 'u100', content: 'Rapid click update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
     });
   });
 

@@ -43,7 +43,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const triggerMutate = useSafeMutate(onMutate);
+  const triggerMutate = onMutate;
 
   // Sync completed state when prop changes (e.g. parent refresh between toggles).
   useEffect(() => {

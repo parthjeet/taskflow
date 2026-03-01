@@ -35,10 +35,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   const [updateContent, setUpdateContent] = useState('');
   const updateContentRef = useRef('');
   const [updateLoading, setUpdateLoading] = useState(false);
+  const updateLoadingRef = useRef(false);
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
   const editContentRef = useRef('');
   const [editUpdateLoading, setEditUpdateLoading] = useState(false);
+  const editUpdateLoadingRef = useRef(false);
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState(false);
 
@@ -60,9 +62,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     setUpdateContent('');
     updateContentRef.current = '';
     setUpdateLoading(false);
+    updateLoadingRef.current = false;
     setEditingUpdateId(null);
     setEditingContent('');
     editContentRef.current = '';
+    setEditUpdateLoading(false);
+    editUpdateLoadingRef.current = false;
     setDeleteUpdateId(null);
     setDeletingUpdate(false);
   }, [taskId]);
@@ -81,10 +86,11 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   }, []);
 
   const handleAddUpdate = useCallback(async () => {
-    if (updateLoading) return;
+    if (updateLoadingRef.current) return;
     const authorId = updateAuthorRef.current;
     const normalizedContent = updateContentRef.current.trim();
     if (!authorId || !normalizedContent) return;
+    updateLoadingRef.current = true;
     setUpdateLoading(true);
     try {
       await apiClient.addDailyUpdate(taskId, { authorId, content: normalizedContent });
@@ -96,20 +102,25 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      updateLoadingRef.current = false;
       setUpdateLoading(false);
     }
-  }, [taskId, updateLoading, triggerMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
   const handleEditSave = useCallback(async (updateId: string, currentUpdateContent: string) => {
-    if (editUpdateLoading) return;
+    if (editUpdateLoadingRef.current) return;
     const normalizedContent = editContentRef.current.trim();
-    if (!normalizedContent) return;
+    if (!normalizedContent) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Update content is required' });
+      return;
+    }
     if (normalizedContent === currentUpdateContent.trim()) {
       setEditingUpdateId(null);
       setEditingContent('');
       editContentRef.current = '';
       return;
     }
+    editUpdateLoadingRef.current = true;
     setEditUpdateLoading(true);
     try {
       await apiClient.editDailyUpdate(taskId, updateId, { content: normalizedContent });
@@ -122,9 +133,10 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      editUpdateLoadingRef.current = false;
       setEditUpdateLoading(false);
     }
-  }, [taskId, editUpdateLoading, triggerMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deletingUpdate || !deleteUpdateId) return;
@@ -184,7 +196,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                       >
                         Cancel
                       </Button>
-                      <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={() => handleEditSave(upd.id, upd.content)}>
+                      <Button size="sm" disabled={editUpdateLoading} onClick={() => handleEditSave(upd.id, upd.content)}>
                         {editUpdateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Save
                       </Button>
                     </div>
