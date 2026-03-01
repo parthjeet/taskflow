@@ -141,9 +141,9 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 8 (AI)
 
-- [ ] [AI-Review-R8][LOW] No in-flight drag guard in `handleDragEnd` — a second rapid drag before `await onMutate()` resolves re-reads stale `sorted` (parent hasn't re-rendered), independently calls `reorderSubTasks` with a conflicting order, and triggers two concurrent `onMutate()` refreshes. Add an `isDraggingRef = useRef(false)` guard (mirroring the `savingRef` pattern in `SortableSubTaskItem`) to no-op the second event until the first completes. `src/components/SubTaskList.tsx:203`
-- [ ] [AI-Review-R8][LOW] CMP-044 assertion weaker than necessary — `expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ description: 'Refresh failed' }))` only blocks one specific message. Since `handleDragEnd` fires zero success toasts on reorder, the complete assertion is `expect(mockToast).not.toHaveBeenCalled()` which catches any unexpected toast regression, not just this one. `src/test/story-3-3-subtask-edit-reorder.test.tsx:265`
-- [ ] [AI-Review-R8][LOW] `dragPromise` typed imprecision in CMP-043 — `let dragPromise: Promise<void>` is assigned from `capturedOnDragEnd!(...)` typed as `void`; works at runtime because `handleDragEnd` is async, but TypeScript sees a `void`-return stored in a `Promise<void>` variable. Clarify with `as unknown as Promise<void>` cast or update mock handler type to `(event: DragEndEvent) => Promise<void> | void`. `src/test/story-3-3-subtask-edit-reorder.test.tsx:213`
+- [x] [AI-Review-R8][LOW] No in-flight drag guard in `handleDragEnd` — a second rapid drag before `await onMutate()` resolves re-reads stale `sorted` (parent hasn't re-rendered), independently calls `reorderSubTasks` with a conflicting order, and triggers two concurrent `onMutate()` refreshes. Added `isDraggingRef = useRef(false)` guard to no-op concurrent drag-end events until the in-flight reorder path completes. `src/components/SubTaskList.tsx`
+- [x] [AI-Review-R8][LOW] CMP-044 assertion weaker than necessary — updated test assertion from specific `not.toHaveBeenCalledWith(...)` to strict `expect(mockToast).not.toHaveBeenCalled()` to detect any unexpected toast regression. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [x] [AI-Review-R8][LOW] `dragPromise` typed imprecision in CMP-043 — updated captured handler type to `(event: DragEndEvent) => Promise<void> | void` and wrapped assignment with `Promise.resolve(...)` to keep runtime semantics and type precision aligned. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 
 ## Dev Notes
 
@@ -245,6 +245,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: Code review round 6. All 10 ACs verified implemented. All R1–R5 follow-ups verified resolved. `tsc --noEmit` clean. 173/173 tests pass (12 files). 0 HIGH, 1 MEDIUM (handleDragEnd visual flash), 2 LOW (package-lock.json File Map gap, missing same-title no-op test). 3 action items created under "Review Follow-ups Round 6 (AI)". Status → done (all items non-blocking polish deferred to backlog).
 - 2026-03-01: R6 remediation completed. Fixed reorder success-path visual flash by awaiting `onMutate()` before clearing `reordering`, widened `onMutate` prop type to `() => void | Promise<void>` in `SubTaskList` and `DailyUpdateFeed`, added CMP-042 same-title no-op test, and reconciled `package-lock.json` in File List. `npx tsc --noEmit` clean. `npm run test` passes 174/174 tests (12 files). Status → done.
 - 2026-03-01: R7 remediation completed. Added CMP-043 to cover async `onMutate` Promise path in drag reorder and CMP-044 to verify no destructive toast when post-reorder refresh fails. Split `handleDragEnd` error handling so refresh failures do not surface as reorder failures. `npx tsc --noEmit` clean. `npm run test` passes 176/176 tests (12 files). Status → done.
+- 2026-03-01: R8 remediation completed. Added in-flight drag guard (`isDraggingRef`) to prevent concurrent reorder requests before parent refresh resolves, strengthened CMP-044 to assert zero toasts, tightened CMP-043 typing for async drag handler capture, and added CMP-045 to validate second-drag suppression during in-flight mutate. `npx tsc --noEmit -p tsconfig.app.json` clean. `npx vitest run` passes 177/177 tests (12 files). Status → done.
 
 ### Change Log
 
@@ -262,6 +263,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | AI Code Review (R6) | Round 6 review: All ACs/prior follow-ups verified. 0 HIGH, 1 MEDIUM (handleDragEnd visual flash on success path), 2 LOW (package-lock.json File Map, same-title no-op test). 3 action items created. Status → done (non-blocking polish deferred). |
 | 2026-03-01 | Dev Agent (Codex) | R6 remediation completed: fixed reorder visual flash and awaited parent mutate callback, widened `onMutate` prop types to `() => void | Promise<void>`, added CMP-042 no-op edit test, and added `package-lock.json` to File List. `npx tsc --noEmit` clean; `npm run test` 174/174 passing. Status → done. |
 | 2026-03-01 | Dev Agent (Codex) | R7 remediation completed: split reorder vs refresh error handling in `handleDragEnd` and added CMP-043/CMP-044 tests to cover async `onMutate` success and failure paths. `npx tsc --noEmit` clean; `npm run test` 176/176 passing. Status → done. |
+| 2026-03-01 | Dev Agent (Codex) | R8 remediation completed: added `isDraggingRef` guard for in-flight reorder protection, strengthened CMP-044 to `not.toHaveBeenCalled()`, tightened CMP-043 drag Promise typing, and added CMP-045 concurrent-drag guard test. `npx tsc --noEmit -p tsconfig.app.json` clean; `npx vitest run` 177/177 passing. Status → done. |
 
 ### File List
 
@@ -282,5 +284,5 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
 | `bun.lock` | Modified | Lockfile updates from bun dependency install |
-| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 25 tests for sub-task inline edit + drag reorder/delete |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 26 tests for sub-task inline edit + drag reorder/delete |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 16 tests for daily update 24h gating + error toasts |
