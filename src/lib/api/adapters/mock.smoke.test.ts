@@ -79,9 +79,9 @@ describe("MockApiClient smoke", () => {
       content: "Recent smoke update",
     });
 
-    await expect(
-      client.editDailyUpdate(recentTaskId, recent.id, { content: "Edited within 24h" }),
-    ).resolves.toBeUndefined();
+    const edited = await client.editDailyUpdate(recentTaskId, recent.id, { content: "Edited within 24h" });
+    expect(edited.content).toBe("Edited within 24h");
+    expect(edited.edited).toBe(true);
     await expect(client.deleteDailyUpdate(recentTaskId, recent.id)).resolves.toBeUndefined();
 
     await expect(
@@ -120,6 +120,15 @@ describe("MockApiClient smoke", () => {
       assigneeId: null,
     });
     await expect(client.deleteMember(member.id)).resolves.toBeUndefined();
+  });
+
+  it("reorderSubTasks rejects empty list", async () => {
+    const tasks = await client.getTasks();
+    const taskWithSubs = tasks.find(t => t.subTasks.length >= 1);
+    expect(taskWithSubs).toBeTruthy();
+    await expect(
+      client.reorderSubTasks(taskWithSubs!.id, []),
+    ).rejects.toThrow("at least 1 item");
   });
 
   it("reorderSubTasks rejects duplicate IDs", async () => {
