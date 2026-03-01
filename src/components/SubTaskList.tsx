@@ -45,11 +45,22 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
   const style = { transform: CSS.Transform.toString(transform), transition };
   const triggerMutate = useSafeMutate(onMutate);
 
+  // Sync completed state when prop changes (e.g. parent refresh between toggles).
   useEffect(() => {
     if (!toggling && completed !== sub.completed) {
       setCompleted(sub.completed);
     }
   }, [sub.completed, toggling, completed]);
+
+  // Sync editTitle/ref when sub.title prop changes while not in editing mode
+  // (e.g. parent refresh after another mutation). Prevents stale pre-population
+  // on the next click-to-edit.
+  useEffect(() => {
+    if (!editing) {
+      setEditTitle(sub.title);
+      editTitleRef.current = sub.title;
+    }
+  }, [sub.title, editing]);
 
   const handleToggle = useCallback(async () => {
     if (toggling) return;
@@ -205,6 +216,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskListProps>) {
   const { toast } = useToast();
   const [newSub, setNewSub] = useState('');
+  const newSubRef = useRef('');
   const [adding, setAdding] = useState(false);
   const [items, setItems] = useState<SubTask[]>([]);
   const [reordering, setReordering] = useState(false);
@@ -228,12 +240,13 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   const handleAdd = useCallback(async () => {
-    const title = newSub.trim();
+    const title = newSubRef.current.trim();
     if (!title || adding) return;
     setAdding(true);
     try {
       await apiClient.addSubTask(taskId, { title });
       setNewSub('');
+      newSubRef.current = '';
       triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -241,7 +254,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
     } finally {
       setAdding(false);
     }
-  }, [newSub, adding, taskId, triggerMutate, toast]);
+  }, [adding, taskId, triggerMutate, toast]);
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
@@ -277,6 +290,9 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
       setReordering(false);
     } finally {
       isDraggingRef.current = false;
+      // Safety net: ensures reordering clears even if an unexpected throw
+      // occurs between setReordering(true) and the normal setReordering(false) paths.
+      setReordering(false);
     }
   }, [sorted, taskId, onMutate, toast]);
 
@@ -305,10 +321,10 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
         <Input
           placeholder="Add sub-task..."
           value={newSub}
-          onChange={e => setNewSub(e.target.value)}
+          onChange={e => { newSubRef.current = e.target.value; setNewSub(e.target.value); }}
           maxLength={MAX_SUBTASK_TITLE_LENGTH}
           onKeyDown={async e => {
-            if (e.key === 'Enter' && newSub.trim() && !adding) {
+            if (e.key === 'Enter' && newSubRef.current.trim() && !adding) {
               await handleAdd();
             }
           }}

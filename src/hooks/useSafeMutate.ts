@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-export function useSafeMutate(onMutate: () => void | Promise<void>) {
+export function useSafeMutate(onMutate: () => void | Promise<void>): () => void {
   return useCallback(() => {
     void Promise.resolve(onMutate()).catch(() => {
       // Refresh failures are non-critical for local optimistic state.
