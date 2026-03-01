@@ -265,6 +265,32 @@ describe('DailyUpdateFeed — delete flow', () => {
       expect.objectContaining({ variant: 'destructive', description: 'Updates can only be deleted within 24 hours.' }),
     ));
   });
+
+  it('CMP-070: second delete confirm is ignored while request is in flight', async () => {
+    const pending = deferred<void>();
+    const deleteSpy = vi.spyOn(apiClient, 'deleteDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Delete'));
+    const confirmDeleteButton = screen.getByTestId('confirm-delete-update');
+    fireEvent.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
+      expect(deleteSpy).toHaveBeenCalledWith('t1', 'u1');
+    });
+    await waitFor(() => {
+      expect(confirmDeleteButton).toBeDisabled();
+    });
+
+    fireEvent.click(confirmDeleteButton);
+    expect(deleteSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve();
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe('DailyUpdateFeed — add update', () => {

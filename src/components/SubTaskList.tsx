@@ -43,7 +43,6 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
-  const triggerMutate = onMutate;
 
   // Sync completed state when prop changes (e.g. parent refresh between toggles).
   useEffect(() => {
@@ -69,7 +68,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     setCompleted(!prev);
     try {
       await apiClient.toggleSubTask(taskId, sub.id);
-      triggerMutate();
+      onMutate();
     } catch (err) {
       setCompleted(prev);
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -77,7 +76,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     } finally {
       setToggling(false);
     }
-  }, [toggling, completed, taskId, sub.id, triggerMutate, toast]);
+  }, [toggling, completed, taskId, sub.id, onMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deleting) return;
@@ -85,14 +84,14 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     try {
       await apiClient.deleteSubTask(taskId, sub.id);
       toast({ title: 'Sub-task removed' });
-      triggerMutate();
+      onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setDeleting(false);
     }
-  }, [deleting, taskId, sub.id, triggerMutate, toast]);
+  }, [deleting, taskId, sub.id, onMutate, toast]);
 
   const saveEdit = useCallback(async () => {
     if (savingRef.current) return;
@@ -120,16 +119,18 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
       }
       try {
         await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
-        triggerMutate();
+        onMutate();
+        setEditing(false);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         toast({ variant: 'destructive', title: 'Error', description: msg });
+        editTitleRef.current = trimmed;
+        setEditTitle(trimmed);
       }
-      setEditing(false);
     } finally {
       savingRef.current = false;
     }
-  }, [sub.title, sub.id, taskId, triggerMutate, toast]);
+  }, [sub.title, sub.id, taskId, onMutate, toast]);
 
   const handleEditKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -284,13 +285,10 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         toast({ variant: 'destructive', title: 'Error', description: msg });
-        setReordering(false);
         return;
       }
 
       await awaitableTriggerMutate();
-
-      setReordering(false);
     } finally {
       isDraggingRef.current = false;
       // Safety net: ensures reordering clears even if an unexpected throw

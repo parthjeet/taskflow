@@ -68,6 +68,29 @@ describe('SubTaskList — inline edit', () => {
     expect(onMutate).toHaveBeenCalled();
   });
 
+  it('CMP-067: edit API failure keeps edit mode open with typed value', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockRejectedValue(new Error('Network error'));
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('First'));
+    const input = screen.getByDisplayValue('First');
+    fireEvent.change(input, { target: { value: 'Retry title' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(editSpy).toHaveBeenCalledTimes(1);
+      expect(editSpy).toHaveBeenCalledWith('t1', 's1', { title: 'Retry title' });
+    });
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: 'destructive',
+        description: 'Network error',
+      }),
+    );
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(screen.getByDisplayValue('Retry title')).toBeInTheDocument();
+  });
+
   it('CMP-056: blur save uses latest typed title', async () => {
     const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'Blur Updated' });
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
@@ -307,6 +330,24 @@ describe('SubTaskList — drag reorder', () => {
     expect(mockToast).not.toHaveBeenCalled();
   });
 
+  it('CMP-069: drag with stale active id is a no-op', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([sub1, sub2, sub3]);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={onMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    await act(async () => {
+      await capturedOnDragEnd!({
+        active: { id: 'ghost-id' },
+        over: { id: 's1' },
+      } as unknown as DragEndEvent);
+    });
+
+    expect(reorderSpy).not.toHaveBeenCalled();
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
   it('CMP-043: keeps optimistic order while awaiting async onMutate', async () => {
     const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
       { ...sub2, position: 0 },
@@ -507,6 +548,20 @@ describe('SubTaskList — add', () => {
     fireEvent.click(screen.getByTestId('add-subtask-btn'));
 
     await waitFor(() => expect(onMutate).toHaveBeenCalled());
+  });
+
+  it('CMP-068: Enter key in add input submits sub-task', async () => {
+    const addSpy = vi.spyOn(apiClient, 'addSubTask').mockResolvedValue(makeSub({ id: 's98', title: 'Keyboard add', position: 1 }));
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    const input = screen.getByPlaceholderText('Add sub-task...');
+    fireEvent.change(input, { target: { value: 'Keyboard add' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledWith('t1', { title: 'Keyboard add' });
+    });
+    expect(onMutate).toHaveBeenCalled();
   });
 
   it('CMP-016: empty input does not submit', () => {

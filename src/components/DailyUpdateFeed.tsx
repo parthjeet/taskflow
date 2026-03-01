@@ -42,7 +42,9 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   const [editUpdateLoading, setEditUpdateLoading] = useState(false);
   const editUpdateLoadingRef = useRef(false);
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
+  const deleteUpdateIdRef = useRef<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState(false);
+  const deletingUpdateRef = useRef(false);
 
   const activeMembers = useMemo(() => members.filter(m => m.active), [members]);
   const activeMembersRef = useRef(activeMembers);
@@ -69,7 +71,9 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     setEditUpdateLoading(false);
     editUpdateLoadingRef.current = false;
     setDeleteUpdateId(null);
+    deleteUpdateIdRef.current = null;
     setDeletingUpdate(false);
+    deletingUpdateRef.current = false;
   }, [taskId]);
 
   const openAddDialog = useCallback(() => {
@@ -139,19 +143,22 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   }, [taskId, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
-    if (deletingUpdate || !deleteUpdateId) return;
+    const currentDeleteId = deleteUpdateIdRef.current;
+    if (deletingUpdateRef.current || !currentDeleteId) return;
+    deletingUpdateRef.current = true;
     setDeletingUpdate(true);
     try {
-      await apiClient.deleteDailyUpdate(taskId, deleteUpdateId);
+      await apiClient.deleteDailyUpdate(taskId, currentDeleteId);
       toast({ title: 'Update deleted' });
       triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      deletingUpdateRef.current = false;
       setDeletingUpdate(false);
     }
-  }, [deletingUpdate, deleteUpdateId, taskId, triggerMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
   return (
     <TooltipProvider>
@@ -223,7 +230,10 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                           Edit
                         </Button>
                         <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive hover:text-destructive"
-                          onClick={() => setDeleteUpdateId(upd.id)}>
+                          onClick={() => {
+                            setDeleteUpdateId(upd.id);
+                            deleteUpdateIdRef.current = upd.id;
+                          }}>
                           Delete
                         </Button>
                       </div>
@@ -298,7 +308,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       </Dialog>
 
       {/* Delete Update Confirm */}
-      <AlertDialog open={!!deleteUpdateId} onOpenChange={open => { if (!open) setDeleteUpdateId(null); }}>
+      <AlertDialog open={!!deleteUpdateId} onOpenChange={open => {
+        if (!open) {
+          setDeleteUpdateId(null);
+          deleteUpdateIdRef.current = null;
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Update</AlertDialogTitle>
