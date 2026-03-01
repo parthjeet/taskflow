@@ -20,6 +20,16 @@ const oneHourAgo = new Date(now - 1 * 60 * 60 * 1000).toISOString();
 const twentyFiveHoursAgo = new Date(now - 25 * 60 * 60 * 1000).toISOString();
 const twoHoursAgo = new Date(now - 2 * 60 * 60 * 1000).toISOString();
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 function makeUpdate(overrides: Partial<DailyUpdate> & { id: string }): DailyUpdate {
   return {
     taskId: 't1',
@@ -208,6 +218,34 @@ describe('DailyUpdateFeed — add update', () => {
     fireEvent.click(screen.getByText('Add'));
 
     await waitFor(() => expect(localStorage.getItem('taskflow-last-author')).toBeTruthy());
+  });
+
+  it('CMP-048: second submit is ignored while add request is in flight', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'In-flight update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(addBtn).toBeDisabled();
+
+    fireEvent.click(addBtn!);
+    expect(addSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve(makeUpdate({ id: 'u99', content: 'In-flight update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalled();
+    });
   });
 });
 
