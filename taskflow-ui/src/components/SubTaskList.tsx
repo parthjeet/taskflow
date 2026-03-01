@@ -16,7 +16,7 @@ import { GripVertical, Plus, X, Loader2 } from 'lucide-react';
 interface SubTaskListProps {
   taskId: string;
   subTasks: SubTask[];
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }
 
 const SortableSubTaskItem = memo(function SortableSubTaskItem({
@@ -26,7 +26,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 }: Readonly<{
   sub: SubTask;
   taskId: string;
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }>) {
   const { toast } = useToast();
   const [completed, setCompleted] = useState(sub.completed);
@@ -52,7 +52,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     setCompleted(!prev);
     try {
       await apiClient.toggleSubTask(taskId, sub.id);
-      onMutate();
+      void onMutate();
     } catch (err) {
       setCompleted(prev);
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -68,7 +68,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     try {
       await apiClient.deleteSubTask(taskId, sub.id);
       toast({ title: 'Sub-task removed' });
-      onMutate();
+      void onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -100,7 +100,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
       }
       try {
         await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
-        onMutate();
+        void onMutate();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -191,7 +191,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
     try {
       await apiClient.addSubTask(taskId, { title });
       setNewSub('');
-      onMutate();
+      void onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -214,11 +214,11 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
 
     try {
       await apiClient.reorderSubTasks(taskId, orderedIds);
-      onMutate();
+      await onMutate();
+      setReordering(false);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
-    } finally {
       setReordering(false);
     }
   }, [sorted, taskId, onMutate, toast]);

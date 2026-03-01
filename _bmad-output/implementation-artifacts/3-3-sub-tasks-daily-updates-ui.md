@@ -130,9 +130,9 @@ So that I can break down work and log progress directly from the UI.
 
 ### Review Follow-ups Round 6 (AI)
 
-- [ ] [AI-Review-R6][MEDIUM] `handleDragEnd` visual flash on successful reorder — `setReordering(false)` in `finally` runs immediately after the unawaited `onMutate()`, reverting `displayItems` to pre-drag `sorted` before parent data refresh arrives (~300-500ms gap). Items visibly jump back to old order then forward to correct order. Fix: split `finally` into try/catch paths — on success `await onMutate()` before `setReordering(false)`, on error clear immediately for optimistic revert. Update `onMutate` prop type to `() => void | Promise<void>` in `SubTaskListProps` and `DailyUpdateFeedProps`. `src/components/SubTaskList.tsx:203-213`
-- [ ] [AI-Review-R6][LOW] `package-lock.json` present in git diff but absent from story File Map and File List — minor documentation gap (project uses bun, npm lockfile is a residual artifact).
-- [ ] [AI-Review-R6][LOW] No test for "edit to same title" no-op path — `saveEdit` in `SubTaskList.tsx:98-101` short-circuits without API call when trimmed title equals original. Should have explicit test asserting `editSubTask` is NOT called. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [x] [AI-Review-R6][MEDIUM] `handleDragEnd` visual flash on successful reorder — `setReordering(false)` in `finally` runs immediately after the unawaited `onMutate()`, reverting `displayItems` to pre-drag `sorted` before parent data refresh arrives (~300-500ms gap). Items visibly jump back to old order then forward to correct order. Fix: split `finally` into try/catch paths — on success `await onMutate()` before `setReordering(false)`, on error clear immediately for optimistic revert. Update `onMutate` prop type to `() => void | Promise<void>` in `SubTaskListProps` and `DailyUpdateFeedProps`. `src/components/SubTaskList.tsx:203-213`
+- [x] [AI-Review-R6][LOW] `package-lock.json` present in git diff but absent from story File Map and File List — minor documentation gap (project uses bun, npm lockfile is a residual artifact).
+- [x] [AI-Review-R6][LOW] No test for "edit to same title" no-op path — `saveEdit` in `SubTaskList.tsx:98-101` short-circuits without API call when trimmed title equals original. Should have explicit test asserting `editSubTask` is NOT called. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 
 ## Dev Notes
 
@@ -232,6 +232,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 - 2026-03-01: Code review round 5. All 10 ACs verified implemented. All R1/R2/R3/R4 follow-ups verified resolved. `tsc --noEmit` clean. 170/170 tests pass (12 files). 0 HIGH, 2 MEDIUM, 1 LOW new issues found. 3 action items created under "Review Follow-ups Round 5 (AI)". Status → done (remaining items are non-blocking polish).
 - 2026-03-01: R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label added), M2 (CMP-DEL-001/002 delete flow tests added). L1 (confirmation dialog) intentionally skipped — spec allows it. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review.
 - 2026-03-01: Code review round 6. All 10 ACs verified implemented. All R1–R5 follow-ups verified resolved. `tsc --noEmit` clean. 173/173 tests pass (12 files). 0 HIGH, 1 MEDIUM (handleDragEnd visual flash), 2 LOW (package-lock.json File Map gap, missing same-title no-op test). 3 action items created under "Review Follow-ups Round 6 (AI)". Status → done (all items non-blocking polish deferred to backlog).
+- 2026-03-01: R6 remediation completed. Fixed reorder success-path visual flash by awaiting `onMutate()` before clearing `reordering`, widened `onMutate` prop type to `() => void | Promise<void>` in `SubTaskList` and `DailyUpdateFeed`, added CMP-042 same-title no-op test, and reconciled `package-lock.json` in File List. `npx tsc --noEmit` clean. `npm run test` passes 174/174 tests (12 files). Status → done.
 
 ### Change Log
 
@@ -247,6 +248,7 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | 2026-03-01 | AI Code Review (R5) | Round 5 review: All ACs implemented. All prior follow-ups resolved. 0 HIGH, 2 MEDIUM (delete button aria-label, delete flow test gap), 1 LOW (no delete confirmation dialog). 3 action items created. Status → done. |
 | 2026-03-01 | Dev Agent (Copilot) | R5 remediation validated. Lovable AI completed 2/3 R5 follow-ups: M1 (delete button aria-label), M2 (CMP-DEL-001/002 delete flow tests). L1 (confirmation dialog) skipped per spec — acceptable. `tsc --noEmit` clean. 173/173 tests pass (12 files). Status → review. |
 | 2026-03-01 | AI Code Review (R6) | Round 6 review: All ACs/prior follow-ups verified. 0 HIGH, 1 MEDIUM (handleDragEnd visual flash on success path), 2 LOW (package-lock.json File Map, same-title no-op test). 3 action items created. Status → done (non-blocking polish deferred). |
+| 2026-03-01 | Dev Agent (Codex) | R6 remediation completed: fixed reorder visual flash and awaited parent mutate callback, widened `onMutate` prop types to `() => void | Promise<void>`, added CMP-042 no-op edit test, and added `package-lock.json` to File List. `npx tsc --noEmit` clean; `npm run test` 174/174 passing. Status → done. |
 
 ### File List
 
@@ -263,8 +265,9 @@ Lovable AI (implementation), GitHub Copilot / Claude Opus 4.6 (code review)
 | `src/test/no-direct-mock-adapter-imports.test.ts` | Modified | (undocumented in story) |
 | `src/test/story-2-2-comprehensive.test.tsx` | Modified | Added race condition tests |
 | `package.json` | Modified | Added @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities |
+| `package-lock.json` | Modified | npm lockfile updates from dependency install |
 | `tsconfig.app.json` | Modified | Reformatted, target bumped ES2020→ES2021 |
 | `tsconfig.json` | Modified | Reformatted |
 | `bun.lock` | Modified | Lockfile updates from bun dependency install |
-| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 16 tests for sub-task inline edit + drag reorder |
+| `src/test/story-3-3-subtask-edit-reorder.test.tsx` | Created | 23 tests for sub-task inline edit + drag reorder/delete |
 | `src/test/story-3-3-daily-update-gating.test.tsx` | Created | 16 tests for daily update 24h gating + error toasts |

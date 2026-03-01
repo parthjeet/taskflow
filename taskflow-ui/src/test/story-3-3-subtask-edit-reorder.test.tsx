@@ -4,6 +4,7 @@ import { SubTaskList } from '@/components/SubTaskList';
 import { apiClient } from '@/lib/api';
 import { SubTask } from '@/types';
 import type { DragEndEvent } from '@dnd-kit/core';
+import type { ReactNode } from 'react';
 
 // Mock toast
 const mockToast = vi.fn();
@@ -13,13 +14,17 @@ vi.mock('@/hooks/use-toast', () => ({
 
 // Mock DndContext to capture onDragEnd
 let capturedOnDragEnd: ((event: DragEndEvent) => void) | null = null;
+type DndContextMockProps = {
+  children?: ReactNode;
+  onDragEnd?: (event: DragEndEvent) => void;
+};
 vi.mock('@dnd-kit/core', async () => {
   const actual = await vi.importActual('@dnd-kit/core');
+  const ActualDndContext = (actual as { DndContext: (props: DndContextMockProps) => JSX.Element }).DndContext;
   return {
     ...actual,
-    DndContext: (props: any) => {
-      capturedOnDragEnd = props.onDragEnd;
-      const ActualDndContext = (actual as any).DndContext;
+    DndContext: (props: DndContextMockProps) => {
+      capturedOnDragEnd = props.onDragEnd ?? null;
       return <ActualDndContext {...props} />;
     },
   };
@@ -67,6 +72,18 @@ describe('SubTaskList — inline edit', () => {
 
     expect(screen.getByText('First')).toBeInTheDocument();
     expect(editSpy).not.toHaveBeenCalled();
+  });
+
+  it('CMP-042: edit to same title is a no-op (no API call)', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editSubTask').mockResolvedValue({ ...sub1, title: 'First' });
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('First'));
+    const input = screen.getByDisplayValue('First');
+    fireEvent.change(input, { target: { value: '  First  ' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await waitFor(() => expect(editSpy).not.toHaveBeenCalled());
   });
 
   it('CMP-019: empty title → validation toast, reverts', async () => {

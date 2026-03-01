@@ -22,7 +22,7 @@ interface DailyUpdateFeedProps {
   taskId: string;
   dailyUpdates: DailyUpdate[];
   members: TeamMember[];
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }
 
 export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Readonly<DailyUpdateFeedProps>) {
@@ -58,7 +58,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       localStorage.setItem(LAST_AUTHOR_KEY, updateAuthor);
       toast({ title: 'Update added' });
       setAddingUpdate(false);
-      onMutate();
+      void onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -75,7 +75,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       await apiClient.editDailyUpdate(taskId, updateId, { content: normalizedContent });
       toast({ title: 'Update edited' });
       setEditingUpdateId(null);
-      onMutate();
+      void onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
@@ -90,7 +90,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     try {
       await apiClient.deleteDailyUpdate(taskId, deleteUpdateId);
       toast({ title: 'Update deleted' });
-      onMutate();
+      void onMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
