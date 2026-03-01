@@ -139,6 +139,12 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R7][LOW] No test exercises the Promise branch of `await onMutate()` in `handleDragEnd` — current mock `onMutate = vi.fn()` returns `undefined` so `await undefined` resolves trivially; the R6 visual-flash fix (delaying `setReordering(false)` until parent refresh completes) is never stress-tested. Add a test that passes an async `onMutate` spy and asserts `reorderSubTasks` is called *before* `onMutate` resolves. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 - [x] [AI-Review-R7][LOW] `handleDragEnd` catch block is shared between `reorderSubTasks` failure and `onMutate` failure — if `reorderSubTasks` succeeds but `await onMutate()` rejects, a destructive toast fires as if the reorder failed (misleading UX since the adapter already persisted the new order). Consider wrapping `await onMutate()` in its own try/catch that silently retries or logs without a destructive toast. `src/components/SubTaskList.tsx` lines 214-222.
 
+### Review Follow-ups Round 8 (AI)
+
+- [ ] [AI-Review-R8][LOW] No in-flight drag guard in `handleDragEnd` — a second rapid drag before `await onMutate()` resolves re-reads stale `sorted` (parent hasn't re-rendered), independently calls `reorderSubTasks` with a conflicting order, and triggers two concurrent `onMutate()` refreshes. Add an `isDraggingRef = useRef(false)` guard (mirroring the `savingRef` pattern in `SortableSubTaskItem`) to no-op the second event until the first completes. `src/components/SubTaskList.tsx:203`
+- [ ] [AI-Review-R8][LOW] CMP-044 assertion weaker than necessary — `expect(mockToast).not.toHaveBeenCalledWith(expect.objectContaining({ description: 'Refresh failed' }))` only blocks one specific message. Since `handleDragEnd` fires zero success toasts on reorder, the complete assertion is `expect(mockToast).not.toHaveBeenCalled()` which catches any unexpected toast regression, not just this one. `src/test/story-3-3-subtask-edit-reorder.test.tsx:265`
+- [ ] [AI-Review-R8][LOW] `dragPromise` typed imprecision in CMP-043 — `let dragPromise: Promise<void>` is assigned from `capturedOnDragEnd!(...)` typed as `void`; works at runtime because `handleDragEnd` is async, but TypeScript sees a `void`-return stored in a `Promise<void>` variable. Clarify with `as unknown as Promise<void>` cast or update mock handler type to `(event: DragEndEvent) => Promise<void> | void`. `src/test/story-3-3-subtask-edit-reorder.test.tsx:213`
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
