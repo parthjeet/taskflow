@@ -147,6 +147,22 @@ describe('DailyUpdateFeed — edit flow', () => {
     rerender(<DailyUpdateFeed taskId="t1" dailyUpdates={updatedList} members={members} onMutate={onMutate} />);
     expect(screen.getByText('(edited)')).toBeInTheDocument();
   });
+
+  it('CMP-051: task switch resets inline edit state', () => {
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Edit'));
+    expect(screen.getByDisplayValue('Recent update')).toBeInTheDocument();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByDisplayValue('Recent update')).not.toBeInTheDocument();
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+  });
 });
 
 describe('DailyUpdateFeed — delete flow', () => {
