@@ -36,6 +36,8 @@ validation-rules:
 - [ ] **No Ambiguous Implementation:** Clear, unambiguous implementation that meets story requirements
 - [ ] **Edge Cases Handled:** Error conditions and edge cases appropriately addressed
 - [ ] **Dependencies Within Scope:** Only uses dependencies specified in story or project-context.md
+- [ ] **N+1 Query Prevention (Backend):** Eager loading (`selectinload`) is strictly enforced for all nested resources, and response payload completeness is tested
+- [ ] **Mock Adapter Robustness (Frontend):** Error states and optimistic rollbacks are explicitly mocked and tested during initial adapter implementation
 
 ## 🧪 Testing & Quality Assurance
 

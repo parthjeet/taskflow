@@ -272,6 +272,9 @@
     <template-output file="{default_output_file}">
     developer_context_section</template-output> **DEV AGENT GUARDRAILS:** <template-output file="{default_output_file}">
     technical_requirements</template-output>
+    <action>MANDATORY: Ensure testing_requirements includes explicit negative test scenarios (e.g. error states, optimistic rollbacks).</action>
+    <action>MANDATORY: Ensure technical_requirements includes explicit in-flight guard requirements for all UI mutations (e.g. loading states, double-submit prevention).</action>
+    <action>MANDATORY: Ensure technical_requirements includes strict enforcement of eager loading (`selectinload`) for all backend nested resources to prevent N+1 queries.</action>
     <template-output file="{default_output_file}">architecture_compliance</template-output>
     <template-output
       file="{default_output_file}">library_framework_requirements</template-output>

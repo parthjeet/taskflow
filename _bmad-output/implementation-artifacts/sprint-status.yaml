@@ -56,11 +56,11 @@ development_status:
   epic-2-retrospective: done
 
   # Epic 3: Task Breakdown & Daily Progress Tracking
-  epic-3: in-progress
+  epic-3: done
   3-1-sub-task-management-api: done
   3-2-daily-update-management-api: done
   3-3-sub-tasks-daily-updates-ui: done
-  epic-3-retrospective: optional
+  epic-3-retrospective: done
 
   # Epic 4: Dashboard, Filtering & Search
   epic-4: backlog
