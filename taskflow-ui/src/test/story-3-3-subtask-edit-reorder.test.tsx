@@ -1,14 +1,29 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import { SubTaskList } from '@/components/SubTaskList';
 import { apiClient } from '@/lib/api';
 import { SubTask } from '@/types';
+import type { DragEndEvent } from '@dnd-kit/core';
 
 // Mock toast
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({
   useToast: () => ({ toast: mockToast }),
 }));
+
+// Mock DndContext to capture onDragEnd
+let capturedOnDragEnd: ((event: DragEndEvent) => void) | null = null;
+vi.mock('@dnd-kit/core', async () => {
+  const actual = await vi.importActual('@dnd-kit/core');
+  return {
+    ...actual,
+    DndContext: (props: any) => {
+      capturedOnDragEnd = props.onDragEnd;
+      const ActualDndContext = (actual as any).DndContext;
+      return <ActualDndContext {...props} />;
+    },
+  };
+});
 
 function makeSub(overrides: Partial<SubTask> & { id: string; title: string }): SubTask {
   return { completed: false, position: 0, createdAt: new Date().toISOString(), ...overrides };
@@ -22,6 +37,7 @@ const onMutate = vi.fn();
 
 beforeEach(() => {
   vi.clearAllMocks();
+  capturedOnDragEnd = null;
 });
 
 describe('SubTaskList — inline edit', () => {
@@ -105,7 +121,7 @@ describe('SubTaskList — inline edit', () => {
 });
 
 describe('SubTaskList — drag reorder', () => {
-  it('CMP-009: reorder calls reorderSubTasks with correct IDs', async () => {
+  it('CMP-009: reorder calls reorderSubTasks with correct ordered IDs', async () => {
     const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
       { ...sub2, position: 0 },
       { ...sub1, position: 1 },
@@ -113,24 +129,40 @@ describe('SubTaskList — drag reorder', () => {
     ]);
     render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={onMutate} />);
 
-    // Verify drag handles render with accessible name
-    const handles = screen.getAllByRole('button', { name: 'Reorder sub-task' });
-    expect(handles).toHaveLength(3);
+    expect(capturedOnDragEnd).toBeTruthy();
 
-    // Attempt keyboard DnD: Space to pick up, ArrowDown to move, Space to drop
-    const firstHandle = handles[0];
-    firstHandle.focus();
-    fireEvent.keyDown(firstHandle, { key: ' ', code: 'Space' });
-    fireEvent.keyDown(firstHandle, { key: 'ArrowDown', code: 'ArrowDown' });
-    fireEvent.keyDown(firstHandle, { key: ' ', code: 'Space' });
+    // Simulate dragging s1 over s2 (arrayMove index 0→1 produces [s2, s1, s3])
+    await act(async () => {
+      capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's2' },
+      } as unknown as DragEndEvent);
+    });
 
-    // @dnd-kit keyboard sensor may not fully fire in jsdom without getBoundingClientRect mocks.
-    // If reorderSpy was called, verify correct args; otherwise document jsdom limitation.
-    // TODO: Add full E2E coverage for DnD reorder via Playwright
-    if (reorderSpy.mock.calls.length > 0) {
-      expect(reorderSpy).toHaveBeenCalledWith('t1', expect.arrayContaining(['s1', 's2', 's3']));
-      await waitFor(() => expect(onMutate).toHaveBeenCalled());
-    }
+    await waitFor(() => {
+      expect(reorderSpy).toHaveBeenCalledWith('t1', ['s2', 's1', 's3']);
+    });
+    await waitFor(() => expect(onMutate).toHaveBeenCalled());
+  });
+
+  it('CMP-010: reorder API failure → destructive toast', async () => {
+    vi.spyOn(apiClient, 'reorderSubTasks').mockRejectedValue(new Error('Server error'));
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={onMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    await act(async () => {
+      capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's3' },
+      } as unknown as DragEndEvent);
+    });
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({ variant: 'destructive', description: 'Server error' }),
+      );
+    });
   });
 
   it('CMP-033: single sub-task list renders without drag issues', () => {
@@ -197,6 +229,28 @@ describe('SubTaskList — add', () => {
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
     const btn = screen.getByTestId('add-subtask-btn');
     expect(btn).toBeDisabled();
+  });
+
+  it('UNIT-001: add sub-task at 20-limit → destructive toast', async () => {
+    vi.spyOn(apiClient, 'addSubTask').mockRejectedValue(new Error('Maximum of 20 sub-tasks per task'));
+
+    const twentySubs = Array.from({ length: 20 }, (_, i) =>
+      makeSub({ id: `s${i}`, title: `Sub ${i}`, position: i }),
+    );
+    render(<SubTaskList taskId="t1" subTasks={twentySubs} onMutate={onMutate} />);
+
+    const input = screen.getByPlaceholderText('Add sub-task...');
+    fireEvent.change(input, { target: { value: 'One too many' } });
+    fireEvent.click(screen.getByTestId('add-subtask-btn'));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          description: 'Maximum of 20 sub-tasks per task',
+        }),
+      );
+    });
   });
 });
 

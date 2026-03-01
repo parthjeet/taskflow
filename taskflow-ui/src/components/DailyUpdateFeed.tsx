@@ -144,7 +144,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                     </div>
                     <p className="text-sm">{upd.content}</p>
                     {editable ? (
-                      <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <Button size="sm" variant="ghost" className="h-6 text-xs"
                           onClick={() => { setEditingUpdateId(upd.id); setEditingContent(upd.content); }}>
                           Edit
