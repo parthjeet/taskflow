@@ -254,6 +254,37 @@ describe('SubTaskList — add', () => {
   });
 });
 
+describe('SubTaskList — delete', () => {
+  it('CMP-DEL-001: clicking delete calls deleteSubTask and triggers onMutate', async () => {
+    vi.spyOn(apiClient, 'deleteSubTask').mockResolvedValue(undefined);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByTestId('delete-subtask-s1'));
+
+    await waitFor(() => expect(apiClient.deleteSubTask).toHaveBeenCalledWith('t1', 's1'));
+    await waitFor(() => expect(onMutate).toHaveBeenCalled());
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: 'Sub-task removed' }),
+    );
+  });
+
+  it('CMP-DEL-002: delete API failure shows destructive toast', async () => {
+    vi.spyOn(apiClient, 'deleteSubTask').mockRejectedValue(new Error('Sub-task not found'));
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByTestId('delete-subtask-s1'));
+
+    await waitFor(() => expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive', description: 'Sub-task not found' }),
+    ));
+  });
+
+  it('delete button has aria-label', () => {
+    render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+    expect(screen.getByRole('button', { name: 'Delete sub-task' })).toBeInTheDocument();
+  });
+});
+
 describe('SubTaskList — test IDs preserved', () => {
   it('CMP-012: data-testid="add-subtask-btn" exists', () => {
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
