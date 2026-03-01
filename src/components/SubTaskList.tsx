@@ -35,6 +35,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(sub.title);
+  const editTitleRef = useRef(sub.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
   const skipBlurAfterEnterRef = useRef(false);
@@ -89,20 +90,23 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     if (savingRef.current) return;
     savingRef.current = true;
     try {
-      const trimmed = editTitle.trim();
+      const trimmed = editTitleRef.current.trim();
       if (!trimmed) {
         toast({ variant: 'destructive', title: 'Error', description: 'Sub-task title is required' });
+        editTitleRef.current = sub.title;
         setEditTitle(sub.title);
         setEditing(false);
         return;
       }
       if (trimmed.length > MAX_SUBTASK_TITLE_LENGTH) {
         toast({ variant: 'destructive', title: 'Error', description: `Sub-task title must be ${MAX_SUBTASK_TITLE_LENGTH} characters or fewer` });
+        editTitleRef.current = sub.title;
         setEditTitle(sub.title);
         setEditing(false);
         return;
       }
       if (trimmed === sub.title) {
+        editTitleRef.current = sub.title;
         setEditing(false);
         return;
       }
@@ -117,7 +121,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     } finally {
       savingRef.current = false;
     }
-  }, [editTitle, sub.title, sub.id, taskId, triggerMutate, toast]);
+  }, [sub.title, sub.id, taskId, triggerMutate, toast]);
 
   const handleEditKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -130,6 +134,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
       // Also suppress the browser blur that fires when Input unmounts while focused.
       // Without this, real browsers would call saveEdit() with the stale user-typed value.
       skipBlurAfterEnterRef.current = true;
+      editTitleRef.current = sub.title;
       setEditTitle(sub.title);
       setEditing(false);
     }
@@ -153,7 +158,10 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
         <Input
           ref={inputRef}
           value={editTitle}
-          onChange={e => setEditTitle(e.target.value)}
+          onChange={e => {
+            editTitleRef.current = e.target.value;
+            setEditTitle(e.target.value);
+          }}
           maxLength={MAX_SUBTASK_TITLE_LENGTH}
           className="text-sm h-7 flex-1"
           autoFocus
@@ -165,6 +173,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
           className={cn('text-sm flex-1 cursor-pointer hover:underline', completed && 'line-through text-muted-foreground')}
           onClick={() => {
             skipBlurAfterEnterRef.current = false;
+            editTitleRef.current = sub.title;
             setEditing(true);
             setEditTitle(sub.title);
           }}
@@ -174,6 +183,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
               skipBlurAfterEnterRef.current = false;
+              editTitleRef.current = sub.title;
               setEditing(true);
               setEditTitle(sub.title);
             }
