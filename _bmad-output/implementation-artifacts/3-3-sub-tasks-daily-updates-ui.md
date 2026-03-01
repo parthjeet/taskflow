@@ -134,6 +134,11 @@ So that I can break down work and log progress directly from the UI.
 - [x] [AI-Review-R6][LOW] `package-lock.json` present in git diff but absent from story File Map and File List — minor documentation gap (project uses bun, npm lockfile is a residual artifact).
 - [x] [AI-Review-R6][LOW] No test for "edit to same title" no-op path — `saveEdit` in `SubTaskList.tsx:98-101` short-circuits without API call when trimmed title equals original. Should have explicit test asserting `editSubTask` is NOT called. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
 
+### Review Follow-ups Round 7 (AI)
+
+- [ ] [AI-Review-R7][LOW] No test exercises the Promise branch of `await onMutate()` in `handleDragEnd` — current mock `onMutate = vi.fn()` returns `undefined` so `await undefined` resolves trivially; the R6 visual-flash fix (delaying `setReordering(false)` until parent refresh completes) is never stress-tested. Add a test that passes an async `onMutate` spy and asserts `reorderSubTasks` is called *before* `onMutate` resolves. `src/test/story-3-3-subtask-edit-reorder.test.tsx`
+- [ ] [AI-Review-R7][LOW] `handleDragEnd` catch block is shared between `reorderSubTasks` failure and `onMutate` failure — if `reorderSubTasks` succeeds but `await onMutate()` rejects, a destructive toast fires as if the reorder failed (misleading UX since the adapter already persisted the new order). Consider wrapping `await onMutate()` in its own try/catch that silently retries or logs without a destructive toast. `src/components/SubTaskList.tsx` lines 214-222.
+
 ## Dev Notes
 
 - **Anti-Patterns (DO NOT):**
