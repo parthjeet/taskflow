@@ -52,6 +52,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   }, [activeMembers]);
 
   const handleAddUpdate = useCallback(async () => {
+    if (updateLoading) return;
     setUpdateLoading(true);
     try {
       await apiClient.addDailyUpdate(taskId, { authorId: updateAuthor, content: updateContent.trim() });
@@ -65,7 +66,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     } finally {
       setUpdateLoading(false);
     }
-  }, [taskId, updateAuthor, updateContent, onMutate, toast]);
+  }, [taskId, updateAuthor, updateContent, updateLoading, onMutate, toast]);
 
   const handleEditSave = useCallback(async (updateId: string) => {
     const normalizedContent = editingContent.trim();

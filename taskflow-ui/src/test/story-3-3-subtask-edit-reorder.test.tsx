@@ -4,7 +4,7 @@ import { SubTaskList } from '@/components/SubTaskList';
 import { apiClient } from '@/lib/api';
 import { SubTask } from '@/types';
 import type { DragEndEvent } from '@dnd-kit/core';
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 
 // Mock toast
 const mockToast = vi.fn();
@@ -20,7 +20,7 @@ type DndContextMockProps = {
 };
 vi.mock('@dnd-kit/core', async () => {
   const actual = await vi.importActual('@dnd-kit/core');
-  const ActualDndContext = (actual as { DndContext: (props: DndContextMockProps) => JSX.Element }).DndContext;
+  const ActualDndContext = (actual as { DndContext: (props: DndContextMockProps) => ReactElement }).DndContext;
   return {
     ...actual,
     DndContext: (props: DndContextMockProps) => {
@@ -198,6 +198,24 @@ describe('SubTaskList — drag reorder', () => {
     });
   });
 
+  it('CMP-046: dropping outside list is a no-op', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([sub1, sub2, sub3]);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={onMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    await act(async () => {
+      await capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: null,
+      } as unknown as DragEndEvent);
+    });
+
+    expect(reorderSpy).not.toHaveBeenCalled();
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
   it('CMP-043: keeps optimistic order while awaiting async onMutate', async () => {
     const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
       { ...sub2, position: 0 },
@@ -330,6 +348,16 @@ describe('SubTaskList — progress', () => {
 });
 
 describe('SubTaskList — optimistic toggle', () => {
+  it('CMP-047: checkbox syncs when completed prop changes', () => {
+    const { rerender } = render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);
+
+    const checkbox = screen.getByRole('checkbox');
+    expect(checkbox).not.toBeChecked();
+
+    rerender(<SubTaskList taskId="t1" subTasks={[{ ...sub1, completed: true }]} onMutate={onMutate} />);
+    expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
   it('CMP-003: toggle flips checkbox immediately', async () => {
     vi.spyOn(apiClient, 'toggleSubTask').mockResolvedValue({ ...sub1, completed: true });
     render(<SubTaskList taskId="t1" subTasks={[sub1]} onMutate={onMutate} />);

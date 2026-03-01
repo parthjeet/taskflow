@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect, memo } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -40,10 +40,11 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  // Sync optimistic state with prop
-  if (!toggling && completed !== sub.completed) {
-    setCompleted(sub.completed);
-  }
+  useEffect(() => {
+    if (!toggling) {
+      setCompleted(sub.completed);
+    }
+  }, [sub.completed, toggling]);
 
   const handleToggle = useCallback(async () => {
     if (toggling) return;
