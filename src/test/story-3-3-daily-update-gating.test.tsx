@@ -148,6 +148,29 @@ describe('DailyUpdateFeed — edit flow', () => {
     expect(screen.getByText('(edited)')).toBeInTheDocument();
   });
 
+  it('CMP-053: second edit submit is ignored while request is in flight', async () => {
+    const pending = deferred<DailyUpdate>();
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByDisplayValue('Recent update'), { target: { value: 'Updated once' } });
+    const saveButton = screen.getByText('Save');
+
+    fireEvent.click(saveButton);
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(editSpy).toHaveBeenCalledTimes(1);
+      expect(editSpy).toHaveBeenCalledWith('t1', 'u1', { content: 'Updated once' });
+    });
+
+    pending.resolve(makeUpdate({ id: 'u1', content: 'Updated once', edited: true }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('CMP-051: task switch resets inline edit state', () => {
     const { rerender } = render(
       <DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
