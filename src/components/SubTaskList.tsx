@@ -167,6 +167,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const [adding, setAdding] = useState(false);
   const [items, setItems] = useState<SubTask[]>([]);
   const [reordering, setReordering] = useState(false);
+  const isDraggingRef = useRef(false);
 
   // Keep local items in sync with prop (unless actively reordering)
   const sorted = useMemo(
@@ -202,10 +203,13 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id || isDraggingRef.current) return;
 
     const oldIndex = sorted.findIndex(s => s.id === active.id);
     const newIndex = sorted.findIndex(s => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    isDraggingRef.current = true;
     const reordered = arrayMove(sorted, oldIndex, newIndex);
     const orderedIds = reordered.map(s => s.id);
 
@@ -213,21 +217,25 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
     setReordering(true);
 
     try {
-      await apiClient.reorderSubTasks(taskId, orderedIds);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An error occurred';
-      toast({ variant: 'destructive', title: 'Error', description: msg });
+      try {
+        await apiClient.reorderSubTasks(taskId, orderedIds);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'An error occurred';
+        toast({ variant: 'destructive', title: 'Error', description: msg });
+        setReordering(false);
+        return;
+      }
+
+      try {
+        await onMutate();
+      } catch {
+        // Keep UX stable when background refresh fails after successful reorder.
+      }
+
       setReordering(false);
-      return;
+    } finally {
+      isDraggingRef.current = false;
     }
-
-    try {
-      await onMutate();
-    } catch {
-      // Keep UX stable when background refresh fails after successful reorder.
-    }
-
-    setReordering(false);
   }, [sorted, taskId, onMutate, toast]);
 
   return (

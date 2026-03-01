@@ -13,10 +13,10 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 
 // Mock DndContext to capture onDragEnd
-let capturedOnDragEnd: ((event: DragEndEvent) => void) | null = null;
+let capturedOnDragEnd: ((event: DragEndEvent) => Promise<void> | void) | null = null;
 type DndContextMockProps = {
   children?: ReactNode;
-  onDragEnd?: (event: DragEndEvent) => void;
+  onDragEnd?: (event: DragEndEvent) => Promise<void> | void;
 };
 vi.mock('@dnd-kit/core', async () => {
   const actual = await vi.importActual('@dnd-kit/core');
@@ -215,12 +215,12 @@ describe('SubTaskList — drag reorder', () => {
       'delete-subtask-s3',
     ]);
 
-    let dragPromise: Promise<void> = Promise.resolve();
+    let dragPromise: Promise<void> | undefined;
     await act(async () => {
-      dragPromise = capturedOnDragEnd!({
+      dragPromise = Promise.resolve(capturedOnDragEnd!({
         active: { id: 's1' },
         over: { id: 's2' },
-      } as unknown as DragEndEvent);
+      } as unknown as DragEndEvent));
     });
 
     await waitFor(() => {
@@ -261,9 +261,49 @@ describe('SubTaskList — drag reorder', () => {
       expect(reorderSpy).toHaveBeenCalledWith('t1', ['s2', 's1', 's3']);
     });
     expect(failingOnMutate).toHaveBeenCalledTimes(1);
-    expect(mockToast).not.toHaveBeenCalledWith(
-      expect.objectContaining({ variant: 'destructive', description: 'Refresh failed' }),
-    );
+    expect(mockToast).not.toHaveBeenCalled();
+  });
+
+  it('CMP-045: ignores a second drag while first reorder refresh is in flight', async () => {
+    const reorderSpy = vi.spyOn(apiClient, 'reorderSubTasks').mockResolvedValue([
+      { ...sub2, position: 0 },
+      { ...sub1, position: 1 },
+      { ...sub3, position: 2 },
+    ]);
+    const pendingMutate = deferred<void>();
+    const asyncOnMutate = vi.fn(() => pendingMutate.promise);
+    render(<SubTaskList taskId="t1" subTasks={[sub1, sub2, sub3]} onMutate={asyncOnMutate} />);
+
+    expect(capturedOnDragEnd).toBeTruthy();
+
+    let firstDragPromise: Promise<void> | undefined;
+    await act(async () => {
+      firstDragPromise = Promise.resolve(capturedOnDragEnd!({
+        active: { id: 's1' },
+        over: { id: 's2' },
+      } as unknown as DragEndEvent));
+    });
+
+    await waitFor(() => {
+      expect(reorderSpy).toHaveBeenCalledTimes(1);
+      expect(reorderSpy).toHaveBeenCalledWith('t1', ['s2', 's1', 's3']);
+    });
+    expect(asyncOnMutate).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      await Promise.resolve(capturedOnDragEnd!({
+        active: { id: 's2' },
+        over: { id: 's3' },
+      } as unknown as DragEndEvent));
+    });
+
+    expect(reorderSpy).toHaveBeenCalledTimes(1);
+    expect(asyncOnMutate).toHaveBeenCalledTimes(1);
+
+    pendingMutate.resolve();
+    await act(async () => {
+      await firstDragPromise;
+    });
   });
 
   it('CMP-033: single sub-task list renders without drag issues', () => {
