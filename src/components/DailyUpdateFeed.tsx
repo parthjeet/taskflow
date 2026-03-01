@@ -53,6 +53,8 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   useEffect(() => {
     setEditingUpdateId(null);
     setEditingContent('');
+    setDeleteUpdateId(null);
+    setDeletingUpdate(false);
   }, [taskId]);
 
   const openAddDialog = useCallback(() => {
@@ -80,15 +82,21 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     }
   }, [taskId, updateAuthor, updateContent, updateLoading, triggerMutate, toast]);
 
-  const handleEditSave = useCallback(async (updateId: string) => {
+  const handleEditSave = useCallback(async (updateId: string, currentUpdateContent: string) => {
     if (editUpdateLoading) return;
     const normalizedContent = editingContent.trim();
     if (!normalizedContent) return;
+    if (normalizedContent === currentUpdateContent.trim()) {
+      setEditingUpdateId(null);
+      setEditingContent('');
+      return;
+    }
     setEditUpdateLoading(true);
     try {
       await apiClient.editDailyUpdate(taskId, updateId, { content: normalizedContent });
       toast({ title: 'Update edited' });
       setEditingUpdateId(null);
+      setEditingContent('');
       triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
@@ -141,8 +149,8 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                       maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
                     />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="outline" disabled={editUpdateLoading} onClick={() => setEditingUpdateId(null)}>Cancel</Button>
-                      <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={() => handleEditSave(upd.id)}>
+                      <Button size="sm" variant="outline" disabled={editUpdateLoading} onClick={() => { setEditingUpdateId(null); setEditingContent(''); }}>Cancel</Button>
+                      <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={() => handleEditSave(upd.id, upd.content)}>
                         {editUpdateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Save
                       </Button>
                     </div>
