@@ -74,6 +74,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
   }, [taskId, updateAuthor, updateContent, updateLoading, onMutate, toast]);
 
   const handleEditSave = useCallback(async (updateId: string) => {
+    if (editUpdateLoading) return;
     const normalizedContent = editingContent.trim();
     if (!normalizedContent) return;
     setEditUpdateLoading(true);
@@ -88,7 +89,7 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
     } finally {
       setEditUpdateLoading(false);
     }
-  }, [taskId, editingContent, onMutate, toast]);
+  }, [taskId, editingContent, editUpdateLoading, onMutate, toast]);
 
   const handleDelete = useCallback(async () => {
     if (deletingUpdate || !deleteUpdateId) return;

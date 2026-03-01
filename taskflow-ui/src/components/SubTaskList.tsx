@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect, memo } from 'react';
+import type { FocusEvent, KeyboardEvent } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -36,6 +37,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
   const [editTitle, setEditTitle] = useState(sub.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
+  const skipBlurAfterEnterRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
@@ -117,6 +119,28 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     }
   }, [editTitle, sub.title, sub.id, taskId, triggerMutate, toast]);
 
+  const handleEditKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      skipBlurAfterEnterRef.current = true;
+      void saveEdit();
+      return;
+    }
+    if (e.key === 'Escape') {
+      skipBlurAfterEnterRef.current = false;
+      setEditTitle(sub.title);
+      setEditing(false);
+    }
+  }, [saveEdit, sub.title]);
+
+  const handleEditBlur = useCallback((_e: FocusEvent<HTMLInputElement>) => {
+    if (skipBlurAfterEnterRef.current) {
+      skipBlurAfterEnterRef.current = false;
+      return;
+    }
+    void saveEdit();
+  }, [saveEdit]);
+
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 group">
       <button type="button" aria-label="Reorder sub-task" className="cursor-grab touch-none text-muted-foreground hover:text-foreground" {...attributes} {...listeners}>
@@ -131,21 +155,23 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
           maxLength={MAX_SUBTASK_TITLE_LENGTH}
           className="text-sm h-7 flex-1"
           autoFocus
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
-            if (e.key === 'Escape') { setEditTitle(sub.title); setEditing(false); }
-          }}
-          onBlur={saveEdit}
+          onKeyDown={handleEditKeyDown}
+          onBlur={handleEditBlur}
         />
       ) : (
       <span
           className={cn('text-sm flex-1 cursor-pointer hover:underline', completed && 'line-through text-muted-foreground')}
-          onClick={() => { setEditing(true); setEditTitle(sub.title); }}
+          onClick={() => {
+            skipBlurAfterEnterRef.current = false;
+            setEditing(true);
+            setEditTitle(sub.title);
+          }}
           role="button"
           tabIndex={0}
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              skipBlurAfterEnterRef.current = false;
               setEditing(true);
               setEditTitle(sub.title);
             }
@@ -155,7 +181,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
         </span>
       )}
       <Button
-        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
         data-testid={`delete-subtask-${sub.id}`}
         aria-label="Delete sub-task"
         disabled={deleting}
