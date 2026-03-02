@@ -7,10 +7,10 @@
  * - Debounced search behavior (Dashboard level)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { StatusSummaryBar } from '@/components/StatusSummaryBar';
 import { InlineStatusSelect } from '@/components/InlineStatusSelect';
-import type { Task, Status } from '@/types';
+import type { Task } from '@/types';
 
 // ---------------------------------------------------------------------------
 // Helpers
