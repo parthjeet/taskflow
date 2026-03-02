@@ -28,6 +28,8 @@ export function StatusSummaryBar({ tasks, activeStatus, onStatusClick }: Readonl
             key={status}
             role="button"
             tabIndex={0}
+            aria-label={`Filter by ${status}: ${counts[status]} tasks`}
+            aria-pressed={isActive}
             onClick={() => onStatusClick(isActive ? 'all' : status)}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStatusClick(isActive ? 'all' : status); } }}
             className={cn(
