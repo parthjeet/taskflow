@@ -113,7 +113,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
       </CardHeader>
       <CardContent className="pt-0 space-y-2">
         {isBlocked && task.blockingReason && (
-          <div data-testid="blocking-reason" className="flex items-start gap-1.5 text-xs text-red-600 bg-red-50 rounded-md p-2">
+          <div className="flex items-start gap-1.5 text-xs text-red-600 bg-red-50 rounded-md p-2" title={task.blockingReason}>
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             <span className="line-clamp-2" title={task.blockingReason}>
               {task.blockingReason.length > 50 ? task.blockingReason.slice(0, 50) + '...' : task.blockingReason}
