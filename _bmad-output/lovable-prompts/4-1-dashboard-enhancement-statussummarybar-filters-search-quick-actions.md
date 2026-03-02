@@ -1,7 +1,7 @@
 # Lovable AI Prompt — Story 4.1: Dashboard Enhancement — StatusSummaryBar, Filters, Search & Quick Actions
 
 **Generated:** 2026-03-02
-**Mode:** Initial
+**Mode:** Initial (Test-Design Enriched)
 **Story:** `_bmad-output/implementation-artifacts/4-1-dashboard-enhancement-statussummarybar-filters-search-quick-actions.md`
 **Test Design:** `_bmad-output/test-artifacts/test-design-epic-4.md`
 
@@ -905,6 +905,144 @@ Every quick action control (Mark as Done, Edit, Delete trigger, AlertDialog cont
 - The blocking reason Input is clicked.
 - The Save/Cancel buttons inside InlineStatusSelect are clicked.
 - The AlertDialog and its buttons are clicked.
+
+### R-004: Search Debounce Race Condition (High — Score 4)
+
+Rapid typing must not cause stale results to appear after fresh ones:
+
+- The 300ms debounce timer resets with every keystroke. Only the **final** debounced value triggers filter computation.
+- If a user types 10 characters within 200ms, exactly **one** filter update occurs (after 300ms of silence after the last key).
+- Intermediate debounced values that never fired are silently discarded — no intermediate result flash.
+- Implementation: a `useEffect` with `setTimeout(300)` + `clearTimeout` cleanup. Do not use any debounce utility library.
+
+### R-005: StatusSummaryBar Count Desync After Optimistic Mutation (High — Score 4)
+
+StatusSummaryBar must stay in sync with the task grid after optimistic mutations:
+
+- StatusSummaryBar derives counts from the **same `tasks` state array** as the task grid (both read from the `tasks` state in `Index.tsx`). No separate count state.
+- When `handleTaskUpdated` updates a task optimistically in `Index.tsx`, the `tasks` array is replaced via `setTasks`. StatusSummaryBar re-renders automatically with updated counts because it receives the same `tasks` prop.
+- On rollback, counts revert automatically alongside the task grid because both read from the single source of truth.
+- **Do NOT** maintain a separate count state inside `StatusSummaryBar`. Counts are always derived via `useMemo` from the `tasks` prop.
+
+### R-010: Delete Confirmation Bypass Prevention (Medium — Score 3)
+
+The AlertDialog confirmation must be non-bypassable:
+
+- Clicking the Delete icon must show the AlertDialog. The task is NOT deleted until the user explicitly clicks Confirm (Delete) inside the dialog.
+- Pressing Escape or clicking Cancel in the AlertDialog must NOT call `apiClient.deleteTask`.
+- The `AlertDialogTrigger` button calls `e.stopPropagation()` to prevent card navigation when the delete icon is clicked.
+- The `handleDelete` function is only wired to `AlertDialogAction onClick` — never to the trigger button itself.
+
+---
+
+## Test Implementation (Task 7 — Vitest + Playwright)
+
+These specifications are derived directly from `test-design-epic-4.md`. Implement all unit/component tests under `src/test/` and E2E tests under `tests/`.
+
+### Test Tooling & Setup
+
+- **Unit/Component:** Vitest + `@testing-library/react` (`src/test/`)
+- **E2E:** Playwright (`tests/`)
+- **Fake timers:** `vi.useFakeTimers()` for debounce and in-flight guard assertions
+- **localStorage mocking:** `vi.spyOn(localStorage, 'getItem')` / `setItem` / `removeItem`
+- **API mocking:** `vi.spyOn(apiClient, 'updateTask')` and `vi.spyOn(apiClient, 'deleteTask')` to simulate errors or delays
+
+### Test Data Requirements
+
+Seed mock adapter (or test fixtures) with:
+
+- **8 tasks minimum:** 2 per status (`To Do`, `In Progress`, `Blocked`, `Done`)
+- **Mixed priorities:** at least 1 High, 1 Medium, 1 Low
+- **2 tasks with GEAR IDs:** e.g., `"1023"`, `"2310"` (verifies starts-with vs contains)
+- **1 blocked task** with a non-empty `blockingReason`
+- **Mixed assignees:** 1 unassigned (`assigneeId: null`), 2 assigned to active members
+- **Team members:** 3 active, 1 inactive
+- **Large dataset factory:** 500-task generator for P3 performance benchmark
+
+### P0 Test Scenarios (100% Must Pass)
+
+| # | Test Name | File | What to Assert |
+|---|-----------|------|----------------|
+| 1 | `StatusSummaryBar filters on click` | `StatusSummaryBar.test.tsx` | Click "In Progress" chip → `onStatusClick("In Progress")` fires; task grid shows only In Progress tasks |
+| 2 | `AND-combined filters` | `dashboard-filters.test.ts` | `filterAndSortDashboardTasks` with status + priority + assignee all set → intersection only |
+| 3 | `Mark as Done updates status` | `TaskCard.test.tsx` | Click Mark as Done → `apiClient.updateTask` called with `{ status: 'Done', blockingReason: '' }` → card shows Done badge |
+| 4 | `Mark as Done in-flight guard` | `TaskCard.test.tsx` | Delay `updateTask` → click twice rapidly → spy called **exactly once** |
+| 5 | `Mark as Done optimistic rollback` | `TaskCard.test.tsx` | `updateTask` rejects → card reverts to original status → destructive toast "Failed to mark as Done" shown |
+| 6 | `Delete shows AlertDialog` | `TaskCard.test.tsx` | Click delete icon → `AlertDialogContent` renders with title "Delete task?" |
+| 7 | `Delete confirm deletes; cancel preserves` | `TaskCard.test.tsx` | Confirm → `deleteTask` called; Cancel → `deleteTask` NOT called |
+| 8 | `Delete in-flight guard` | `TaskCard.test.tsx` | First confirm click sets loading; second click is no-op; `deleteTask` spy called exactly once |
+| 9 | `InlineStatusSelect Blocked shows reason input` | `InlineStatusSelect.test.tsx` | Select "Blocked" → reason `Input` appears |
+| 10 | `Empty blocking reason rejected` | `InlineStatusSelect.test.tsx` | Submit with `""` → inline error "Blocking reason is required." → `updateTask` NOT called |
+| 11 | `Whitespace-only blocking reason rejected` | `InlineStatusSelect.test.tsx` | Submit with `"   "` → trim → same inline error → `updateTask` NOT called |
+| 12 | `InlineStatusSelect API error reverts` | `InlineStatusSelect.test.tsx` | `updateTask` rejects → status reverts to pre-change value → destructive toast "Status update failed" shown |
+
+### P1 Test Scenarios (≥95% Must Pass)
+
+| # | Test Name | File | What to Assert |
+|---|-----------|------|----------------|
+| 13 | `StatusSummaryBar renders accurate counts` | `StatusSummaryBar.test.tsx` | Counts match task array composition for all 4 statuses |
+| 14 | `StatusSummaryBar toggle clears filter` | `StatusSummaryBar.test.tsx` | Click the current active status → `onStatusClick('all')` called |
+| 15 | `StatusSummaryBar counts sync after optimistic update` | `StatusSummaryBar.test.tsx` | After Mark as Done → Done count increments; original status count decrements |
+| 16 | `GEAR ID starts-with filter` | `dashboard-filters.test.ts` | `gearIdFilter="10"` → gearId `"1023"` included; `"2310"` excluded |
+| 17 | `GEAR ID filter excludes null gearId` | `dashboard-filters.test.ts` | Task with `gearId: null` excluded when any `gearIdFilter` value is set |
+| 18 | `Search by title (case-insensitive)` | `dashboard-filters.test.ts` | Title substring match ignoring case |
+| 19 | `Search by description (case-insensitive)` | `dashboard-filters.test.ts` | Description substring match ignoring case |
+| 20 | `Search by GEAR ID` | `dashboard-filters.test.ts` | GEAR ID substring match in search |
+| 21 | `Search 300ms debounce` | `Index.test.tsx` | `vi.useFakeTimers()`: advance 299ms → no update; advance 1ms more → update fires |
+| 22 | `Rapid typing → latest result only` | `Index.test.tsx` | 10 keystrokes in 200ms → filter called exactly once after 300ms idle |
+| 23 | `Sort by recently updated` | `dashboard-filters.test.ts` | Results in descending `updatedAt` order |
+| 24 | `Sort by recently created` | `dashboard-filters.test.ts` | Results in descending `createdAt` order |
+| 25 | `Sort by priority (secondary sort updatedAt)` | `dashboard-filters.test.ts` | High → Medium → Low; ties broken by `updatedAt` desc |
+| 26 | `Filters saved to localStorage on change` | `Index.test.tsx` | Spy on `localStorage.setItem`; change any filter → key `taskflow-dashboard-filters` written with correct value |
+| 27 | `Filters restored on mount` | `Index.test.tsx` | Pre-set `localStorage` before mount → component state matches stored values |
+| 28 | `Corrupted localStorage → defaults and cleared` | `dashboard-filters.test.ts` | Stub `getItem` to return `"not json"` → `loadPersistedFilters()` returns `DEFAULTS`; `removeItem(PERSIST_KEY)` called |
+| 29 | `Blocked card has red border` | `TaskCard.test.tsx` | Card root element has `border-red-500` CSS class when `task.status === 'Blocked'` |
+| 30 | `Blocked card shows blocking reason text` | `TaskCard.test.tsx` | `blockingReason` text visible on card without any click |
+| 31 | `Priority badge correct colors` | `TaskCard.test.tsx` | High=`bg-red-100`, Medium=`bg-yellow-100`, Low=`bg-green-100` |
+| 32 | `Status badge correct colors` | `TaskCard.test.tsx` | `To Do`=gray, `In Progress`=blue, `Blocked`=red, `Done`=green |
+| 33 | `InlineStatusSelect non-Blocked change calls API` | `InlineStatusSelect.test.tsx` | Select "Done" → `updateTask` called with `{ status: 'Done', blockingReason: '' }` immediately |
+| 34 | `Changing away from Blocked clears blocking reason` | `InlineStatusSelect.test.tsx` | `updateTask` called with `blockingReason: ''` when transitioning out of Blocked |
+
+### Negative Test Matrix (Shift-Left — All Mandatory)
+
+| # | Scenario | Test File | Expected Outcome |
+|---|----------|-----------|-----------------|
+| N1 | Mark as Done → `updateTask` rejects | `TaskCard.test.tsx` | Task reverts to original status; destructive toast shown |
+| N2 | InlineStatusSelect status change → `updateTask` rejects | `InlineStatusSelect.test.tsx` | Task reverts to pre-change status; destructive toast shown |
+| N3 | Mark as Done double-click | `TaskCard.test.tsx` | `updateTask` spy called exactly **1** time, not 2 |
+| N4 | Delete confirm click during in-flight delete | `TaskCard.test.tsx` | `deleteTask` spy called exactly **1** time, not 2 |
+| N5 | Select Blocked, submit empty reason `""` | `InlineStatusSelect.test.tsx` | Inline error shown; `updateTask` NOT called |
+| N6 | Select Blocked, submit whitespace `"   "` | `InlineStatusSelect.test.tsx` | Inline error shown; `updateTask` NOT called |
+| N7 | Corrupted `taskflow-dashboard-filters` in localStorage | `dashboard-filters.test.ts` | Dashboard renders with DEFAULTS; `removeItem` called |
+| N8 | Delete → Cancel in AlertDialog | `TaskCard.test.tsx` | `deleteTask` spy NOT called; task remains in DOM |
+| N9 | Rapid search (10 chars in 200ms) | `Index.test.tsx` | Filter function called exactly once |
+| N10 | Click any quick action button | `TaskCard.test.tsx` | No `navigate()` call (card-level click not triggered) |
+
+### E2E Test Scenarios (Playwright — `tests/dashboard-epic4.spec.ts`)
+
+| ID | Scenario | ACs | Priority | Notes |
+|----|----------|-----|----------|-------|
+| E1 | Dashboard loads → StatusSummaryBar counts correct; blocked card has red border | AC1, AC6, AC7 | P0 | Assert count chips and `border-red-500` class |
+| E2 | Click status chip → grid filters → click again → clears filter | AC1 | P0 | Two-state toggle verified |
+| E3 | Apply status + priority filters → AND logic → only intersection shown | AC2 | P1 | |
+| E4 | Type in search → wait 400ms → filtered results appear | AC5 | P1 | Use `page.clock` or explicit wait |
+| E5 | Click "Mark as Done" → card status badge updates to "Done" immediately | AC9 | P0 | Optimistic update visible before API resolves |
+| E6 | Click Delete → AlertDialog → Confirm → task removed from grid | AC10 | P0 | Assert task count decrements |
+| E7 | InlineStatusSelect → Blocked → reason input appears → submit → card shows Blocked | AC8 | P1 | Full inline flow |
+| E8 | Set filters → navigate to task detail → back → filters restored | AC11 | P1 | localStorage persistence round-trip |
+
+**File:** `tests/dashboard-epic4.spec.ts`. Use `page.clock.install()` + `page.clock.fastForward(400)` for debounce E2E assertions where needed.
+
+### Quality Gates (Non-Negotiable)
+
+| Gate | Threshold | Scope |
+|------|-----------|-------|
+| P0 pass rate | 100% | No exceptions |
+| P1 pass rate | ≥95% | Failures need triage note |
+| R-001 rollback | 100% verified | N1, N2 pass |
+| R-002 double-submit | 100% verified | N3, N4 pass |
+| R-003 blocking reason | 100% verified | N5, N6 pass |
+| Build after cleanup | 0 errors | `npm run build` clean |
 
 ---
 

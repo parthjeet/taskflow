@@ -1,6 +1,6 @@
 # Story 4.1: Dashboard Enhancement — StatusSummaryBar, Filters, Search & Quick Actions
 
-Status: in-progress
+Status: review
 
 <!-- Validated by validate-create-story on 2026-03-02 -->
 

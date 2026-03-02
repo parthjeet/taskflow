@@ -64,7 +64,7 @@ development_status:
 
   # Epic 4: Dashboard, Filtering & Search
   epic-4: in-progress
-  4-1-dashboard-enhancement-statussummarybar-filters-search-quick-actions: in-progress
+  4-1-dashboard-enhancement-statussummarybar-filters-search-quick-actions: review
   4-2-real-api-adapter: backlog
   epic-4-retrospective: optional
 

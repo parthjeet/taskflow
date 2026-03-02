@@ -64,7 +64,7 @@ export function InlineStatusSelect({ task, onStatusChange }: Readonly<InlineStat
   return (
     <div onClick={e => e.stopPropagation()} className="space-y-1.5">
       <Select value={task.status} onValueChange={handleStatusSelect} disabled={isLoading}>
-        <SelectTrigger onClick={e => e.stopPropagation()} className="h-7 text-xs w-[130px]">
+        <SelectTrigger aria-label="Change Status" onClick={e => e.stopPropagation()} className="h-7 text-xs w-[130px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent onClick={e => e.stopPropagation()}>
