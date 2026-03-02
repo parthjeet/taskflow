@@ -86,6 +86,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
 
   return (
     <Card
+      data-testid="task-card"
       className={cn(
         'cursor-pointer transition-shadow hover:shadow-md',
         isBlocked && 'border-[3px] border-red-500 shadow-red-100 shadow-md'
@@ -114,7 +115,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
         {isBlocked && task.blockingReason && (
           <div className="flex items-start gap-1.5 text-xs text-red-600 bg-red-50 rounded-md p-2" title={task.blockingReason}>
             <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-            <span className="line-clamp-2">
+            <span className="line-clamp-2" title={task.blockingReason}>
               {task.blockingReason.length > 50 ? task.blockingReason.slice(0, 50) + '...' : task.blockingReason}
             </span>
           </div>
@@ -142,6 +143,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
             variant="ghost" size="icon" className="h-7 w-7"
             disabled={isDone || markDoneLoading}
             onClick={handleMarkDone}
+            aria-label="Mark as Done"
             title="Mark as Done"
           >
             <CheckCircle2 className="h-3.5 w-3.5" />
@@ -149,6 +151,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
           <Button
             variant="ghost" size="icon" className="h-7 w-7"
             onClick={handleEdit}
+            aria-label="Edit"
             title="Edit"
           >
             <Pencil className="h-3.5 w-3.5" />
@@ -159,6 +162,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCa
                 variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
                 onClick={e => e.stopPropagation()}
                 disabled={deleteLoading}
+                aria-label="Delete"
                 title="Delete"
               >
                 <Trash2 className="h-3.5 w-3.5" />

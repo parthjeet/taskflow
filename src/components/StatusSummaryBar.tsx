@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { STATUS_STYLES } from '@/lib/constants';
 import type { Task } from '@/types';
@@ -24,14 +23,13 @@ export function StatusSummaryBar({ tasks, activeStatus, onStatusClick }: Readonl
       {STATUSES.map(status => {
         const isActive = activeStatus === status;
         return (
-          <Badge
+          <button
             key={status}
             role="button"
             tabIndex={0}
             aria-label={`Filter by ${status}: ${counts[status]} tasks`}
             aria-pressed={isActive}
             onClick={() => onStatusClick(isActive ? 'all' : status)}
-            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onStatusClick(isActive ? 'all' : status); } }}
             className={cn(
               'cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-all select-none',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1',
@@ -39,8 +37,8 @@ export function StatusSummaryBar({ tasks, activeStatus, onStatusClick }: Readonl
               isActive ? 'ring-2 ring-offset-1 ring-current opacity-100' : 'opacity-70 hover:opacity-100'
             )}
           >
-            {status}: {counts[status]}
-          </Badge>
+            {status} ({counts[status]})
+          </button>
         );
       })}
     </div>
