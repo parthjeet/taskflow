@@ -25,10 +25,10 @@ export function StatusSummaryBar({ tasks, activeStatus, onStatusClick }: Readonl
         return (
           <button
             key={status}
-            type="button"
-            aria-label={`Filter by ${status} (${counts[status]} tasks)`}
+            role="button"
+            tabIndex={0}
+            aria-label={`Filter by ${status}: ${counts[status]} tasks`}
             aria-pressed={isActive}
-            data-testid={`status-chip-${status.toLowerCase().replace(/\s+/g, '-')}`}
             onClick={() => onStatusClick(isActive ? 'all' : status)}
             className={cn(
               'cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-all select-none',
