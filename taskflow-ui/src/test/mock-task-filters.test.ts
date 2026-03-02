@@ -186,6 +186,7 @@ describe("MockApiClient — Task Filtering", () => {
       statusFilter: "all",
       priorityFilter: "all",
       assigneeFilter: "all",
+      gearIdFilter: "",
       search: "CI/CD",
       sort: "updated",
     });
@@ -193,6 +194,7 @@ describe("MockApiClient — Task Filtering", () => {
       statusFilter: "all",
       priorityFilter: "all",
       assigneeFilter: "all",
+      gearIdFilter: "",
       search: "  CI/CD  ",
       sort: "updated",
     });
@@ -240,6 +242,7 @@ describe("MockApiClient — Task Filtering", () => {
         statusFilter: "all",
         priorityFilter: "all",
         assigneeFilter: "all",
+        gearIdFilter: "",
         search: "ci/cd",
         sort: "updated",
       }),
@@ -325,18 +328,22 @@ describe("MockApiClient — Task Sorting", () => {
     expect(sorted[1].id).toBe(tasks[0].id);
   });
 
-  it("keeps dashboard client-side status sort in parity with adapter status sort", async () => {
+  it("keeps dashboard client-side created sort working", async () => {
     const dashboardInput = await client.getTasks();
     const dashboardSorted = filterAndSortDashboardTasks(dashboardInput, {
       statusFilter: "all",
       priorityFilter: "all",
       assigneeFilter: "all",
+      gearIdFilter: "",
       search: "",
-      sort: "status",
+      sort: "created",
     });
-    const adapterSorted = await client.getTasks({ sort: "status" });
-
-    expect(dashboardSorted.map((task) => task.id)).toEqual(adapterSorted.map((task) => task.id));
+    // created sort: most recent createdAt first
+    for (let i = 0; i < dashboardSorted.length - 1; i++) {
+      expect(new Date(dashboardSorted[i].createdAt).getTime()).toBeGreaterThanOrEqual(
+        new Date(dashboardSorted[i + 1].createdAt).getTime(),
+      );
+    }
   });
 
   it("keeps dashboard client-side updated sort in parity with adapter updated sort", async () => {
@@ -354,6 +361,7 @@ describe("MockApiClient — Task Sorting", () => {
       statusFilter: "all",
       priorityFilter: "all",
       assigneeFilter: "all",
+      gearIdFilter: "",
       search: "",
       sort: "updated",
     });
@@ -382,6 +390,7 @@ describe("MockApiClient — Task Sorting", () => {
       statusFilter: "all",
       priorityFilter: "all",
       assigneeFilter: "all",
+      gearIdFilter: "",
       search: "",
       sort: "priority",
     });
