@@ -1,31 +1,88 @@
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Task } from '@/types';
-import { formatRelativeDate } from '@/lib/date-utils';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { InlineStatusSelect } from '@/components/InlineStatusSelect';
+import { apiClient } from '@/lib/api';
+import { STATUS_STYLES, PRIORITY_STYLES } from '@/lib/constants';
 import { cn } from '@/lib/utils';
-import { AlertTriangle, User } from 'lucide-react';
+import { formatRelativeDate } from '@/lib/date-utils';
+import { AlertTriangle, CheckCircle2, Pencil, Trash2, User } from 'lucide-react';
+import type { Task, Status } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
-const priorityStyles: Record<string, string> = {
-  High: 'bg-red-100 text-red-700 border-red-200',
-  Medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-  Low: 'bg-blue-100 text-blue-700 border-blue-200',
-};
+interface TaskCardProps {
+  task: Task;
+  onTaskUpdated: (updated: Task) => void;
+  onTaskDeleted: (id: string) => void;
+}
 
-const statusStyles: Record<string, string> = {
-  'To Do': 'bg-gray-100 text-gray-700 border-gray-200',
-  'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
-  Blocked: 'bg-red-100 text-red-700 border-red-200',
-  Done: 'bg-green-100 text-green-700 border-green-200',
-};
-
-export function TaskCard({ task }: { task: Task }) {
+export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: Readonly<TaskCardProps>) {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [markDoneLoading, setMarkDoneLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const isBlocked = task.status === 'Blocked';
+  const isDone = task.status === 'Done';
   const completedSubs = task.subTasks.filter(s => s.completed).length;
   const totalSubs = task.subTasks.length;
-  const progress = totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0;
+
+  const handleStatusChange = useCallback(async (id: string, status: Status, blockingReason = '') => {
+    const previous = task;
+    onTaskUpdated({ ...task, status, blockingReason });
+    try {
+      const updated = await apiClient.updateTask(id, { status, blockingReason });
+      onTaskUpdated(updated);
+    } catch {
+      onTaskUpdated(previous);
+      toast({ title: 'Status update failed', description: 'Changes were reverted.', variant: 'destructive' });
+    }
+  }, [task, onTaskUpdated, toast]);
+
+  const handleMarkDone = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isDone || markDoneLoading) return;
+    setMarkDoneLoading(true);
+    const previous = task;
+    onTaskUpdated({ ...task, status: 'Done' as Status, blockingReason: '' });
+    try {
+      const updated = await apiClient.updateTask(task.id, { status: 'Done' as Status, blockingReason: '' });
+      onTaskUpdated(updated);
+      toast({ title: 'Task marked as Done' });
+    } catch {
+      onTaskUpdated(previous);
+      toast({ title: 'Failed to mark as Done', description: 'Changes were reverted.', variant: 'destructive' });
+    } finally {
+      setMarkDoneLoading(false);
+    }
+  }, [task, isDone, markDoneLoading, onTaskUpdated, toast]);
+
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate(`/tasks/${task.id}`);
+  }, [navigate, task.id]);
+
+  const handleDelete = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (deleteLoading) return;
+    setDeleteLoading(true);
+    try {
+      await apiClient.deleteTask(task.id);
+      onTaskDeleted(task.id);
+      toast({ title: 'Task deleted' });
+    } catch {
+      toast({ title: 'Failed to delete task', variant: 'destructive' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  }, [task.id, deleteLoading, onTaskDeleted, toast]);
 
   return (
     <Card
@@ -38,12 +95,12 @@ export function TaskCard({ task }: { task: Task }) {
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-sm leading-tight line-clamp-2">{task.title}</h3>
-          <Badge className={cn('shrink-0 text-[10px]', priorityStyles[task.priority])} variant="outline">
+          <Badge className={cn('shrink-0 text-[10px]', PRIORITY_STYLES[task.priority])} variant="outline">
             {task.priority}
           </Badge>
         </div>
         <div className="flex flex-wrap gap-1.5 mt-1">
-          <Badge className={cn('text-[10px]', statusStyles[task.status])} variant="outline">
+          <Badge className={cn('text-[10px]', STATUS_STYLES[task.status])} variant="outline">
             {task.status}
           </Badge>
           {task.gearId && (
@@ -72,9 +129,58 @@ export function TaskCard({ task }: { task: Task }) {
               <span>Sub-tasks</span>
               <span>{completedSubs}/{totalSubs}</span>
             </div>
-            <Progress value={progress} className="h-1.5" />
+            <Progress value={totalSubs > 0 ? (completedSubs / totalSubs) * 100 : 0} className="h-1.5" />
           </div>
         )}
+
+        {/* Inline status change */}
+        <InlineStatusSelect task={task} onStatusChange={handleStatusChange} />
+
+        {/* Quick actions */}
+        <div className="flex items-center gap-1 pt-1" onClick={e => e.stopPropagation()}>
+          <Button
+            variant="ghost" size="icon" className="h-7 w-7"
+            disabled={isDone || markDoneLoading}
+            onClick={handleMarkDone}
+            title="Mark as Done"
+          >
+            <CheckCircle2 className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            variant="ghost" size="icon" className="h-7 w-7"
+            onClick={handleEdit}
+            title="Edit"
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive"
+                onClick={e => e.stopPropagation()}
+                disabled={deleteLoading}
+                title="Delete"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent onClick={e => e.stopPropagation()}>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete task?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  &quot;{task.title}&quot; will be permanently deleted. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={e => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                <AlertDialogAction disabled={deleteLoading} onClick={handleDelete}>
+                  {deleteLoading ? 'Deleting…' : 'Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+
         <p className="text-[11px] text-muted-foreground">{formatRelativeDate(task.updatedAt)}</p>
       </CardContent>
     </Card>

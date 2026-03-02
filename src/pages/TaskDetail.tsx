@@ -11,6 +11,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { apiClient } from '@/lib/api';
+import { STATUS_STYLES, PRIORITY_STYLES } from '@/lib/constants';
 import { Task, TeamMember } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -64,17 +65,6 @@ export default function TaskDetail() {
 
   const isBlocked = task.status === 'Blocked';
 
-  const priorityStyles: Record<string, string> = {
-    High: 'bg-red-100 text-red-700 border-red-200',
-    Medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
-    Low: 'bg-blue-100 text-blue-700 border-blue-200',
-  };
-  const statusStyles: Record<string, string> = {
-    'To Do': 'bg-gray-100 text-gray-700 border-gray-200',
-    'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
-    Blocked: 'bg-red-100 text-red-700 border-red-200',
-    Done: 'bg-green-100 text-green-700 border-green-200',
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,8 +89,8 @@ export default function TaskDetail() {
         <div className="space-y-4">
           <h1 className="text-2xl font-bold">{task.title}</h1>
           <div className="flex flex-wrap gap-2">
-            <Badge className={cn(priorityStyles[task.priority])} variant="outline">{task.priority}</Badge>
-            <Badge className={cn(statusStyles[task.status])} variant="outline">{task.status}</Badge>
+            <Badge className={cn(PRIORITY_STYLES[task.priority])} variant="outline">{task.priority}</Badge>
+            <Badge className={cn(STATUS_STYLES[task.status])} variant="outline">{task.status}</Badge>
             {task.gearId && <Badge variant="outline" className="font-mono">#{task.gearId}</Badge>}
           </div>
           {task.description && <p className="text-sm text-muted-foreground">{task.description}</p>}
