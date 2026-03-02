@@ -1,6 +1,6 @@
 # Story 4.1: Dashboard Enhancement — StatusSummaryBar, Filters, Search & Quick Actions
 
-Status: ready-for-dev
+Status: in-progress
 
 <!-- Validated by validate-create-story on 2026-03-02 -->
 
@@ -28,49 +28,49 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
 ## Tasks / Subtasks
 
 - [ ] Task 1: Extract shared visual constants (AC: 7, 12)
-  - [ ] Create `src/lib/constants.ts` with `STATUS_STYLES` and `PRIORITY_STYLES`. Use Low=green (`bg-green-100 text-green-700 border-green-200`) per epics spec (existing code uses blue — must be corrected).
-  - [ ] Refactor `src/components/TaskCard.tsx` to consume shared constants (remove local `priorityStyles`/`statusStyles` maps).
-  - [ ] Refactor `src/pages/TaskDetail.tsx` to consume shared constants (remove its duplicate `priorityStyles`/`statusStyles` maps).
+  - [x] Create `src/lib/constants.ts` with `STATUS_STYLES` and `PRIORITY_STYLES`. Use Low=green (`bg-green-100 text-green-700 border-green-200`) per epics spec (existing code uses blue — must be corrected).
+  - [x] Refactor `src/components/TaskCard.tsx` to consume shared constants (remove local `priorityStyles`/`statusStyles` maps).
+  - [x] Refactor `src/pages/TaskDetail.tsx` to consume shared constants (remove its duplicate `priorityStyles`/`statusStyles` maps).
   - [ ] Ensure `StatusSummaryBar` and `InlineStatusSelect` consume the same constants to avoid style drift.
 - [ ] Task 2: Codebase cleanup for dashboard scope (AC: 12)
   - [ ] Limit cleanup scope to story-specified items only: `App.css`, `NavLink.tsx`, dark mode artifacts, unused sidebar artifacts, and duplicate toast system. Do not perform broad deletion of unrelated shadcn primitives in this story.
-  - [ ] Remove `src/App.css` if unused; verify no imports remain.
-  - [ ] Remove `src/components/NavLink.tsx` if unused.
-  - [ ] Remove `.dark` block in `src/index.css` and remove `darkMode` setting from `taskflow-ui/tailwind.config.ts`.
+  - [x] Remove `src/App.css` if unused; verify no imports remain.
+  - [x] Remove `src/components/NavLink.tsx` if unused.
+  - [x] Remove `.dark` block in `src/index.css` and remove `darkMode` setting from `taskflow-ui/tailwind.config.ts`.
   - [ ] Remove `next-themes` dependency if unused.
-  - [ ] Remove unused `src/components/ui/sidebar.tsx` usage paths and related sidebar-only CSS variables if they are no longer referenced.
+  - [x] Remove unused `src/components/ui/sidebar.tsx` usage paths and related sidebar-only CSS variables if they are no longer referenced.
   - [ ] Consolidate toast system: keep `src/components/ui/toaster.tsx`, remove Sonner usage from `src/App.tsx` and remove Sonner dependency if no longer used.
 - [ ] Task 3: Build `StatusSummaryBar` (AC: 1)
-  - [ ] Create `src/components/StatusSummaryBar.tsx`.
-  - [ ] Derive counts from current in-memory task list (`useMemo`), no extra API call.
-  - [ ] Implement toggle filter behavior: click status to set, click active status to clear.
+  - [x] Create `src/components/StatusSummaryBar.tsx`.
+  - [x] Derive counts from current in-memory task list (`useMemo`), no extra API call.
+  - [x] Implement toggle filter behavior: click status to set, click active status to clear.
   - [ ] Add accessibility: status chips rendered as buttons with `aria-label` and `aria-pressed`.
-  - [ ] Mount in `src/pages/Index.tsx` above the task grid.
-- [ ] Task 4: Dashboard filters, sort, and persistence (AC: 2, 3, 4, 11)
-  - [ ] Keep filtering/sorting client-side on loaded tasks (instant local operations).
-  - [ ] Add/confirm dropdown filters in `src/pages/Index.tsx`: Status, Priority, Assignee.
-  - [ ] Preserve assignee semantics: options include `All`, `Unassigned`, and active members only (reuse `getActiveAssigneeMembers()` behavior).
-  - [ ] Add GEAR ID prefix filter input (starts-with match). Extend `DashboardQuery` in `src/lib/dashboard/tasks.ts` with a `gearIdFilter` field and add starts-with logic in `filterAndSortDashboardTasks()` (existing search uses substring `.includes()` — GEAR ID filter must use `.startsWith()`).
-  - [ ] Replace sort options with: Recently Updated, Recently Created, Priority. Remove existing "Status" sort option (not in epics spec). Update `DashboardSort` type in `src/lib/dashboard/tasks.ts` accordingly: add `'created'`, remove `'status'`.
-  - [ ] Persist filter state in `localStorage` key `taskflow-dashboard-filters` and restore on mount.
-  - [ ] Add defensive restore logic: if persisted filter JSON is invalid/malformed, fall back to defaults and clear the bad value.
-  - [ ] Add "Clear Filters" action that resets defaults and clears persisted filter state.
-- [ ] Task 5: Search behavior (AC: 5)
-  - [ ] Keep search in `src/pages/Index.tsx` with 300ms debounce.
-  - [ ] Apply debounced search to title/description/GEAR ID case-insensitive matching.
-  - [ ] Keep search and filters AND-combined.
+  - [x] Mount in `src/pages/Index.tsx` above the task grid.
+- [x] Task 4: Dashboard filters, sort, and persistence (AC: 2, 3, 4, 11)
+  - [x] Keep filtering/sorting client-side on loaded tasks (instant local operations).
+  - [x] Add/confirm dropdown filters in `src/pages/Index.tsx`: Status, Priority, Assignee.
+  - [x] Preserve assignee semantics: options include `All`, `Unassigned`, and active members only (reuse `getActiveAssigneeMembers()` behavior).
+  - [x] Add GEAR ID prefix filter input (starts-with match). Extend `DashboardQuery` in `src/lib/dashboard/tasks.ts` with a `gearIdFilter` field and add starts-with logic in `filterAndSortDashboardTasks()` (existing search uses substring `.includes()` — GEAR ID filter must use `.startsWith()`).
+  - [x] Replace sort options with: Recently Updated, Recently Created, Priority. Remove existing "Status" sort option (not in epics spec). Update `DashboardSort` type in `src/lib/dashboard/tasks.ts` accordingly: add `'created'`, remove `'status'`.
+  - [x] Persist filter state in `localStorage` key `taskflow-dashboard-filters` and restore on mount.
+  - [x] Add defensive restore logic: if persisted filter JSON is invalid/malformed, fall back to defaults and clear the bad value.
+  - [x] Add "Clear Filters" action that resets defaults and clears persisted filter state.
+- [x] Task 5: Search behavior (AC: 5)
+  - [x] Keep search in `src/pages/Index.tsx` with 300ms debounce.
+  - [x] Apply debounced search to title/description/GEAR ID case-insensitive matching.
+  - [x] Keep search and filters AND-combined.
 - [ ] Task 6: `TaskCard` + `InlineStatusSelect` + quick actions (AC: 6, 7, 8, 9, 10)
-  - [ ] Ensure blocked cards show high-contrast warning treatment and visible blocking reason.
+  - [x] Ensure blocked cards show high-contrast warning treatment and visible blocking reason.
   - [ ] If blocked reason text is truncated for card layout, keep full reason accessible via `title` or tooltip.
-  - [ ] Create `src/components/InlineStatusSelect.tsx`.
-  - [ ] If selecting `Blocked`, require blocking reason before persisting.
-  - [ ] If transitioning away from `Blocked`, send empty `blockingReason`.
-  - [ ] Add quick actions on task cards: Mark as Done, Edit, Delete.
-  - [ ] Define Edit behavior explicitly: Edit quick action navigates to `/tasks/:id` and uses the existing TaskDetail edit dialog (no new route in this story).
-  - [ ] For all quick-action controls, prevent card click-through navigation (`event.stopPropagation()` and related guards as needed).
-  - [ ] Delete action must require `AlertDialog` confirmation.
-  - [ ] Implement optimistic updates with rollback on failure for status mutations.
-  - [ ] Add in-flight guards (disable action controls while request is pending; block double submit).
+  - [x] Create `src/components/InlineStatusSelect.tsx`.
+  - [x] If selecting `Blocked`, require blocking reason before persisting.
+  - [x] If transitioning away from `Blocked`, send empty `blockingReason`.
+  - [x] Add quick actions on task cards: Mark as Done, Edit, Delete.
+  - [x] Define Edit behavior explicitly: Edit quick action navigates to `/tasks/:id` and uses the existing TaskDetail edit dialog (no new route in this story).
+  - [x] For all quick-action controls, prevent card click-through navigation (`event.stopPropagation()` and related guards as needed).
+  - [x] Delete action must require `AlertDialog` confirmation.
+  - [x] Implement optimistic updates with rollback on failure for status mutations.
+  - [x] Add in-flight guards (disable action controls while request is pending; block double submit).
 - [ ] Task 7: Tests for Story 4.1 behaviors (AC: 1-12)
   - [ ] Add/extend tests in `src/test/` for StatusSummaryBar counts and click-to-filter toggle.
   - [ ] Add tests for AND-combined filters (status + priority + assignee + gearId prefix + search).
