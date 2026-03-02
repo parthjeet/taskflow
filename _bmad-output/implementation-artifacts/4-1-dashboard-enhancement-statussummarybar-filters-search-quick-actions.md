@@ -28,41 +28,41 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
 ## Tasks / Subtasks
 
 - [ ] Task 1: Extract shared visual constants (AC: 7, 12)
-  - [ ] Create `taskflow-ui/src/lib/constants.ts` with `STATUS_STYLES` and `PRIORITY_STYLES`. Use Low=green (`bg-green-100 text-green-700 border-green-200`) per epics spec (existing code uses blue — must be corrected).
-  - [ ] Refactor `taskflow-ui/src/components/TaskCard.tsx` to consume shared constants (remove local `priorityStyles`/`statusStyles` maps).
-  - [ ] Refactor `taskflow-ui/src/pages/TaskDetail.tsx` to consume shared constants (remove its duplicate `priorityStyles`/`statusStyles` maps).
+  - [ ] Create `src/lib/constants.ts` with `STATUS_STYLES` and `PRIORITY_STYLES`. Use Low=green (`bg-green-100 text-green-700 border-green-200`) per epics spec (existing code uses blue — must be corrected).
+  - [ ] Refactor `src/components/TaskCard.tsx` to consume shared constants (remove local `priorityStyles`/`statusStyles` maps).
+  - [ ] Refactor `src/pages/TaskDetail.tsx` to consume shared constants (remove its duplicate `priorityStyles`/`statusStyles` maps).
   - [ ] Ensure `StatusSummaryBar` and `InlineStatusSelect` consume the same constants to avoid style drift.
 - [ ] Task 2: Codebase cleanup for dashboard scope (AC: 12)
   - [ ] Limit cleanup scope to story-specified items only: `App.css`, `NavLink.tsx`, dark mode artifacts, unused sidebar artifacts, and duplicate toast system. Do not perform broad deletion of unrelated shadcn primitives in this story.
-  - [ ] Remove `taskflow-ui/src/App.css` if unused; verify no imports remain.
-  - [ ] Remove `taskflow-ui/src/components/NavLink.tsx` if unused.
-  - [ ] Remove `.dark` block in `taskflow-ui/src/index.css` and remove `darkMode` setting from `taskflow-ui/tailwind.config.ts`.
+  - [ ] Remove `src/App.css` if unused; verify no imports remain.
+  - [ ] Remove `src/components/NavLink.tsx` if unused.
+  - [ ] Remove `.dark` block in `src/index.css` and remove `darkMode` setting from `taskflow-ui/tailwind.config.ts`.
   - [ ] Remove `next-themes` dependency if unused.
-  - [ ] Remove unused `taskflow-ui/src/components/ui/sidebar.tsx` usage paths and related sidebar-only CSS variables if they are no longer referenced.
-  - [ ] Consolidate toast system: keep `taskflow-ui/src/components/ui/toaster.tsx`, remove Sonner usage from `taskflow-ui/src/App.tsx` and remove Sonner dependency if no longer used.
+  - [ ] Remove unused `src/components/ui/sidebar.tsx` usage paths and related sidebar-only CSS variables if they are no longer referenced.
+  - [ ] Consolidate toast system: keep `src/components/ui/toaster.tsx`, remove Sonner usage from `src/App.tsx` and remove Sonner dependency if no longer used.
 - [ ] Task 3: Build `StatusSummaryBar` (AC: 1)
-  - [ ] Create `taskflow-ui/src/components/StatusSummaryBar.tsx`.
+  - [ ] Create `src/components/StatusSummaryBar.tsx`.
   - [ ] Derive counts from current in-memory task list (`useMemo`), no extra API call.
   - [ ] Implement toggle filter behavior: click status to set, click active status to clear.
   - [ ] Add accessibility: status chips rendered as buttons with `aria-label` and `aria-pressed`.
-  - [ ] Mount in `taskflow-ui/src/pages/Index.tsx` above the task grid.
+  - [ ] Mount in `src/pages/Index.tsx` above the task grid.
 - [ ] Task 4: Dashboard filters, sort, and persistence (AC: 2, 3, 4, 11)
   - [ ] Keep filtering/sorting client-side on loaded tasks (instant local operations).
-  - [ ] Add/confirm dropdown filters in `taskflow-ui/src/pages/Index.tsx`: Status, Priority, Assignee.
+  - [ ] Add/confirm dropdown filters in `src/pages/Index.tsx`: Status, Priority, Assignee.
   - [ ] Preserve assignee semantics: options include `All`, `Unassigned`, and active members only (reuse `getActiveAssigneeMembers()` behavior).
-  - [ ] Add GEAR ID prefix filter input (starts-with match). Extend `DashboardQuery` in `taskflow-ui/src/lib/dashboard/tasks.ts` with a `gearIdFilter` field and add starts-with logic in `filterAndSortDashboardTasks()` (existing search uses substring `.includes()` — GEAR ID filter must use `.startsWith()`).
-  - [ ] Replace sort options with: Recently Updated, Recently Created, Priority. Remove existing "Status" sort option (not in epics spec). Update `DashboardSort` type in `taskflow-ui/src/lib/dashboard/tasks.ts` accordingly: add `'created'`, remove `'status'`.
+  - [ ] Add GEAR ID prefix filter input (starts-with match). Extend `DashboardQuery` in `src/lib/dashboard/tasks.ts` with a `gearIdFilter` field and add starts-with logic in `filterAndSortDashboardTasks()` (existing search uses substring `.includes()` — GEAR ID filter must use `.startsWith()`).
+  - [ ] Replace sort options with: Recently Updated, Recently Created, Priority. Remove existing "Status" sort option (not in epics spec). Update `DashboardSort` type in `src/lib/dashboard/tasks.ts` accordingly: add `'created'`, remove `'status'`.
   - [ ] Persist filter state in `localStorage` key `taskflow-dashboard-filters` and restore on mount.
   - [ ] Add defensive restore logic: if persisted filter JSON is invalid/malformed, fall back to defaults and clear the bad value.
   - [ ] Add "Clear Filters" action that resets defaults and clears persisted filter state.
 - [ ] Task 5: Search behavior (AC: 5)
-  - [ ] Keep search in `taskflow-ui/src/pages/Index.tsx` with 300ms debounce.
+  - [ ] Keep search in `src/pages/Index.tsx` with 300ms debounce.
   - [ ] Apply debounced search to title/description/GEAR ID case-insensitive matching.
   - [ ] Keep search and filters AND-combined.
 - [ ] Task 6: `TaskCard` + `InlineStatusSelect` + quick actions (AC: 6, 7, 8, 9, 10)
   - [ ] Ensure blocked cards show high-contrast warning treatment and visible blocking reason.
   - [ ] If blocked reason text is truncated for card layout, keep full reason accessible via `title` or tooltip.
-  - [ ] Create `taskflow-ui/src/components/InlineStatusSelect.tsx`.
+  - [ ] Create `src/components/InlineStatusSelect.tsx`.
   - [ ] If selecting `Blocked`, require blocking reason before persisting.
   - [ ] If transitioning away from `Blocked`, send empty `blockingReason`.
   - [ ] Add quick actions on task cards: Mark as Done, Edit, Delete.
@@ -72,7 +72,7 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
   - [ ] Implement optimistic updates with rollback on failure for status mutations.
   - [ ] Add in-flight guards (disable action controls while request is pending; block double submit).
 - [ ] Task 7: Tests for Story 4.1 behaviors (AC: 1-12)
-  - [ ] Add/extend tests in `taskflow-ui/src/test/` for StatusSummaryBar counts and click-to-filter toggle.
+  - [ ] Add/extend tests in `src/test/` for StatusSummaryBar counts and click-to-filter toggle.
   - [ ] Add tests for AND-combined filters (status + priority + assignee + gearId prefix + search).
   - [ ] Update sort tests for new contract: `updated`, `created`, `priority`; remove dashboard/status sort expectations for Story 4.1 scope.
   - [ ] Add debounce test for 300ms search behavior.
@@ -91,11 +91,11 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
 
 - UI-track story. All code changes remain under `taskflow-ui/`.
 - Use adapter boundary consistently: UI components/pages call `apiClient` only.
-- Reuse existing dashboard filter utilities in `taskflow-ui/src/lib/dashboard/tasks.ts`; do not duplicate filtering logic.
+- Reuse existing dashboard filter utilities in `src/lib/dashboard/tasks.ts`; do not duplicate filtering logic.
 
 ### Technical Requirements
 
-- **Path safety:** Prefer `taskflow-ui/src/...` paths explicitly (avoid ambiguous root `src/` path edits). For cleanup in this story, `taskflow-ui/tailwind.config.ts` and `taskflow-ui/package.json` edits are allowed when required.
+- **Path safety:** Prefer `src/...` paths explicitly (avoid ambiguous root `src/` path edits). For cleanup in this story, `taskflow-ui/tailwind.config.ts` and `taskflow-ui/package.json` edits are allowed when required.
 - **Filtering/sorting strategy:** Keep dashboard filtering/sorting client-side on the loaded task list (`useMemo`) for instant response and NFR alignment.
 - **Sort contract handling:** Implement "Recently Created" in UI/client sorting logic using `createdAt`. Do not send unsupported `sort=created` to API adapter in this story.
 - **Search + filters composition:** Search, gearId prefix filter, and dropdown filters are AND-combined.
@@ -145,7 +145,7 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
 ### Definition of Done
 
 - Story ACs 1-12 pass with tests.
-- New dashboard behavior tests are present in `taskflow-ui/src/test/` and include:
+- New dashboard behavior tests are present in `src/test/` and include:
   - StatusSummaryBar interactions,
   - filter + search + persistence flows,
   - quick actions (Mark as Done, Edit, Delete) including no click-through navigation.
@@ -157,11 +157,11 @@ so that I can assess team status at a glance, find specific tasks in under 30 se
 ### Project Structure Notes
 
 - New components:
-  - `taskflow-ui/src/components/StatusSummaryBar.tsx`
-  - `taskflow-ui/src/components/InlineStatusSelect.tsx`
-- `taskflow-ui/src/components/ui/` remains reserved for shadcn primitives.
-- Shared color/status constants live in `taskflow-ui/src/lib/constants.ts`.
-- Keep dashboard logic in `taskflow-ui/src/pages/Index.tsx` and `taskflow-ui/src/lib/dashboard/tasks.ts`.
+  - `src/components/StatusSummaryBar.tsx`
+  - `src/components/InlineStatusSelect.tsx`
+- `src/components/ui/` remains reserved for shadcn primitives.
+- Shared color/status constants live in `src/lib/constants.ts`.
+- Keep dashboard logic in `src/pages/Index.tsx` and `src/lib/dashboard/tasks.ts`.
 - Keep edit routing unchanged in this story (use existing `/tasks/:id`; do not introduce `/tasks/:id/edit`).
 
 ### References

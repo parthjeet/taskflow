@@ -17,15 +17,15 @@ Enhance the task dashboard in `taskflow-ui/` with a **StatusSummaryBar**, extend
 
 ### Current State
 
-- `taskflow-ui/src/pages/Index.tsx` (153 lines) renders the task grid with Status, Priority, Assignee dropdowns and a search input. Filtering is client-side via `filterAndSortDashboardTasks`. No StatusSummaryBar. No GEAR ID filter. No quick actions on cards. No localStorage persistence.
-- `taskflow-ui/src/components/TaskCard.tsx` renders task cards with navigate-on-click. It has local `priorityStyles` and `statusStyles` maps. **Low priority** is color-coded as blue (`bg-blue-100`) — this must be corrected to green (`bg-green-100 text-green-700 border-green-200`). No quick actions. No InlineStatusSelect.
-- `taskflow-ui/src/lib/dashboard/tasks.ts` exports `DashboardSort` type (`'updated' | 'priority' | 'status'`) and `filterAndSortDashboardTasks()`. The `'status'` sort option is present — it must be **removed** and replaced with `'created'` (Recently Created). The `DashboardQuery` interface has no `gearIdFilter` field. Search uses `.includes()`, not `.startsWith()` for GEAR ID.
-- `taskflow-ui/src/lib/api/client.ts` defines `ApiClient` with `updateTask(id, data)` and `deleteTask(id)`. These are called by components via `apiClient` from `@/lib/api`.
-- `taskflow-ui/src/lib/api/types.ts` defines `Task` with `createdAt: string`, `status: Status`, `blockingReason: string`, `gearId: string | null`, `assigneeId: string | null`.
-- `taskflow-ui/src/App.tsx` imports **both** `@/components/ui/toaster` (Radix) and `@/components/ui/sonner` (Sonner). Both `<Toaster />` and `<Sonner />` are mounted — Sonner must be removed.
-- `taskflow-ui/src/App.css` — a Vite scaffold file (sets `#root` max-width etc.) that is **not** imported by App.tsx. Unused — remove it.
-- `taskflow-ui/src/components/NavLink.tsx` — a custom nav link component. Check if any imports remain. If unused, remove it.
-- `taskflow-ui/src/index.css` — has a `.dark { ... }` block (lines ~58–94) with sidebar CSS variables. Remove the `.dark` block entirely. Remove sidebar-only CSS variables (`--sidebar-*`) as the sidebar component is not used in the app.
+- `src/pages/Index.tsx` (153 lines) renders the task grid with Status, Priority, Assignee dropdowns and a search input. Filtering is client-side via `filterAndSortDashboardTasks`. No StatusSummaryBar. No GEAR ID filter. No quick actions on cards. No localStorage persistence.
+- `src/components/TaskCard.tsx` renders task cards with navigate-on-click. It has local `priorityStyles` and `statusStyles` maps. **Low priority** is color-coded as blue (`bg-blue-100`) — this must be corrected to green (`bg-green-100 text-green-700 border-green-200`). No quick actions. No InlineStatusSelect.
+- `src/lib/dashboard/tasks.ts` exports `DashboardSort` type (`'updated' | 'priority' | 'status'`) and `filterAndSortDashboardTasks()`. The `'status'` sort option is present — it must be **removed** and replaced with `'created'` (Recently Created). The `DashboardQuery` interface has no `gearIdFilter` field. Search uses `.includes()`, not `.startsWith()` for GEAR ID.
+- `src/lib/api/client.ts` defines `ApiClient` with `updateTask(id, data)` and `deleteTask(id)`. These are called by components via `apiClient` from `@/lib/api`.
+- `src/lib/api/types.ts` defines `Task` with `createdAt: string`, `status: Status`, `blockingReason: string`, `gearId: string | null`, `assigneeId: string | null`.
+- `src/App.tsx` imports **both** `@/components/ui/toaster` (Radix) and `@/components/ui/sonner` (Sonner). Both `<Toaster />` and `<Sonner />` are mounted — Sonner must be removed.
+- `src/App.css` — a Vite scaffold file (sets `#root` max-width etc.) that is **not** imported by App.tsx. Unused — remove it.
+- `src/components/NavLink.tsx` — a custom nav link component. Check if any imports remain. If unused, remove it.
+- `src/index.css` — has a `.dark { ... }` block (lines ~58–94) with sidebar CSS variables. Remove the `.dark` block entirely. Remove sidebar-only CSS variables (`--sidebar-*`) as the sidebar component is not used in the app.
 - `taskflow-ui/tailwind.config.ts` — has `darkMode: ["class"]`. Remove this setting.
 - `@tanstack/react-query` is installed (used in `App.tsx` as `QueryClientProvider`), but **no component uses TanStack Query hooks** — do NOT migrate to TanStack Query. Continue using `useEffect` + `useState` + `load()` pattern throughout.
 - `taskflow-ui/` has no `src/lib/constants.ts` file yet — it must be created.
@@ -33,7 +33,7 @@ Enhance the task dashboard in `taskflow-ui/` with a **StatusSummaryBar**, extend
 
 ### What Needs to Change
 
-1. **Create `taskflow-ui/src/lib/constants.ts`** — shared color style maps
+1. **Create `src/lib/constants.ts`** — shared color style maps
 2. **Codebase cleanup** — remove App.css, NavLink.tsx (if unused), `.dark` block, sidebar CSS vars, Sonner
 3. **Update `DashboardSort` and `filterAndSortDashboardTasks`** — add `'created'` sort, remove `'status'` sort, add `gearIdFilter` with startsWith logic
 4. **Create `StatusSummaryBar`** — above the task grid, derives counts from in-memory tasks, click-to-toggle-filter
@@ -46,7 +46,7 @@ Enhance the task dashboard in `taskflow-ui/` with a **StatusSummaryBar**, extend
 
 ## Implementation
 
-### Step 1: Create `taskflow-ui/src/lib/constants.ts`
+### Step 1: Create `src/lib/constants.ts`
 
 ```typescript
 // Shared style maps for status and priority badges.
@@ -72,13 +72,13 @@ export const PRIORITY_STYLES: Record<string, string> = {
 
 Perform these **exact, bounded** cleanup actions — do not delete any other files or shadcn primitives.
 
-#### 2a. Remove `taskflow-ui/src/App.css`
+#### 2a. Remove `src/App.css`
 Confirm no `import './App.css'` statement exists in any file. If none found, delete the file. If an import exists, remove the import statement first.
 
-#### 2b. Remove `taskflow-ui/src/components/NavLink.tsx` (if unused)
+#### 2b. Remove `src/components/NavLink.tsx` (if unused)
 Search for `import.*NavLink` across the codebase. If no imports remain, delete the file.
 
-#### 2c. Remove Sonner from `taskflow-ui/src/App.tsx`
+#### 2c. Remove Sonner from `src/App.tsx`
 Remove the import:
 ```typescript
 // DELETE:
@@ -86,7 +86,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 ```
 Remove the JSX element `<Sonner />` from the component tree. Keep `<Toaster />` from `@/components/ui/toaster`.
 
-#### 2d. Remove `.dark` block from `taskflow-ui/src/index.css`
+#### 2d. Remove `.dark` block from `src/index.css`
 Delete the entire `.dark { ... }` block (the block that mirrors light-mode CSS variables into a dark context). Also remove all `--sidebar-*` CSS variable declarations from both the `:root` block and the `.dark` block.
 
 #### 2e. Remove `darkMode` from `taskflow-ui/tailwind.config.ts`
@@ -94,7 +94,7 @@ Remove the `darkMode: ["class"]` line.
 
 ---
 
-### Step 3: Update `taskflow-ui/src/lib/dashboard/tasks.ts`
+### Step 3: Update `src/lib/dashboard/tasks.ts`
 
 Replace the module completely:
 
@@ -167,7 +167,7 @@ export function getActiveAssigneeMembers(members: TeamMember[]): TeamMember[] {
 
 ---
 
-### Step 4: Create `taskflow-ui/src/components/StatusSummaryBar.tsx`
+### Step 4: Create `src/components/StatusSummaryBar.tsx`
 
 ```typescript
 import { useMemo } from 'react';
@@ -224,7 +224,7 @@ export function StatusSummaryBar({ tasks, activeStatus, onStatusClick }: StatusS
 
 ---
 
-### Step 5: Create `taskflow-ui/src/components/InlineStatusSelect.tsx`
+### Step 5: Create `src/components/InlineStatusSelect.tsx`
 
 ```typescript
 import { useState, useRef } from 'react';
@@ -347,7 +347,7 @@ export function InlineStatusSelect({ task, onStatusChange }: InlineStatusSelectP
 
 ---
 
-### Step 6: Refactor `taskflow-ui/src/components/TaskCard.tsx`
+### Step 6: Refactor `src/components/TaskCard.tsx`
 
 Replace the current component entirely with an enhanced version that:
 
@@ -570,7 +570,7 @@ export function TaskCard({ task, onTaskUpdated, onTaskDeleted }: TaskCardProps) 
 
 ---
 
-### Step 7: Update `taskflow-ui/src/pages/Index.tsx`
+### Step 7: Update `src/pages/Index.tsx`
 
 Replace with an enhanced version incorporating:
 
@@ -853,7 +853,7 @@ export default function Dashboard() {
 
 ---
 
-### Step 8: Refactor `taskflow-ui/src/pages/TaskDetail.tsx`
+### Step 8: Refactor `src/pages/TaskDetail.tsx`
 
 Find and replace the local `priorityStyles` and `statusStyles` maps in `TaskDetail.tsx`:
 - Remove the local declarations.
@@ -917,8 +917,8 @@ Every quick action control (Mark as Done, Edit, Delete trigger, AlertDialog cont
 3. **No backend file changes.** All changes are under `taskflow-ui/` only.
 4. **Import paths:** Always `@/components/...`, `@/lib/...`, `@/types`, `@/hooks/...`. Never relative paths from pages to components.
 5. **shadcn composition:** Use `Badge`, `Button`, `Select`, `Input`, `AlertDialog`, `Progress` from `@/components/ui/`. Do not create custom primitive replacements.
-6. **New components:** `StatusSummaryBar.tsx` → `taskflow-ui/src/components/`. `InlineStatusSelect.tsx` → `taskflow-ui/src/components/`. No new sub-folders.
-7. **Constants file:** `taskflow-ui/src/lib/constants.ts` — only `STATUS_STYLES` and `PRIORITY_STYLES` exports. No other constants needed in this story.
+6. **New components:** `StatusSummaryBar.tsx` → `src/components/`. `InlineStatusSelect.tsx` → `src/components/`. No new sub-folders.
+7. **Constants file:** `src/lib/constants.ts` — only `STATUS_STYLES` and `PRIORITY_STYLES` exports. No other constants needed in this story.
 8. **Types re-export:** Components import types from `@/types` (which re-exports from `src/lib/api/types.ts`). Never import directly from `@/lib/api/types`.
 9. **Sort contract:** `DashboardSort` type must be `'updated' | 'created' | 'priority'` after this story. The `'status'` value is removed. The sort dropdown must show exactly: "Recently Updated", "Recently Created", "Priority".
 10. **GEAR ID filter semantics:** `.startsWith()` match, not `.includes()`. A task with `gearId = null` is excluded when any gearIdFilter value is set.
