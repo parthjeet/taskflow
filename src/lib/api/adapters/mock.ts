@@ -409,8 +409,7 @@ export class MockApiClient implements ApiClient {
     }
     const reordered = subTaskIds.map((id, index) => {
       const sub = task.subTasks.find(s => s.id === id)!;
-      sub.position = index;
-      return sub;
+      return { ...sub, position: index };
     });
     task.subTasks = reordered;
     task.updatedAt = new Date().toISOString();

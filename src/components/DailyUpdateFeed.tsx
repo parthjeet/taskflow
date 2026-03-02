@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { apiClient } from '@/lib/api';
 import { MAX_DAILY_UPDATE_CONTENT_LENGTH } from '@/lib/api/constants';
 import { DailyUpdate, TeamMember } from '@/types';
+import { useSafeMutate } from '@/hooks/useSafeMutate';
 import { useToast } from '@/hooks/use-toast';
 import { formatRelativeDate, isWithin24Hours } from '@/lib/date-utils';
 import { Plus, Loader2 } from 'lucide-react';
@@ -22,82 +23,142 @@ interface DailyUpdateFeedProps {
   taskId: string;
   dailyUpdates: DailyUpdate[];
   members: TeamMember[];
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }
 
 export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Readonly<DailyUpdateFeedProps>) {
   const { toast } = useToast();
+  const triggerMutate = useSafeMutate(onMutate);
   const [addingUpdate, setAddingUpdate] = useState(false);
   const [updateAuthor, setUpdateAuthor] = useState('');
+  const updateAuthorRef = useRef('');
   const [updateContent, setUpdateContent] = useState('');
+  const updateContentRef = useRef('');
   const [updateLoading, setUpdateLoading] = useState(false);
+  const updateLoadingRef = useRef(false);
   const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const editContentRef = useRef('');
   const [editUpdateLoading, setEditUpdateLoading] = useState(false);
+  const editUpdateLoadingRef = useRef(false);
   const [deleteUpdateId, setDeleteUpdateId] = useState<string | null>(null);
+  const deleteUpdateIdRef = useRef<string | null>(null);
   const [deletingUpdate, setDeletingUpdate] = useState(false);
+  const deletingUpdateRef = useRef(false);
 
   const activeMembers = useMemo(() => members.filter(m => m.active), [members]);
+  const activeMembersRef = useRef(activeMembers);
   const sortedUpdates = useMemo(
     () => [...dailyUpdates].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [dailyUpdates],
   );
 
+  useEffect(() => {
+    activeMembersRef.current = activeMembers;
+  }, [activeMembers]);
+
+  useEffect(() => {
+    setAddingUpdate(false);
+    setUpdateAuthor('');
+    updateAuthorRef.current = '';
+    setUpdateContent('');
+    updateContentRef.current = '';
+    setUpdateLoading(false);
+    updateLoadingRef.current = false;
+    setEditingUpdateId(null);
+    setEditingContent('');
+    editContentRef.current = '';
+    setEditUpdateLoading(false);
+    editUpdateLoadingRef.current = false;
+    setDeleteUpdateId(null);
+    deleteUpdateIdRef.current = null;
+    setDeletingUpdate(false);
+    deletingUpdateRef.current = false;
+  }, [taskId]);
+
   const openAddDialog = useCallback(() => {
     setAddingUpdate(true);
     const stored = localStorage.getItem(LAST_AUTHOR_KEY);
-    const validId = stored && activeMembers.some(m => m.id === stored) ? stored : (activeMembers[0]?.id || '');
+    const currentActiveMembers = activeMembersRef.current;
+    const validId = stored && currentActiveMembers.some(m => m.id === stored)
+      ? stored
+      : (currentActiveMembers[0]?.id || '');
     setUpdateAuthor(validId);
+    updateAuthorRef.current = validId;
     setUpdateContent('');
-  }, [activeMembers]);
+    updateContentRef.current = '';
+  }, []);
 
   const handleAddUpdate = useCallback(async () => {
+    if (updateLoadingRef.current) return;
+    const authorId = updateAuthorRef.current;
+    const normalizedContent = updateContentRef.current.trim();
+    if (!authorId || !normalizedContent) return;
+    updateLoadingRef.current = true;
     setUpdateLoading(true);
     try {
-      await apiClient.addDailyUpdate(taskId, { authorId: updateAuthor, content: updateContent.trim() });
-      localStorage.setItem(LAST_AUTHOR_KEY, updateAuthor);
+      await apiClient.addDailyUpdate(taskId, { authorId, content: normalizedContent });
+      localStorage.setItem(LAST_AUTHOR_KEY, authorId);
       toast({ title: 'Update added' });
       setAddingUpdate(false);
-      onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      updateLoadingRef.current = false;
       setUpdateLoading(false);
     }
-  }, [taskId, updateAuthor, updateContent, onMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
-  const handleEditSave = useCallback(async (updateId: string) => {
-    const normalizedContent = editingContent.trim();
-    if (!normalizedContent) return;
+  const handleEditSave = useCallback(async (updateId: string, currentUpdateContent: string) => {
+    if (editUpdateLoadingRef.current) return;
+    const normalizedContent = editContentRef.current.trim();
+    if (!normalizedContent) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Update content is required' });
+      return;
+    }
+    if (normalizedContent === currentUpdateContent.trim()) {
+      setEditingUpdateId(null);
+      setEditingContent('');
+      editContentRef.current = '';
+      return;
+    }
+    editUpdateLoadingRef.current = true;
     setEditUpdateLoading(true);
     try {
       await apiClient.editDailyUpdate(taskId, updateId, { content: normalizedContent });
       toast({ title: 'Update edited' });
       setEditingUpdateId(null);
-      onMutate();
+      setEditingContent('');
+      editContentRef.current = '';
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      editUpdateLoadingRef.current = false;
       setEditUpdateLoading(false);
     }
-  }, [taskId, editingContent, onMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
   const handleDelete = useCallback(async () => {
-    if (deletingUpdate || !deleteUpdateId) return;
+    const currentDeleteId = deleteUpdateIdRef.current;
+    if (deletingUpdateRef.current || !currentDeleteId) return;
+    deletingUpdateRef.current = true;
     setDeletingUpdate(true);
     try {
-      await apiClient.deleteDailyUpdate(taskId, deleteUpdateId);
+      await apiClient.deleteDailyUpdate(taskId, currentDeleteId);
       toast({ title: 'Update deleted' });
-      onMutate();
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
+      deletingUpdateRef.current = false;
       setDeletingUpdate(false);
     }
-  }, [deletingUpdate, deleteUpdateId, taskId, onMutate, toast]);
+  }, [taskId, triggerMutate, toast]);
 
   return (
     <TooltipProvider>
@@ -122,13 +183,27 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                   <div className="space-y-2">
                     <Textarea
                       value={editingContent}
-                      onChange={e => setEditingContent(e.target.value)}
+                      onChange={e => {
+                        editContentRef.current = e.target.value;
+                        setEditingContent(e.target.value);
+                      }}
                       rows={2}
                       maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
                     />
                     <div className="flex gap-2 justify-end">
-                      <Button size="sm" variant="outline" disabled={editUpdateLoading} onClick={() => setEditingUpdateId(null)}>Cancel</Button>
-                      <Button size="sm" disabled={!editingContent.trim() || editUpdateLoading} onClick={() => handleEditSave(upd.id)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={editUpdateLoading}
+                        onClick={() => {
+                          setEditingUpdateId(null);
+                          setEditingContent('');
+                          editContentRef.current = '';
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button size="sm" disabled={editUpdateLoading} onClick={() => handleEditSave(upd.id, upd.content)}>
                         {editUpdateLoading && <Loader2 className="h-4 w-4 animate-spin" />} Save
                       </Button>
                     </div>
@@ -146,11 +221,19 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
                     {editable ? (
                       <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity">
                         <Button size="sm" variant="ghost" className="h-6 text-xs"
-                          onClick={() => { setEditingUpdateId(upd.id); setEditingContent(upd.content); }}>
+                          onClick={() => {
+                            setEditingUpdateId(upd.id);
+                            setEditingContent(upd.content);
+                            editContentRef.current = upd.content;
+                          }}
+                        >
                           Edit
                         </Button>
                         <Button size="sm" variant="ghost" className="h-6 text-xs text-destructive hover:text-destructive"
-                          onClick={() => setDeleteUpdateId(upd.id)}>
+                          onClick={() => {
+                            setDeleteUpdateId(upd.id);
+                            deleteUpdateIdRef.current = upd.id;
+                          }}>
                           Delete
                         </Button>
                       </div>
@@ -184,7 +267,13 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Author</Label>
-              <Select value={updateAuthor} onValueChange={setUpdateAuthor}>
+              <Select
+                value={updateAuthor}
+                onValueChange={value => {
+                  updateAuthorRef.current = value;
+                  setUpdateAuthor(value);
+                }}
+              >
                 <SelectTrigger><SelectValue placeholder="Select author" /></SelectTrigger>
                 <SelectContent>
                   {activeMembers.length === 0 ? (
@@ -199,7 +288,10 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
               <Label>Update</Label>
               <Textarea
                 value={updateContent}
-                onChange={e => setUpdateContent(e.target.value)}
+                onChange={e => {
+                  updateContentRef.current = e.target.value;
+                  setUpdateContent(e.target.value);
+                }}
                 placeholder="What's the latest?"
                 rows={3}
                 maxLength={MAX_DAILY_UPDATE_CONTENT_LENGTH}
@@ -216,7 +308,12 @@ export function DailyUpdateFeed({ taskId, dailyUpdates, members, onMutate }: Rea
       </Dialog>
 
       {/* Delete Update Confirm */}
-      <AlertDialog open={!!deleteUpdateId} onOpenChange={open => { if (!open) setDeleteUpdateId(null); }}>
+      <AlertDialog open={!!deleteUpdateId} onOpenChange={open => {
+        if (!open) {
+          setDeleteUpdateId(null);
+          deleteUpdateIdRef.current = null;
+        }
+      }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Update</AlertDialogTitle>

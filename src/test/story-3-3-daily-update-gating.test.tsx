@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { DailyUpdateFeed } from '@/components/DailyUpdateFeed';
 import { apiClient } from '@/lib/api';
 import { DailyUpdate, TeamMember } from '@/types';
+import { deferred } from '@/test/test-utils';
 
 const mockToast = vi.fn();
 vi.mock('@/hooks/use-toast', () => ({
@@ -48,10 +49,12 @@ describe('DailyUpdateFeed — rendering order', () => {
   it('CMP-005: renders newest-first with author, timestamp, content, "(edited)"', () => {
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[oldUpdate, recentUpdate, editedUpdate]} members={members} onMutate={onMutate} />);
 
-    const items = screen.getAllByText(/update/i);
-    const recentIdx = items.findIndex(el => el.textContent?.includes('Recent'));
-    const oldIdx = items.findIndex(el => el.textContent?.includes('Old'));
-    expect(recentIdx).toBeLessThan(oldIdx);
+    const updateContents = screen.getAllByText(/^(Recent update|Edited update|Old update)$/);
+    expect(updateContents.map(el => el.textContent)).toEqual([
+      'Recent update',
+      'Edited update',
+      'Old update',
+    ]);
 
     // "(edited)" indicator
     expect(screen.getByText('(edited)')).toBeInTheDocument();
@@ -94,6 +97,22 @@ describe('DailyUpdateFeed — 24h gating', () => {
 });
 
 describe('DailyUpdateFeed — edit flow', () => {
+  it('CMP-057: save with unchanged content is a no-op (no API call)', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(
+      makeUpdate({ id: 'u1', content: 'Recent update', edited: true }),
+    );
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(editSpy).not.toHaveBeenCalled();
+    });
+    expect(onMutate).not.toHaveBeenCalled();
+    expect(screen.queryByDisplayValue('Recent update')).not.toBeInTheDocument();
+  });
+
   it('CMP-022: edit flow with textarea, save, calls editDailyUpdate', async () => {
     vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u1', content: 'Updated content', edited: true }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
@@ -107,6 +126,30 @@ describe('DailyUpdateFeed — edit flow', () => {
 
     await waitFor(() => expect(apiClient.editDailyUpdate).toHaveBeenCalledWith('t1', 'u1', { content: 'Updated content' }));
     expect(onMutate).toHaveBeenCalled();
+  });
+
+  it('CMP-065: programmatic empty save shows validation toast and skips API call', async () => {
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockResolvedValue(
+      makeUpdate({ id: 'u1', content: 'Should not save', edited: true }),
+    );
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    const textarea = screen.getByDisplayValue('Recent update');
+    fireEvent.change(textarea, { target: { value: '   ' } });
+
+    fireEvent.click(screen.getByText('Save'));
+
+    await waitFor(() => {
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: 'destructive',
+          description: 'Update content is required',
+        }),
+      );
+    });
+    expect(editSpy).not.toHaveBeenCalled();
+    expect(onMutate).not.toHaveBeenCalled();
   });
 
   it('CMP-013: edit save error → destructive toast', async () => {
@@ -137,9 +180,66 @@ describe('DailyUpdateFeed — edit flow', () => {
     rerender(<DailyUpdateFeed taskId="t1" dailyUpdates={updatedList} members={members} onMutate={onMutate} />);
     expect(screen.getByText('(edited)')).toBeInTheDocument();
   });
+
+  it('CMP-053: second edit submit is ignored while request is in flight', async () => {
+    const pending = deferred<DailyUpdate>();
+    const editSpy = vi.spyOn(apiClient, 'editDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Edit'));
+    fireEvent.change(screen.getByDisplayValue('Recent update'), { target: { value: 'Updated once' } });
+    const saveButton = screen.getByText('Save');
+
+    fireEvent.click(saveButton);
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(editSpy).toHaveBeenCalledTimes(1);
+      expect(editSpy).toHaveBeenCalledWith('t1', 'u1', { content: 'Updated once' });
+    });
+
+    pending.resolve(makeUpdate({ id: 'u1', content: 'Updated once', edited: true }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('CMP-051: task switch resets inline edit state', () => {
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Edit'));
+    expect(screen.getByDisplayValue('Recent update')).toBeInTheDocument();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByDisplayValue('Recent update')).not.toBeInTheDocument();
+    expect(screen.getByText('Edit')).toBeInTheDocument();
+  });
 });
 
 describe('DailyUpdateFeed — delete flow', () => {
+  it('CMP-058: task switch resets delete dialog state', () => {
+    const deleteSpy = vi.spyOn(apiClient, 'deleteDailyUpdate').mockResolvedValue(undefined);
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Delete'));
+    expect(screen.getByText('Delete Update')).toBeInTheDocument();
+    expect(screen.getByTestId('confirm-delete-update')).toBeInTheDocument();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByTestId('confirm-delete-update')).not.toBeInTheDocument();
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
   it('CMP-025: delete confirmation dialog calls deleteDailyUpdate', async () => {
     vi.spyOn(apiClient, 'deleteDailyUpdate').mockResolvedValue(undefined);
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
@@ -165,11 +265,71 @@ describe('DailyUpdateFeed — delete flow', () => {
       expect.objectContaining({ variant: 'destructive', description: 'Updates can only be deleted within 24 hours.' }),
     ));
   });
+
+  it('CMP-070: second delete confirm is ignored while request is in flight', async () => {
+    const pending = deferred<void>();
+    const deleteSpy = vi.spyOn(apiClient, 'deleteDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[recentUpdate]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Delete'));
+    const confirmDeleteButton = screen.getByTestId('confirm-delete-update');
+    fireEvent.click(confirmDeleteButton);
+
+    await waitFor(() => {
+      expect(deleteSpy).toHaveBeenCalledTimes(1);
+      expect(deleteSpy).toHaveBeenCalledWith('t1', 'u1');
+    });
+    await waitFor(() => {
+      expect(confirmDeleteButton).toBeDisabled();
+    });
+
+    fireEvent.click(confirmDeleteButton);
+    expect(deleteSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve();
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
 });
 
 describe('DailyUpdateFeed — add update', () => {
+  it('CMP-064: add dialog resolves author from latest active members after members prop change', () => {
+    localStorage.setItem('taskflow-last-author', 'm1');
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    const updatedMembers: TeamMember[] = [
+      { ...members[0], active: false },
+      members[1],
+      members[2],
+    ];
+    rerender(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={updatedMembers} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Add Update'));
+    expect(screen.getByRole('combobox')).toHaveTextContent('Bob');
+  });
+
+  it('CMP-059: no active members shows disabled placeholder and keeps Add disabled', async () => {
+    const inactiveMembers: TeamMember[] = members.map(member => ({ ...member, active: false }));
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={inactiveMembers} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+
+    const authorSelectTrigger = screen.getByRole('combobox');
+    expect(authorSelectTrigger).toHaveTextContent('Select author');
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDisabled();
+  });
+
   it('CMP-008: new update calls addDailyUpdate + saves author to localStorage', async () => {
-    vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
     render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
 
     fireEvent.click(screen.getByText('Add Update'));
@@ -179,7 +339,7 @@ describe('DailyUpdateFeed — add update', () => {
     fireEvent.change(textarea, { target: { value: 'New update content' } });
     fireEvent.click(screen.getByText('Add'));
 
-    await waitFor(() => expect(apiClient.addDailyUpdate).toHaveBeenCalled());
+    await waitFor(() => expect(addSpy).toHaveBeenCalledWith('t1', { authorId: 'm1', content: 'New update content' }));
     expect(localStorage.getItem('taskflow-last-author')).toBeTruthy();
     expect(onMutate).toHaveBeenCalled();
   });
@@ -208,6 +368,121 @@ describe('DailyUpdateFeed — add update', () => {
     fireEvent.click(screen.getByText('Add'));
 
     await waitFor(() => expect(localStorage.getItem('taskflow-last-author')).toBeTruthy());
+  });
+
+  it('CMP-048: second submit is ignored while add request is in flight', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'In-flight update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(addBtn).toBeDisabled();
+
+    fireEvent.click(addBtn!);
+    expect(addSpy).toHaveBeenCalledTimes(1);
+
+    pending.resolve(makeUpdate({ id: 'u99', content: 'In-flight update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalled();
+    });
+  });
+
+  it('CMP-066: rapid double-click submit only fires one add request', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'Rapid click update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+
+    fireEvent.click(addBtn!);
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+
+    pending.resolve(makeUpdate({ id: 'u100', content: 'Rapid click update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('CMP-060: task switch resets add-dialog state (open, content, author, loading)', async () => {
+    const pending = deferred<DailyUpdate>();
+    const addSpy = vi.spyOn(apiClient, 'addDailyUpdate').mockImplementation(() => pending.promise);
+    const { rerender } = render(
+      <DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'Pending update' } });
+
+    const addBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(addBtn).toBeDefined();
+    fireEvent.click(addBtn!);
+
+    await waitFor(() => {
+      expect(addSpy).toHaveBeenCalledTimes(1);
+    });
+    expect(addBtn).toBeDisabled();
+
+    rerender(
+      <DailyUpdateFeed taskId="t2" dailyUpdates={[]} members={members} onMutate={onMutate} />,
+    );
+
+    expect(screen.queryByPlaceholderText("What's the latest?")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Add Update'));
+    const reopenedTextarea = screen.getByPlaceholderText("What's the latest?");
+    expect(reopenedTextarea).toHaveValue('');
+    fireEvent.change(reopenedTextarea, { target: { value: 'Fresh update' } });
+
+    const reopenedAddBtn = screen.getAllByText('Add').find(
+      el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'),
+    );
+    expect(reopenedAddBtn).toBeDefined();
+    expect(reopenedAddBtn).not.toBeDisabled();
+
+    pending.resolve(makeUpdate({ id: 'u60', content: 'Pending update' }));
+    await waitFor(() => {
+      expect(onMutate).toHaveBeenCalled();
+    });
+  });
+
+  it('CMP-055: add success with failing onMutate does not show destructive toast', async () => {
+    // Parity test with SubTaskList CMP-050 — DailyUpdateFeed now uses triggerMutate wrapper.
+    vi.spyOn(apiClient, 'addDailyUpdate').mockResolvedValue(makeUpdate({ id: 'u99', content: 'New' }));
+    const failingOnMutate = vi.fn().mockRejectedValue(new Error('Refresh failed'));
+    render(<DailyUpdateFeed taskId="t1" dailyUpdates={[]} members={members} onMutate={failingOnMutate} />);
+
+    fireEvent.click(screen.getByText('Add Update'));
+    fireEvent.change(screen.getByPlaceholderText("What's the latest?"), { target: { value: 'New update content' } });
+    fireEvent.click(screen.getAllByText('Add').find(el => el.tagName === 'BUTTON' && el.closest('[role="dialog"]'))!);
+
+    await waitFor(() => expect(apiClient.addDailyUpdate).toHaveBeenCalled());
+    await waitFor(() => expect(failingOnMutate).toHaveBeenCalledTimes(1));
+    expect(mockToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ variant: 'destructive', description: 'Refresh failed' }),
+    );
   });
 });
 

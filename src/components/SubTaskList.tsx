@@ -1,4 +1,5 @@
-import { useState, useRef, useCallback, useMemo, memo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect, memo } from 'react';
+import type { FocusEvent, KeyboardEvent } from 'react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -9,6 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import { apiClient } from '@/lib/api';
 import { MAX_SUBTASK_TITLE_LENGTH } from '@/lib/api/constants';
 import { SubTask } from '@/types';
+import { useSafeMutate } from '@/hooks/useSafeMutate';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { GripVertical, Plus, X, Loader2 } from 'lucide-react';
@@ -16,7 +18,7 @@ import { GripVertical, Plus, X, Loader2 } from 'lucide-react';
 interface SubTaskListProps {
   taskId: string;
   subTasks: SubTask[];
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }
 
 const SortableSubTaskItem = memo(function SortableSubTaskItem({
@@ -26,7 +28,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 }: Readonly<{
   sub: SubTask;
   taskId: string;
-  onMutate: () => void;
+  onMutate: () => void | Promise<void>;
 }>) {
   const { toast } = useToast();
   const [completed, setCompleted] = useState(sub.completed);
@@ -34,16 +36,30 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
   const [deleting, setDeleting] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(sub.title);
+  const editTitleRef = useRef(sub.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const savingRef = useRef(false);
+  const skipBlurAfterEnterRef = useRef(false);
 
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: sub.id });
   const style = { transform: CSS.Transform.toString(transform), transition };
 
-  // Sync optimistic state with prop
-  if (!toggling && completed !== sub.completed) {
-    setCompleted(sub.completed);
-  }
+  // Sync completed state when prop changes (e.g. parent refresh between toggles).
+  useEffect(() => {
+    if (!toggling && completed !== sub.completed) {
+      setCompleted(sub.completed);
+    }
+  }, [sub.completed, toggling, completed]);
+
+  // Sync editTitle/ref when sub.title prop changes while not in editing mode
+  // (e.g. parent refresh after another mutation). Prevents stale pre-population
+  // on the next click-to-edit.
+  useEffect(() => {
+    if (!editing) {
+      setEditTitle(sub.title);
+      editTitleRef.current = sub.title;
+    }
+  }, [sub.title, editing]);
 
   const handleToggle = useCallback(async () => {
     if (toggling) return;
@@ -81,35 +97,64 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
     if (savingRef.current) return;
     savingRef.current = true;
     try {
-      const trimmed = editTitle.trim();
+      const trimmed = editTitleRef.current.trim();
       if (!trimmed) {
         toast({ variant: 'destructive', title: 'Error', description: 'Sub-task title is required' });
+        editTitleRef.current = sub.title;
         setEditTitle(sub.title);
         setEditing(false);
         return;
       }
       if (trimmed.length > MAX_SUBTASK_TITLE_LENGTH) {
         toast({ variant: 'destructive', title: 'Error', description: `Sub-task title must be ${MAX_SUBTASK_TITLE_LENGTH} characters or fewer` });
+        editTitleRef.current = sub.title;
         setEditTitle(sub.title);
         setEditing(false);
         return;
       }
       if (trimmed === sub.title) {
+        editTitleRef.current = sub.title;
         setEditing(false);
         return;
       }
       try {
         await apiClient.editSubTask(taskId, sub.id, { title: trimmed });
         onMutate();
+        setEditing(false);
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'An error occurred';
         toast({ variant: 'destructive', title: 'Error', description: msg });
+        editTitleRef.current = trimmed;
+        setEditTitle(trimmed);
       }
-      setEditing(false);
     } finally {
       savingRef.current = false;
     }
-  }, [editTitle, sub.title, sub.id, taskId, onMutate, toast]);
+  }, [sub.title, sub.id, taskId, onMutate, toast]);
+
+  const handleEditKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      skipBlurAfterEnterRef.current = true;
+      void saveEdit();
+      return;
+    }
+    if (e.key === 'Escape') {
+      // Also suppress the browser blur that fires when Input unmounts while focused.
+      // Without this, real browsers would call saveEdit() with the stale user-typed value.
+      skipBlurAfterEnterRef.current = true;
+      editTitleRef.current = sub.title;
+      setEditTitle(sub.title);
+      setEditing(false);
+    }
+  }, [saveEdit, sub.title]);
+
+  const handleEditBlur = useCallback((_e: FocusEvent<HTMLInputElement>) => {
+    if (skipBlurAfterEnterRef.current) {
+      return;
+    }
+    void saveEdit();
+  }, [saveEdit]);
 
   return (
     <div ref={setNodeRef} style={style} className="flex items-center gap-2 group">
@@ -121,25 +166,33 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
         <Input
           ref={inputRef}
           value={editTitle}
-          onChange={e => setEditTitle(e.target.value)}
+          onChange={e => {
+            editTitleRef.current = e.target.value;
+            setEditTitle(e.target.value);
+          }}
           maxLength={MAX_SUBTASK_TITLE_LENGTH}
           className="text-sm h-7 flex-1"
           autoFocus
-          onKeyDown={e => {
-            if (e.key === 'Enter') { e.preventDefault(); saveEdit(); }
-            if (e.key === 'Escape') { setEditTitle(sub.title); setEditing(false); }
-          }}
-          onBlur={saveEdit}
+          onKeyDown={handleEditKeyDown}
+          onBlur={handleEditBlur}
         />
       ) : (
       <span
           className={cn('text-sm flex-1 cursor-pointer hover:underline', completed && 'line-through text-muted-foreground')}
-          onClick={() => { setEditing(true); setEditTitle(sub.title); }}
+          onClick={() => {
+            skipBlurAfterEnterRef.current = false;
+            editTitleRef.current = sub.title;
+            setEditing(true);
+            setEditTitle(sub.title);
+          }}
           role="button"
+          aria-label={`Edit sub-task: ${sub.title}`}
           tabIndex={0}
           onKeyDown={e => {
             if (e.key === 'Enter' || e.key === ' ') {
               e.preventDefault();
+              skipBlurAfterEnterRef.current = false;
+              editTitleRef.current = sub.title;
               setEditing(true);
               setEditTitle(sub.title);
             }
@@ -149,7 +202,7 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
         </span>
       )}
       <Button
-        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 focus:opacity-100"
+        variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
         data-testid={`delete-subtask-${sub.id}`}
         aria-label="Delete sub-task"
         disabled={deleting}
@@ -164,9 +217,19 @@ const SortableSubTaskItem = memo(function SortableSubTaskItem({
 export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskListProps>) {
   const { toast } = useToast();
   const [newSub, setNewSub] = useState('');
+  const newSubRef = useRef('');
   const [adding, setAdding] = useState(false);
   const [items, setItems] = useState<SubTask[]>([]);
   const [reordering, setReordering] = useState(false);
+  const isDraggingRef = useRef(false);
+  const triggerMutate = useSafeMutate(onMutate);
+  const awaitableTriggerMutate = useCallback(async () => {
+    try {
+      await onMutate();
+    } catch {
+      // Keep UX stable when background refresh fails after successful reorder.
+    }
+  }, [onMutate]);
 
   // Keep local items in sync with prop (unless actively reordering)
   const sorted = useMemo(
@@ -185,27 +248,31 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   const handleAdd = useCallback(async () => {
-    const title = newSub.trim();
+    const title = newSubRef.current.trim();
     if (!title || adding) return;
     setAdding(true);
     try {
       await apiClient.addSubTask(taskId, { title });
       setNewSub('');
-      onMutate();
+      newSubRef.current = '';
+      triggerMutate();
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'An error occurred';
       toast({ variant: 'destructive', title: 'Error', description: msg });
     } finally {
       setAdding(false);
     }
-  }, [newSub, adding, taskId, onMutate, toast]);
+  }, [adding, taskId, triggerMutate, toast]);
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id || isDraggingRef.current) return;
 
     const oldIndex = sorted.findIndex(s => s.id === active.id);
     const newIndex = sorted.findIndex(s => s.id === over.id);
+    if (oldIndex < 0 || newIndex < 0) return;
+
+    isDraggingRef.current = true;
     const reordered = arrayMove(sorted, oldIndex, newIndex);
     const orderedIds = reordered.map(s => s.id);
 
@@ -213,15 +280,22 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
     setReordering(true);
 
     try {
-      await apiClient.reorderSubTasks(taskId, orderedIds);
-      onMutate();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'An error occurred';
-      toast({ variant: 'destructive', title: 'Error', description: msg });
+      try {
+        await apiClient.reorderSubTasks(taskId, orderedIds);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'An error occurred';
+        toast({ variant: 'destructive', title: 'Error', description: msg });
+        return;
+      }
+
+      await awaitableTriggerMutate();
     } finally {
+      isDraggingRef.current = false;
+      // Safety net: ensures reordering clears even if an unexpected throw
+      // occurs between setReordering(true) and the normal setReordering(false) paths.
       setReordering(false);
     }
-  }, [sorted, taskId, onMutate, toast]);
+  }, [sorted, taskId, awaitableTriggerMutate, toast]);
 
   return (
     <div className="space-y-3">
@@ -239,7 +313,7 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
         <SortableContext items={displayItems.map(s => s.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {displayItems.map(sub => (
-              <SortableSubTaskItem key={sub.id} sub={sub} taskId={taskId} onMutate={onMutate} />
+              <SortableSubTaskItem key={sub.id} sub={sub} taskId={taskId} onMutate={triggerMutate} />
             ))}
           </div>
         </SortableContext>
@@ -248,10 +322,10 @@ export function SubTaskList({ taskId, subTasks, onMutate }: Readonly<SubTaskList
         <Input
           placeholder="Add sub-task..."
           value={newSub}
-          onChange={e => setNewSub(e.target.value)}
+          onChange={e => { newSubRef.current = e.target.value; setNewSub(e.target.value); }}
           maxLength={MAX_SUBTASK_TITLE_LENGTH}
           onKeyDown={async e => {
-            if (e.key === 'Enter' && newSub.trim() && !adding) {
+            if (e.key === 'Enter' && newSubRef.current.trim() && !adding) {
               await handleAdd();
             }
           }}
