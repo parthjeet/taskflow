@@ -163,7 +163,7 @@ export default function Dashboard() {
             className="w-[130px] font-mono text-sm"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectTrigger data-testid="status-filter-trigger" className="w-[140px]"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="To Do">To Do</SelectItem>
@@ -173,7 +173,7 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
+            <SelectTrigger data-testid="priority-filter-trigger" className="w-[130px]"><SelectValue placeholder="Priority" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Priorities</SelectItem>
               <SelectItem value="High">High</SelectItem>
@@ -182,7 +182,7 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
           <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Assigned To" /></SelectTrigger>
+            <SelectTrigger data-testid="assignee-filter-trigger" className="w-[160px]"><SelectValue placeholder="Assigned To" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Members</SelectItem>
               <SelectItem value="unassigned">Unassigned</SelectItem>
@@ -190,7 +190,7 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
           <Select value={sort} onValueChange={v => setSort(v as DashboardSort)}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Sort" /></SelectTrigger>
+            <SelectTrigger data-testid="sort-filter-trigger" className="w-[160px]"><SelectValue placeholder="Sort" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="updated">Recently Updated</SelectItem>
               <SelectItem value="created">Recently Created</SelectItem>
