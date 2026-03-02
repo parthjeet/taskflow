@@ -62,6 +62,9 @@ Use a **PR / Nightly / Weekly** model:
 - **Nightly/Weekly**: Long-running or expensive suites (perf, chaos, large datasets)
 - Avoid re-listing all tests (refer to coverage plan)
 
+**Proactive Tooling Strategy:**
+- Note where Playwright MCP should be explicitly utilized by the development team during implementation to verify selectors and test functionality before opening PRs.
+
 ---
 
 ## 3. Resource Estimates (Ranges Only)
